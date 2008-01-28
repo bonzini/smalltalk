@@ -35,54 +35,56 @@
 | Author       Date       Change 
 "
 
-
-FileStream fileIn: 'ExpansionStreamStack.st' ifMissing: #ExpansionStreamStack!
-
-
-PushBackStream subclass: #ExpansionStream
-	       instanceVariableNames: ''
-	       classVariableNames: ''
-	       poolDictionaries: ''
-	       category: nil
-!
+StreamStack subclass: #ExpansionStreamStack
+       instanceVariableNames: ''
+       classVariableNames: ''
+       poolDictionaries: ''
+       category: nil
+! 
 
 
-!ExpansionStream class methodsFor: 'instance creation'!
+!ExpansionStreamStack class methodsFor: 'instance creation'!
 
 new
-    ^super on: ExpansionStreamStack new
+    "hacks are us!"
+    ^self basicNew init
 ! !
 
+!ExpansionStreamStack methodsFor: 'accessing'!
 
-!ExpansionStream methodsFor: '???'!
-
-
-addStream: aStream
-    stream pushStream: aStream forMacro: nil
+pushStream: aStream
+    ^self error: 'Invalid operation on this class'
 !
 
-recordExpansionOf: aMacroName into: tokenCollection
-    stream pushStream: (ReadStream on: tokenCollection) forMacro: aMacroName
+
+pushStream: aStream forMacro: macroName
+    super pushStream: (aStream -> macroName)
+! 
+
+topStream
+    ^super topStream key
 !
 
-isAlreadyExpanded: aMacroName
-    ^stream containsExpansion: aMacroName
+containsExpansion: macroName
+  "  '>>>>>>>> checking containing of: ' print. macroName printNl."
+    ^(stack detect: [ :element | element value = macroName ]
+	   ifNone: [ "'did not find it!!!' printNl. "nil ]) notNil
+!
+
+popStream
+    | stream |
+    stream _ stack removeFirst.
+    stream key close
 ! 
 
 nextBypass
-    ^stream nextBypass
+    ^self topStream next
+    "^self topStream nextBypass"
 !
 
 atRealEnd
-    ^stream atRealEnd
+    ^self topStream atEnd
+    "^self topStream atRealEnd"
 ! !
 
-"
-??? DO we heave to add these?
-atEnd?
-next
-peek
-putBack ?
-
-"
 

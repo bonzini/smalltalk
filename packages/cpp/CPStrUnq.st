@@ -35,8 +35,6 @@
 |
 "
 
-FileStream fileIn: 'CToken.st' ifMissing: #CToken !
-
 PushBackStream subclass: #StringUnquoteStream
 	       instanceVariableNames: ''
 	       classVariableNames: ''

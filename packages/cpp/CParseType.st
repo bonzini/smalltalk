@@ -37,12 +37,6 @@
 
 
 
-FileStream require: #PreprocessorStream -> 'CPP.st' !
-FileStream require: #CSymbol -> 'CSymbol.st'!
-FileStream require: #CDeclarationNode -> 'CDeclNode.st'!
-FileStream require: #CSymbolTable -> 'CSymbolTable.st'!
-
-
 "Here's the probelm:
 
 at what level is the symbol table management done?  we could do it here,

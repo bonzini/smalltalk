@@ -44,8 +44,6 @@ Or, each could check for nil.   Or we bottle neck all through an inherited
 method which does the nil check.
 "
 
-FileStream require: #CSymbol -> 'CSymbol.st'!
-
 
 Object subclass: #CDeclarationNode
        instanceVariableNames: ''

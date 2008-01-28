@@ -38,18 +38,6 @@
 "
 
 
-| dir |
-dir := Directory working.
-Directory working: Directory kernel, '/../cint'.
-FileStream fileIn: 'LineStream.st'.
-FileStream fileIn: 'LineTokenStream.st'.
-FileStream fileIn: 'CPStrUnq.st'.
-FileStream fileIn: 'CPStrConc.st'.
-FileStream fileIn: 'ExpansionStream.st'.
-FileStream fileIn: 'CTreeBuilder.st'.
-FileStream fileIn: 'CollapsedStream.st'.
-Directory working: dir!
-
 "Overall structure of the scanner:
 
   raw character stream, {maybe with pushback}
@@ -226,9 +214,8 @@ test2
 
 test3
     | s |
-    "s := LineStream onStream: (FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r')."
-    "s := LineStream onStream: (FileStream open: 'xl.h' mode: 'r')."
-    s := LineStream onStream: (FileStream open: 'lib/sym.c' mode: 'r').
+    "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
+    s := FileStream open: 'lib/sym.c' mode: 'r'.
     s := LineTokenStream onStream: s.
     s := PPStream onStream: s.
     s printNl.
@@ -237,9 +224,9 @@ test3
 
 test4
     | s |
-    "s := LineStream onStream: (FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r')."
-    "s := LineStream onStream: (FileStream open: 'xl.h' mode: 'r')."
-    s := LineStream onStream: (FileStream open: 'lib/sym.c' mode: 'r').
+    "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
+    "s := FileStream open: 'xl.h' mode: 'r'."
+    s := FileStream open: 'lib/sym.c' mode: 'r'.
     s := LineTokenStream onStream: s.
     s inspect.
     s := CollapsedStream on: s.
@@ -249,9 +236,9 @@ test4
 
 test5
     | s expStream |
-    "s := LineStream onStream: (FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r')."
-    "s := LineStream onStream: (FileStream open: 'xl.h' mode: 'r')."
-    s := LineStream onStream: (FileStream open: 'lib/sym.c' mode: 'r').
+    "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
+    "s := FileStream open: 'xl.h' mode: 'r'."
+    s := FileStream open: 'lib/sym.c' mode: 'r'.
     s := LineTokenStream onStream: s.
     expStream := ExpansionStream new.
     expStream addStream: (CollapsedStream on: s).
@@ -334,8 +321,7 @@ init: aStream
     "This works by stacking different kinds of preprocessing streams
      one on top of another, each doing a specific task.  As in Unix, 
      this sacrifices performance for some elegance/simplicity."
-    str _ LineStream onStream: aStream.
-    str _ LineTokenStream onStream: str.
+    str _ LineTokenStream onStream: aStream.
     str _ PPStream onStream: str.
 
     str _ StringUnquoteStream on: str.
@@ -808,10 +794,10 @@ handleInclude
 
 pushStream: aStream
     stream pushStream: aStream
-! 
+!
 
 findIncludeFile: fileName locally: locally
-    | paths file stream |
+    | paths file |
     " !!! should this be smarter and search the current directory by default,
      that is, the directory of the includer, or not?.  GNU CPP uses for quote
      delimited include file names the directory of the current input file (as 
@@ -906,7 +892,8 @@ skipDirective
 !PPStream methodsFor: 'private'!
 
 setStream: aStream
-    super init: aStream.
+    super init: StreamStack new.
+    stream pushStream: aStream.
     state _ PPState ignoring: false handled: false.
     stateStack _ OrderedCollection new.
     cppSymbols _ PreprocessorStream symbols.

@@ -56,8 +56,6 @@ Object subclass: #CExpressionParser
 ! 
 
 
-FileStream fileIn: 'CExpressionNode.st' ifMissing: #CExpressionNode!
-
 !CExpressionParser class methodsFor: 'instance creation'!
 
 onStream: aStream

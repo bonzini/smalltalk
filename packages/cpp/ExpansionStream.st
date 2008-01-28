@@ -1,6 +1,6 @@
 "======================================================================
 |
-|   Test CParseType
+|   C preprocessor macro expansion support
 |
 |
  ======================================================================"
@@ -28,23 +28,59 @@
 |
  ======================================================================"
 
-FileStream require: #CTypeParser -> 'CParseType.st'!
 
-ObjectMemory snapshot!
+"
+|     Change Log
+| ============================================================================
+| Author       Date       Change 
+"
 
-| x |
-     CTypeParser test: 'test.c'
+
+
+PushBackStream subclass: #ExpansionStream
+	       instanceVariableNames: ''
+	       classVariableNames: ''
+	       poolDictionaries: ''
+	       category: nil
 !
 
-| x |
-     CTypeParser testJust2: 'test.c'
+
+!ExpansionStream class methodsFor: 'instance creation'!
+
+new
+    ^super on: ExpansionStreamStack new
+! !
+
+
+!ExpansionStream methodsFor: '???'!
+
+
+addStream: aStream
+    stream pushStream: aStream forMacro: nil
 !
 
-| x |
-     CTypeParser test2: 'test.c'
+recordExpansionOf: aMacroName into: tokenCollection
+    stream pushStream: (ReadStream on: tokenCollection) forMacro: aMacroName
 !
 
-| x |
-     CTypeParser test2: '/usr/include/dbm.h'
+isAlreadyExpanded: aMacroName
+    ^stream containsExpansion: aMacroName
+! 
+
+nextBypass
+    ^stream nextBypass
 !
+
+atRealEnd
+    ^stream atRealEnd
+! !
+
+"
+??? DO we heave to add these?
+atEnd?
+next
+peek
+putBack ?
+
+"
 

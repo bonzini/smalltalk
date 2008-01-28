@@ -35,9 +35,6 @@
 | sbb	      8 Sep 93	  Cloned from LineStream
 "
 
-FileStream fileIn: 'CToken.st'!
-FileStream fileIn: 'LineStream.st' ifMissing: #LineStream !
-
 PushBackStream subclass: #LineTokenStream
        instanceVariableNames: 'lineStream'
        classVariableNames: 'LexMethods LexExtra ReservedIds COperatorDict'
@@ -46,7 +43,7 @@ PushBackStream subclass: #LineTokenStream
 !
 
 LineTokenStream comment:
-'I expect to read from a LineStream, and tokenize the characters that I 
+'I expect to read from a Stream of lines, and tokenize the characters that I 
 find there.  I yield, via my #next method, collections of tokens which
 correspond to those input lines' !
 
@@ -216,11 +213,11 @@ initRange: aRange
 !LineTokenStream class methodsFor: 'instance creation'!
 
 on: aString
-    ^self onStream: (ReadStream on: aString)
+    ^self onStream: (ReadStream on: aString) lines
 !
 
 onStream: aStream
-    ^self new setStream: aStream
+    ^self new setStream: aStream lines
 ! !
 
 
@@ -700,12 +697,12 @@ LineTokenStream initialize!
 "
 | s str |
  
-     s _ LineStream onStream: (FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r').
+     s _ FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'.
      s _ LineTokenStream onStream: s.
     s printNl.
     s do: [ :line | line printNl. ].
 !
 
-     s _ LineStream onStream: (FileStream open: 'xl.h' mode: 'r').
+     s _ FileStream open: 'xl.h' mode: 'r'.
 
 "
