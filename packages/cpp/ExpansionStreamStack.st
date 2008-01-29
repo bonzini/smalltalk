@@ -63,12 +63,6 @@ containsExpansion: macroName
   "  '>>>>>>>> checking containing of: ' print. macroName printNl."
     ^(stack detect: [ :element | element value = macroName ]
 	   ifNone: [ "'did not find it!!!' printNl. "nil ]) notNil
-!
-
-popStream
-    | stream |
-    stream _ stack removeFirst.
-    stream key close
 ! !
 
 

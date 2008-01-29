@@ -98,9 +98,8 @@ topStream
 !
 
 popStream
-    | stream |
-    stream _ stack removeFirst.
-    stream close
+    self topStream close.
+    stack removeFirst.
 !
 
 hasStreams
