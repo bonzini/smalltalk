@@ -374,12 +374,9 @@ next
 expandDefinedFrom: expStream
     "Either 'defined/\ <anIdent>' or 'defined/\(<anIdent>)'"
     | ident tok result|
-    self skipWhitespaceOn: expStream.
     tok _ expStream next.
     tok class == OpenParenTok
-	ifTrue: [ self skipWhitespaceOn: expStream.
-		  ident _ expStream next.
-		  self skipWhitespaceOn: expStream. 
+	ifTrue: [ ident _ expStream next.
 		  expStream next "gobble ')' " ]
 	ifFalse: [ ident _ tok ].
     
@@ -399,7 +396,6 @@ nextLine
 	[ line _ stream next.
 	  lineStream _ ReadStream on: line.
     
-	  self skipWhitespace.
 	  lineStream atEnd
 	      ifFalse: 
 		  [ ch _ lineStream peek.
@@ -475,12 +471,10 @@ expandMacro: macroName from: expStream
 processMacroToken: token into: result fromStream: expStream withParams: params
     | paramName lastToken nextToken nextParams |
     
-    (token isMemberOf: WhitespaceTok) ifTrue: [ ^self "reject these asap" ].
     (token class == CBinaryOperatorToken 
 	and: [ token value = '##' ]) 
 	ifTrue: 
 	    [ lastToken _ result removeLast.
-	      self skipWhitespaceOn: expStream.
 	      nextToken _ expStream next.
 	      "'[[[[[[[[[ next is ' print. nextToken printNl."
 	      (nextToken class == IdentifierTok
@@ -498,8 +492,7 @@ processMacroToken: token into: result fromStream: expStream withParams: params
 			     ^result addLast: lastToken ]
 	      ].
     (self isSharp: token)
-	ifTrue: [ self skipWhitespaceOn: expStream.
-		  paramName _ expStream next.
+	ifTrue: [ paramName _ expStream next.
 		  ^result addLast: 
 		      (self stringifyActual: 
 			   (params at: paramName)) ].
@@ -539,7 +532,6 @@ parseMacroActuals: names fromStream: expStream
     " expecting scanner to be at foo/\ (arg1, arg2, ...), leaves after eating
      the close paren"
     paramDict _ Dictionary new.
-    self skipWhitespaceOn: expStream.
     expStream next.		"gobble ("
 
     names do: 
@@ -562,7 +554,6 @@ parseMacroActual: expStream
 	 or a comma, returning the list, minus white spaces at either end"
     | result token parenLevel |
     result _ OrderedCollection new.
-    self skipWhitespaceOn: expStream.
     parenLevel _ 0.
     
     [ token _ expStream peek.
@@ -578,10 +569,6 @@ parseMacroActual: expStream
 			  ifTrue: [ parenLevel _ parenLevel - 1 ]. 
 		      ].
 
-    " trim trailing whitespace "
-    [ result size > 0 
-	  and: [ (result at: result size) class == WhitespaceTok ]]
-	whileTrue: [ result removeLast ].
     ^result
 !
 
@@ -613,7 +600,6 @@ isSharp: token
 
 dispatchDirective
     | directive |
-    self skipWhitespace.
     directive := lineStream next.
 
     self perform: (DirectiveHandlers
@@ -629,7 +615,6 @@ handleUndef
     state isIgnoring
 	ifTrue: [ ^true ].
 
-    self skipWhitespace.
     symbol _ lineStream next.
     "'undefining' print. symbol value printNl."
     cppSymbols removeKey: symbol ifAbsent: [].
@@ -640,7 +625,6 @@ handleDefine
     state isIgnoring
 	ifTrue: [ ^true ].
 
-    self skipWhitespace.
     symbol _ lineStream next.
 
     "'defining' print. symbol value printNl."
@@ -648,7 +632,6 @@ handleDefine
     tok class == OpenParenTok
 	ifTrue: [ "'doing parameters' printNl." params _ self parseMacroParams ].
 
-    self skipWhitespace.
     definition _ OrderedCollection new.
     [ lineStream atEnd ] whileFalse:
 	[ definition addLast: lineStream next ].
@@ -668,10 +651,8 @@ parseMacroParams
     tok _ lineStream peek.
     tok class ~~ CloseParenTok 
 	ifTrue: 
-	    [ [ self skipWhitespace.
-		ident _ lineStream next.
+	    [ [ ident _ lineStream next.
 		params addLast: ident.
-		self skipWhitespace.
 		tok _ lineStream next.
 		tok value = ',' ] whileTrue: [ ] ]
 	ifFalse: [ lineStream next ].
@@ -682,22 +663,6 @@ parseMacroParams
 !
 
 
-skipWhitespace
-    ^self skipWhitespaceOn: lineStream
-!
-
-"!!! this should probably be a method on the individual stream"
-skipWhitespaceOn: aStream
-    | tok |
-    [ aStream atEnd not
-	  and: [ tok _ aStream peek.
-		 tok class == WhitespaceTok ]
-	  ]
-	whileTrue: [ aStream next ]
-!
-
-
-
 handleIfdef
     | symbol isDefined |
     stateStack addFirst: state.
@@ -706,7 +671,6 @@ handleIfdef
 		  "we continue ignoring and do no further processing"
 		  ^self ].
 		  
-    self skipWhitespace.
     symbol _ lineStream next.
     
     isDefined _ (cppSymbols includesKey: symbol).
@@ -722,7 +686,6 @@ handleIfndef
 		  "we continue ignoring and do no further processing"
 		  ^self ].
 		  
-    self skipWhitespace.
     symbol _ lineStream next.
     
     isDefined _ (cppSymbols includesKey: symbol).
@@ -735,7 +698,6 @@ handleInclude
     state isIgnoring
 	ifTrue: [ ^true ].
 
-    self skipWhitespace.
     token _ lineStream next.
     token class == StringTok
 	ifTrue: [ fileName _ token value.
@@ -806,8 +768,7 @@ parseExpression
      tree"
     | exprParser expr cleanedLine |
     
-    cleanedLine _ self macroExpandRemainder reject:
-	[ :token | token isMemberOf: WhitespaceTok ].
+    cleanedLine _ self macroExpandRemainder.
 
     "'parsing. ' print. cleanedLine copy upToEnd printNl."
 

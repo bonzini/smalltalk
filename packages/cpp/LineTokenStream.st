@@ -219,13 +219,11 @@ onStream: aStream
 !LineTokenStream methodsFor: 'basic'!
 
 next
-    | token tempTok result lastWasWhite |
+    | token tempTok result |
     queue size > 0
 	ifTrue: [ ^queue removeFirst ].
 
     result _ (Array new: 5) writeStream.
-
-    lastWasWhite _ false.
 
     "cases:
      we start on a line boundary (we guarantee that to ourselves)
@@ -248,17 +246,8 @@ next
     "collect and return a line of tokens"
     [ token _ self nextToken.
       token isNil ] 
-	whileFalse: 
-	    [ token class == WhitespaceTok
-		  ifTrue: 
-		      [ lastWasWhite 
-			    ifFalse: 
-				[ lastWasWhite _ true.
-				  result nextPut: token ]
-			    ]
-		  ifFalse: [ lastWasWhite _ false.
-			     result nextPut: token ]
-		  ].
+	whileFalse: [ result nextPut: token ].
+
     ^result contents
 ! !
 
@@ -299,7 +288,7 @@ ignoreTok: aChar
 !
 
 whiteTok: aChar
-    ^WhitespaceTok new.
+    ^nil
 !
 
 charLitTok: aChar
@@ -548,10 +537,10 @@ parseComment
 	  ifTrue: [ lineStream peek == $/ 
 			ifTrue: [ "we're done!"
 				  lineStream next. 
-				  ^WhitespaceTok new ].
+				  ^nil ].
 		    ].
       true] whileTrue: [ ].
-    ^WhitespaceTok new.
+    ^nil
 !
 
 isSpecial: ch

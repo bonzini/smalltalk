@@ -174,7 +174,6 @@ isBinary
     (#OpenBraceTok '{')
     (#CloseBraceTok '}')
     (#DotDotDotTok '...')
-    (#WhitespaceTok ' ')
 ) do: [ :classNameValue | name _ classNameValue at: 1.
 			  value _ classNameValue at: 2.
 			  class _ CToken subclass: name
