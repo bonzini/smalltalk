@@ -243,7 +243,7 @@ next
 
     stream atEnd ifTrue: [ ^nil ].
 
-    lineStream _ PushBackStream on: (ReadStream on: stream next).
+    self advanceLine.
 
     "collect and return a line of tokens"
     [ token _ self nextToken.
@@ -265,13 +265,27 @@ next
 
 !LineTokenStream methodsFor: 'token parsing'!
 
+nextChar
+    | ch |
+    [
+	lineStream atEnd ifTrue: [ ^nil ].
+	ch := lineStream next.
+	ch = $\ and: [ lineStream atEnd ] ]
+	    whileTrue: [ self advanceLine ].
+    ^ch
+!
+
+advanceLine
+    lineStream _ PushBackStream on: (ReadStream on: stream next)
+!
+
 nextToken
     | ch tok |
 
-    [ lineStream atEnd ifTrue: [ ^nil ].
-      ch _ lineStream next.
+    [ ch _ self nextChar.
+      ch isNil ifTrue: [ ^nil ].
       tok _ self perform: (LexMethods at: ch asciiValue) with: ch.
-      tok isNil ] whileTrue: [ ].
+      tok isNil ] whileTrue.
     ^tok
 !
 
