@@ -207,7 +207,6 @@ test3
     | s |
     "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
     s := FileStream open: 'lib/sym.c' mode: 'r'.
-    s := LineTokenStream onStream: s.
     s := PPStream onStream: s.
     s printNl.
     s do: [ :line | line printNl. ].
@@ -218,7 +217,6 @@ test4
     "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
     "s := FileStream open: 'xl.h' mode: 'r'."
     s := FileStream open: 'lib/sym.c' mode: 'r'.
-    s := LineTokenStream onStream: s.
     s inspect.
     s := CollapsedStream on: s.
     s printNl.
@@ -230,7 +228,6 @@ test5
     "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
     "s := FileStream open: 'xl.h' mode: 'r'."
     s := FileStream open: 'lib/sym.c' mode: 'r'.
-    s := LineTokenStream onStream: s.
     expStream := ExpansionStream new.
     expStream addStream: (CollapsedStream on: s).
     s := expStream.
@@ -312,9 +309,7 @@ init: aStream
     "This works by stacking different kinds of preprocessing streams
      one on top of another, each doing a specific task.  As in Unix, 
      this sacrifices performance for some elegance/simplicity."
-    str _ LineTokenStream onStream: aStream.
-    str _ PPStream onStream: str.
-
+    str _ PPStream onStream: aStream.
     str _ StringUnquoteStream on: str.
     str _ StringConcatStream on: str.
     stream _ str.
@@ -401,8 +396,6 @@ nextLine
     | line ch |
     [ stream atEnd ] whileFalse: 
 	[ line _ stream next.
-    "'consumed' print.
-    line printNl."
 	  lineStream _ ReadStream on: line.
     
 	  self skipWhitespace.
@@ -784,7 +777,7 @@ handleInclude
 !
 
 pushStream: aStream
-    stream pushStream: aStream
+    stream pushStream: (LineTokenStream onStream: aStream).
 !
 
 findIncludeFile: fileName locally: locally
@@ -884,7 +877,7 @@ skipDirective
 
 setStream: aStream
     super init: StreamStack new.
-    stream pushStream: aStream.
+    self pushStream: aStream.
     state _ PPState ignoring: false handled: false.
     stateStack _ OrderedCollection new.
     cppSymbols _ PreprocessorStream symbols.
