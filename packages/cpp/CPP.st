@@ -383,7 +383,7 @@ expandDefinedFrom: expStream
 		  expStream next "gobble ')' " ]
 	ifFalse: [ ident _ tok ].
     
-   'expanding defined' print. ident printNl.  
+   "'expanding defined' print. ident printNl.  "
 
     result _ OrderedCollection new.
     result addLast: 
@@ -397,8 +397,6 @@ nextLine
     | line ch |
     [ stream atEnd ] whileFalse: 
 	[ line _ stream next.
-    "'consumed' print.
-    line printNl."
 	  lineStream _ ReadStream on: line.
     
 	  self skipWhitespace.
@@ -431,7 +429,7 @@ macroExpandRemainder
     expStream pushStream: lineStream.
     [ expStream atEnd ] whileFalse:
 	[ token _ expStream next.
-   "'reading from exp: ' print. token printNl."
+	   "'reading from exp: ' print. token printNl."
    
 	  ((token isMemberOf: IdentifierTok) and: 
 	       [ (cppSymbols includesKey: token) and: 
@@ -450,7 +448,6 @@ macroExpandRemainder
 
 expandMacro: macroName from: expStream
     | defn body params result str paramName |
-    macroName value printNl.
     macroName value = 'defined'
 	ifTrue: [ ^self expandDefinedFrom: expStream ].
     defn _ cppSymbols at: macroName.
@@ -460,7 +457,7 @@ expandMacro: macroName from: expStream
     "Assume we're looking at: 'foo/\ (...'"
     params _ self parseMacroActuals: defn params fromStream: expStream.
      
- ""  '%%%%% macro actuals: ' print. params printNl.""
+    "  '%%%%% macro actuals: ' print. params printNl."
 
     body _ defn definition.
     
@@ -479,7 +476,6 @@ processMacroToken: token into: result fromStream: expStream withParams: params
     | paramName lastToken nextToken nextParams |
     
     (token isMemberOf: WhitespaceTok) ifTrue: [ ^self "reject these asap" ].
- ""   '******** debbie does macros ' print. token printNl. ""
     (token class == CBinaryOperatorToken 
 	and: [ token value = '##' ]) 
 	ifTrue: 
@@ -635,7 +631,7 @@ handleUndef
 
     self skipWhitespace.
     symbol _ lineStream next.
-    'undefining' print. symbol value printNl.
+    "'undefining' print. symbol value printNl."
     cppSymbols removeKey: symbol ifAbsent: [].
 !
     
@@ -647,10 +643,10 @@ handleDefine
     self skipWhitespace.
     symbol _ lineStream next.
 
-    'defining' print. symbol value printNl.
+    "'defining' print. symbol value printNl."
     tok _ lineStream peek.
     tok class == OpenParenTok
-	ifTrue: [ 'doing parameters' printNl. params _ self parseMacroParams ].
+	ifTrue: [ "'doing parameters' printNl." params _ self parseMacroParams ].
 
     self skipWhitespace.
     definition _ OrderedCollection new.
@@ -714,7 +710,7 @@ handleIfdef
     symbol _ lineStream next.
     
     isDefined _ (cppSymbols includesKey: symbol).
-    'ifdef' print. symbol value printNl.  isDefined printNl.
+    "'ifdef' print. symbol value printNl.  isDefined printNl."
     state _ PPState ignoring: isDefined not handled: isDefined
 ! 
 
@@ -730,7 +726,7 @@ handleIfndef
     symbol _ lineStream next.
     
     isDefined _ (cppSymbols includesKey: symbol).
-    'ifndef' print. symbol value printNl.  isDefined printNl.
+    "'ifndef' print. symbol value printNl.  isDefined printNl."
     state _ PPState ignoring: isDefined handled: isDefined not
 !
 
@@ -789,11 +785,6 @@ addIncludePath: aPath
     ^PreprocessorStream addUserIncludePath: aPath
 !
 
-"???how to handle defined?  One alternative is to have all macros
- expanded by now (I think a requirement), and have part of the macro
- expansion specially check for defined and do the right thing"
-
-
 handleIf
     | expr exprBool |
     stateStack addFirst: state.
@@ -805,7 +796,7 @@ handleIf
     expr _ self parseExpression.
     
     exprBool _ (expr evaluate) ~= 0.
-    'if' print. exprBool printNl.
+    "'if' print. exprBool printNl."
     state _ PPState ignoring: exprBool not
 		    handled: exprBool
 ! 
@@ -818,7 +809,7 @@ parseExpression
     cleanedLine _ self macroExpandRemainder reject:
 	[ :token | token isMemberOf: WhitespaceTok ].
 
-    'parsing. ' print. cleanedLine copy upToEnd printNl.
+    "'parsing. ' print. cleanedLine copy upToEnd printNl."
 
     exprParser _ CExpressionParser onStream: (PushBackStream on: cleanedLine).
     expr _ exprParser parseExpression.
@@ -830,7 +821,7 @@ handleElse
 	ifTrue: [ state ignoring: true ]
 	ifFalse: [ state ignoring: false.
 		   state handled: true ].
-    'else ' print. state isIgnoring printNl.
+    "'else ' print. state isIgnoring printNl."
 !
 
 handleElif
@@ -842,11 +833,11 @@ handleElif
 	      (expr evaluate) ~= 0
 		  ifTrue: [ state handled: true; ignoring: false ]
 		  ifFalse: [ state ignoring: true ] ].
-    'elif ' print. state isIgnoring printNl.
+    "'elif ' print. state isIgnoring printNl."
 !
 
 handleEndif
-    'endif ' printNl.
+    "'endif ' printNl."
     state _ stateStack removeFirst.
 ! 
 
