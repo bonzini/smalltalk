@@ -412,9 +412,8 @@ nextLine
 			      self dispatchDirective.
 			      ]
 			ifFalse: [
-				  ^PushBackStream on: (state isIgnoring
-					  ifTrue: [ lineStream ]
-					  ifFalse: [ self macroExpandRemainder ])
+				  state isIgnoring
+					ifFalse: [ ^PushBackStream on: self macroExpandRemainder ]
 			 ]
 		  ]
 
@@ -540,7 +539,7 @@ parseMacroActuals: names fromStream: expStream
     "this has to work with whatever stream is sitting below it, essentially
      the stream stack.  This means that the line stream has to be wrapped into
      something that behaves like a normal stream"
-    | paramDict actual bypass |
+    | paramDict actual |
     " expecting scanner to be at foo/\ (arg1, arg2, ...), leaves after eating
      the close paren"
     paramDict _ Dictionary new.
@@ -550,7 +549,7 @@ parseMacroActuals: names fromStream: expStream
     names do: 
 	[ :name | actual _ self parseMacroActual: expStream.
 		  paramDict at: name put: actual.
-		  bypass next. "gobble the trailing delimiter" 
+		  expStream next. "gobble the trailing delimiter" 
 		  ].
     "!!! should put back the remainder of the queue (if any)"
     ^paramDict
@@ -842,7 +841,7 @@ handleElif
 	    [ expr _ self parseExpression.
 	      (expr evaluate) ~= 0
 		  ifTrue: [ state handled: true; ignoring: false ]
-		  ifFalse: [ state ignoring: false ] ].
+		  ifFalse: [ state ignoring: true ] ].
     'elif ' print. state isIgnoring printNl.
 !
 

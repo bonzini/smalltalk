@@ -344,7 +344,7 @@ evaluate
 evaluate
     | result |
     result _ left evaluate = right evaluate.
-    op = '!='
+    op value = '!='
 	ifTrue: [ result _ result not ].
     ^self boolToCValue: result
 ! !
