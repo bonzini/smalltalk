@@ -11,7 +11,6 @@
   <filein>ExpansionStream.st</filein>
   <filein>CExpressionNode.st</filein>
   <filein>CParseExpr.st</filein>
-  <filein>CollapsedStream.st</filein>
   <filein>CPP.st</filein>
   <filein>CSymbol.st</filein>
   <filein>CDeclNode.st</filein>
@@ -28,7 +27,6 @@
   <file>ExpansionStream.st</file>
   <file>CExpressionNode.st</file>
   <file>CParseExpr.st</file>
-  <file>CollapsedStream.st</file>
   <file>CPP.st</file>
   <file>CSymbol.st</file>
   <file>CDeclNode.st</file>

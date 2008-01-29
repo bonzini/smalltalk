@@ -223,7 +223,7 @@ next
     queue size > 0
 	ifTrue: [ ^queue removeFirst ].
 
-    result _ OrderedCollection new: 1.
+    result _ (Array new: 5) writeStream.
 
     lastWasWhite _ false.
 
@@ -254,12 +254,12 @@ next
 		      [ lastWasWhite 
 			    ifFalse: 
 				[ lastWasWhite _ true.
-				  result addLast: token ]
+				  result nextPut: token ]
 			    ]
 		  ifFalse: [ lastWasWhite _ false.
-			     result addLast: token ]
+			     result nextPut: token ]
 		  ].
-    ^result
+    ^result contents
 ! !
 
 

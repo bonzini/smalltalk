@@ -217,8 +217,8 @@ test4
     "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
     "s := FileStream open: 'xl.h' mode: 'r'."
     s := FileStream open: 'lib/sym.c' mode: 'r'.
+    s := LineTokenStream onStream: s.
     s inspect.
-    s := CollapsedStream on: s.
     s printNl.
     s do: [ :line | line printNl. ].
 !
@@ -228,11 +228,12 @@ test5
     "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
     "s := FileStream open: 'xl.h' mode: 'r'."
     s := FileStream open: 'lib/sym.c' mode: 'r'.
-    expStream := ExpansionStream new.
-    expStream addStream: (CollapsedStream on: s).
-    s := expStream.
-    s printNl.
-    s do: [ :line | line printNl. ].
+    s := LineTokenStream onStream: s.
+    s do: [ :line |
+	expStream := ExpansionStream new.
+	expStream addStream: line readStream.
+	s printNl.
+        line printNl ].
 ! !
 
 !PreprocessorStream class methodsFor: 'instance creation'!
@@ -396,6 +397,8 @@ nextLine
     | line ch |
     [ stream atEnd ] whileFalse: 
 	[ line _ stream next.
+    "'consumed' print.
+    line printNl."
 	  lineStream _ ReadStream on: line.
     
 	  self skipWhitespace.
@@ -411,7 +414,7 @@ nextLine
 			ifFalse: [
 				  ^PushBackStream on: (state isIgnoring
 					  ifTrue: [ lineStream ]
-					  ifFalse: [ ReadStream on: self macroExpandRemainder ])
+					  ifFalse: [ self macroExpandRemainder ])
 			 ]
 		  ]
 
@@ -424,45 +427,27 @@ nextLine
 
 macroExpandRemainder
     | result expStream expansion token |
-    result _ OrderedCollection new.
-    self pushBackRemainder.
+    result _ WriteStream on: (Array new: lineStream size - lineStream position).
     expStream _ ExpansionStream new.
-    expStream addStream: (CollapsedStream on: stream).
+    expStream addStream: lineStream.
     [ expStream atEnd ] whileFalse:
 	[ token _ expStream next.
    "'reading from exp: ' print. token printNl."
    
-	  "
-   ((token isMemberOf: IdentifierTok) and: 
-	      [ (cppSymbols includesKey: token) ])
-       ifTrue: [ '#######' print. token printNl.
-		 (expStream isAlreadyExpanded: token) printNl.
-		     
-		     ].
-	   "
 	  ((token isMemberOf: IdentifierTok) and: 
 	       [ (cppSymbols includesKey: token) and: 
 		     [ (expStream isAlreadyExpanded: token ) not ] ])
 	      ifTrue: [ expansion _ self expandMacro: token from: expStream.
 			expStream recordExpansionOf: token
 				  into: expansion ]
-	      ifFalse: [ result addLast: token ]
+	      ifFalse: [ result nextPut: token ]
 	 ].
     lineStream _ nil.		"force a reload"
     "'expanded into: ' print. result printNl."
-    ^result
+    ^result readStream
 !
 	      
 
-
-pushBackRemainder
-    "push back whatever is left in lineStream"
-    | remainder |
-    remainder _ OrderedCollection new.
-""    'pushingback' printNl.  ""
-    lineStream do: [ :token | remainder addLast: token ""printNl"" ].
-    stream putBack: remainder.
-!
 
 expandMacro: macroName from: expStream
     | defn body params result str paramName |
@@ -480,7 +465,7 @@ expandMacro: macroName from: expStream
 
     body _ defn definition.
     
-    result _ OrderedCollection new.
+    result _ OrderedCollection new: body size.
     str _ ReadStream on: body.
     str do: 
 	[ :token | self processMacroToken: token
@@ -834,10 +819,9 @@ parseExpression
     cleanedLine _ self macroExpandRemainder reject:
 	[ :token | token isMemberOf: WhitespaceTok ].
 
-    'parsing. ' print. cleanedLine printNl.
+    'parsing. ' print. cleanedLine copy upToEnd printNl.
 
-    exprParser _ CExpressionParser onStream: (PushBackStream on: 
-						  (ReadStream on: cleanedLine)).
+    exprParser _ CExpressionParser onStream: (PushBackStream on: cleanedLine).
     expr _ exprParser parseExpression.
     ^expr
 !
