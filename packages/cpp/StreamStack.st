@@ -30,8 +30,7 @@
 
 
 
-"### It's not clear that this should be a descendat of PushBackStream"
-PushBackStream subclass: #StreamStack
+Stream subclass: #StreamStack
        instanceVariableNames: 'stack'
        classVariableNames: ''
        poolDictionaries: ''
@@ -70,12 +69,6 @@ peek
 atEnd
     self popFinishedStreams.
     ^self hasStreams not
-!
-
-putBack: anElement
-    self hasStreams
-	ifTrue: [ self topStream putBack: anElement ]
-	ifFalse: [ ^self error: 'can''t putBack with no stacked streams' ]
 !
 
 close

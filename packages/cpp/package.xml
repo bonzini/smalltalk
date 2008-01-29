@@ -1,6 +1,7 @@
 <package>
   <name>CPP</name>
 
+  <filein>StreamWrapper.st</filein>
   <filein>PushBackStream.st</filein>
   <filein>CToken.st</filein>
   <filein>LineTokenStream.st</filein>
@@ -16,6 +17,7 @@
   <filein>CSymbolTable.st</filein>
   <filein>CParseType.st</filein>
 
+  <file>StreamWrapper.st</file>
   <file>PushBackStream.st</file>
   <file>CToken.st</file>
   <file>LineTokenStream.st</file>

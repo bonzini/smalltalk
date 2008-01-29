@@ -28,7 +28,7 @@
 |
  ======================================================================"
 
-PushBackStream subclass: #StringUnquoteStream
+StreamWrapper subclass: #StringUnquoteStream
 	       instanceVariableNames: ''
 	       classVariableNames: ''
 	       poolDictionaries: ''

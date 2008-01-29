@@ -56,8 +56,8 @@
 
 "
 
-PushBackStream subclass: #PPStream
-       instanceVariableNames: 'lineStream stateStack state cppSymbols'
+Stream subclass: #PPStream
+       instanceVariableNames: 'streamStack lineStream stateStack state cppSymbols'
        classVariableNames: 'DirectiveHandlers'
        poolDictionaries: ''
        category: nil
@@ -353,19 +353,19 @@ initialize
 
 !PPStream methodsFor: 'scanning'!
 
-next
-    | tok |
-    queue size > 0
-	ifTrue: [ ^queue removeFirst ].
-    
-    " ??? do we need to ensure that lineStream is non-nil, or will init:
-     take care of that for us?"
+atEnd
     [ (lineStream isNil or: [ lineStream atEnd ]) ]
 	  whileTrue: [
 	      "!!! need to check for real end of stream "
 	       lineStream _ self nextLine.
-	       lineStream isNil ifTrue: [ ^nil ].
+	       lineStream isNil ifTrue: [ ^true ].
 	  ].
+
+    ^false
+!
+
+next
+    self atEnd ifTrue: [ ^nil ].
 
     "lineStream is already macro-expanded for us.  thanks nextLine."
     ^lineStream next
@@ -392,8 +392,8 @@ expandDefinedFrom: expStream
 
 nextLine
     | line ch |
-    [ stream atEnd ] whileFalse: 
-	[ line _ stream next.
+    [ streamStack atEnd ] whileFalse: 
+	[ line _ streamStack next.
 	  lineStream _ ReadStream on: line.
     
 	  lineStream atEnd
@@ -407,7 +407,7 @@ nextLine
 			      ]
 			ifFalse: [
 				  state isIgnoring
-					ifFalse: [ ^PushBackStream on: self macroExpandRemainder ]
+					ifFalse: [ ^self macroExpandRemainder ]
 			 ]
 		  ]
 
@@ -719,7 +719,7 @@ handleInclude
 !
 
 pushStream: aStream
-    stream pushStream: (LineTokenStream onStream: aStream).
+    streamStack pushStream: (LineTokenStream onStream: aStream).
 !
 
 findIncludeFile: fileName locally: locally
@@ -772,7 +772,7 @@ parseExpression
 
     "'parsing. ' print. cleanedLine copy upToEnd printNl."
 
-    exprParser _ CExpressionParser onStream: (PushBackStream on: cleanedLine).
+    exprParser _ CExpressionParser onStream: cleanedLine.
     expr _ exprParser parseExpression.
     ^expr
 !
@@ -811,7 +811,7 @@ skipDirective
 !PPStream methodsFor: 'private'!
 
 setStream: aStream
-    super init: StreamStack new.
+    streamStack := StreamStack new.
     self pushStream: aStream.
     state _ PPState ignoring: false handled: false.
     stateStack _ OrderedCollection new.

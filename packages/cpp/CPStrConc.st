@@ -28,7 +28,7 @@
 |
  ======================================================================"
 
-PushBackStream subclass: #StringConcatStream
+StreamWrapper subclass: #StringConcatStream
 	       instanceVariableNames: ''
 	       classVariableNames: ''
 	       poolDictionaries: ''

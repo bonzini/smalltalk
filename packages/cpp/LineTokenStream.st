@@ -29,7 +29,7 @@
  ======================================================================"
 
 
-PushBackStream subclass: #LineTokenStream
+StreamWrapper subclass: #LineTokenStream
        instanceVariableNames: 'lineStream'
        classVariableNames: 'LexMethods LexExtra ReservedIds COperatorDict'
        poolDictionaries: 'CKeywords'
@@ -220,9 +220,6 @@ onStream: aStream
 
 next
     | token tempTok result |
-    queue size > 0
-	ifTrue: [ ^queue removeFirst ].
-
     result _ (Array new: 5) writeStream.
 
     "cases:

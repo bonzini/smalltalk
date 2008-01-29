@@ -29,65 +29,59 @@
  ======================================================================"
 
 
-StreamWrapper subclass: #PushBackStream
-	   instanceVariableNames: 'queue '
+Stream subclass: #StreamWrapper
+	   instanceVariableNames: 'stream '
 	   classVariableNames: ''
 	   poolDictionaries: ''
 	   category: 'Examples-Useful'
 !
 
-PushBackStream comment:
-'LIFO pushback capability on top of ReadStreams'
+StreamWrapper comment:
+'decorator capability for Streams'
 !
 
 
-!PushBackStream methodsFor: 'accessing' !
+!StreamWrapper class methodsFor: 'instance creation'!
+
+on: aStream
+    ^super new init: aStream
+! !
+
+
+!StreamWrapper methodsFor: 'accessing' !
+
+atEnd
+    ^stream atEnd
+!
 
 next
-    | char |
-    queue size > 0 
-	ifTrue: [ ^queue removeFirst ].
-    ^self atEnd
-	ifTrue: [ nil ]
-	ifFalse: [ super next ]
-!
-
-peek
-    self atEnd ifTrue: [ ^nil ].
-    ^queue size == 0 
-	ifTrue: [ self putBack: self next ]
-	ifFalse: [ queue at: 1 ]
+    ^stream next
 !
 
 position
-    ^super position - queue size
+    ^stream position
 !
 
 position: pos
-    super position: pos.
-    queue := OrderedCollection new
+    stream position: pos.
 !
 
 stream
     ^stream
 !
 
-atEnd
-    ^(queue size == 0) and: [ super atEnd ]
+species
+    ^stream species
 !
 
-putBack: anElement
-    ^queue addFirst: anElement
+close
+    stream close
 ! !
 
 
 
-
-
-
-!PushBackStream methodsFor: 'private'!
+!StreamWrapper methodsFor: 'private'!
 
 init: aStream
-    super init: aStream.
-    queue _ OrderedCollection new.
+    stream _ aStream
 ! !
