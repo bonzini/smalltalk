@@ -8,7 +8,6 @@
   <filein>CPStrConc.st</filein>
   <filein>StreamStack.st</filein>
   <filein>ExpansionStreamStack.st</filein>
-  <filein>ExpansionStream.st</filein>
   <filein>CExpressionNode.st</filein>
   <filein>CParseExpr.st</filein>
   <filein>CPP.st</filein>
@@ -24,7 +23,6 @@
   <file>CPStrConc.st</file>
   <file>StreamStack.st</file>
   <file>ExpansionStreamStack.st</file>
-  <file>ExpansionStream.st</file>
   <file>CExpressionNode.st</file>
   <file>CParseExpr.st</file>
   <file>CPP.st</file>

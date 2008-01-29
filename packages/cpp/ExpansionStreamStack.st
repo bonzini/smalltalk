@@ -37,19 +37,11 @@ StreamStack subclass: #ExpansionStreamStack
 ! 
 
 
-!ExpansionStreamStack class methodsFor: 'instance creation'!
-
-new
-    "hacks are us!"
-    ^self basicNew init
-! !
-
 !ExpansionStreamStack methodsFor: 'accessing'!
 
 pushStream: aStream
-    ^self error: 'Invalid operation on this class'
+    super pushStream: (aStream -> nil)
 !
-
 
 pushStream: aStream forMacro: macroName
     super pushStream: (aStream -> macroName)
@@ -59,7 +51,7 @@ topStream
     ^super topStream key
 !
 
-containsExpansion: macroName
+isAlreadyExpanded: macroName
   "  '>>>>>>>> checking containing of: ' print. macroName printNl."
     ^(stack detect: [ :element | element value = macroName ]
 	   ifNone: [ "'did not find it!!!' printNl. "nil ]) notNil

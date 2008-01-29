@@ -230,8 +230,8 @@ test5
     s := FileStream open: 'lib/sym.c' mode: 'r'.
     s := LineTokenStream onStream: s.
     s do: [ :line |
-	expStream := ExpansionStream new.
-	expStream addStream: line readStream.
+	expStream := ExpansionStreamStack new.
+	expStream pushStream: line readStream.
 	s printNl.
         line printNl ].
 ! !
@@ -427,8 +427,8 @@ nextLine
 macroExpandRemainder
     | result expStream expansion token |
     result _ WriteStream on: (Array new: lineStream size - lineStream position).
-    expStream _ ExpansionStream new.
-    expStream addStream: lineStream.
+    expStream _ ExpansionStreamStack new.
+    expStream pushStream: lineStream.
     [ expStream atEnd ] whileFalse:
 	[ token _ expStream next.
    "'reading from exp: ' print. token printNl."
@@ -437,8 +437,8 @@ macroExpandRemainder
 	       [ (cppSymbols includesKey: token) and: 
 		     [ (expStream isAlreadyExpanded: token ) not ] ])
 	      ifTrue: [ expansion _ self expandMacro: token from: expStream.
-			expStream recordExpansionOf: token
-				  into: expansion ]
+			expStream pushStream: expansion readStream
+				  forMacro: token ]
 	      ifFalse: [ result nextPut: token ]
 	 ].
     lineStream _ nil.		"force a reload"
