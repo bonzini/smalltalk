@@ -56,16 +56,9 @@
 
 "
 
-Stream subclass: #PPStream
-       instanceVariableNames: 'streamStack lineStream stateStack state cppSymbols'
-       classVariableNames: 'DirectiveHandlers'
-       poolDictionaries: ''
-       category: nil
-! 
-
 Stream subclass: #PreprocessorStream
-       instanceVariableNames: 'stream'
-       classVariableNames: 'Defines SystemDefines IncludePaths SystemIncludePaths'
+       instanceVariableNames: 'streamStack lineStream stateStack state cppSymbols'
+       classVariableNames: 'DirectiveHandlers Defines SystemDefines IncludePaths SystemIncludePaths'
        poolDictionaries: ''
        category: nil
 ! 
@@ -207,7 +200,7 @@ test3
     | s |
     "s := FileStream open: '/usr/openwin/include/X11/Xlib.h' mode: 'r'."
     s := FileStream open: 'lib/sym.c' mode: 'r'.
-    s := PPStream onStream: s.
+    s := PreprocessorStream onStream: s.
     s printNl.
     s do: [ :line | line printNl. ].
 !
@@ -237,10 +230,6 @@ test5
 ! !
 
 !PreprocessorStream class methodsFor: 'instance creation'!
-
-on: aStream
-    ^self new init: aStream
-!
 
 test: aFilename
     | s str |
@@ -285,56 +274,6 @@ initialize
     Features do: [ :each |
 	(each at: 1) = $_ ifTrue: [ self systemDefine: each ]
     ].
-! !
-
-
-!PreprocessorStream methodsFor: 'accessing'!
-
-next
-    ^stream next
-!
-
-peek
-    ^stream peek
-!
-
-atEnd
-    ^stream atEnd
-! !
-
-
-!PreprocessorStream methodsFor: 'private'!
-
-init: aStream
-    | str | 
-    "This works by stacking different kinds of preprocessing streams
-     one on top of another, each doing a specific task.  As in Unix, 
-     this sacrifices performance for some elegance/simplicity."
-    str _ PPStream onStream: aStream.
-    str _ StringUnquoteStream on: str.
-    str _ StringConcatStream on: str.
-    stream _ str.
-! !
-
-
-"!!! change all code below not to use this precious name"
-
-
-
-
-
-!PPStream class methodsFor: 'instance creation'!
-
-onStream: aStream
-    ^self new setStream: aStream
-! !
-
-
-
-!PPStream class methodsFor: 'initialization'!
-
-initialize
-    "??? perhaps add in the default ones that we have"
 
     DirectiveHandlers _ Dictionary new.
     DirectiveHandlers 
@@ -347,11 +286,26 @@ initialize
 	at: 'endif' put: #handleEndif;
 	at: 'define' put: #handleDefine;
 	at: 'undef' put: #handleUndef.
+!
+
+on: aCollection
+    ^self onStream: aCollection readStream
+!
+
+onStream: aStream
+    "This works by stacking different kinds of preprocessing streams
+     one on top of another, each doing a specific task.  Additional
+     layers are in LineTokenStream and StreamStack.  As in Unix, 
+     this sacrifices performance for some elegance/simplicity."
+    | str |
+    str _ StringUnquoteStream on: aStream.
+    str _ self new setStream: str.
+    ^StringConcatStream on: str.
 ! !
 
 
 
-!PPStream methodsFor: 'scanning'!
+!PreprocessorStream methodsFor: 'scanning'!
 
 atEnd
     [ (lineStream isNil or: [ lineStream atEnd ]) ]
@@ -605,7 +559,7 @@ dispatchDirective
 ! !
 
 
-!PPStream methodsFor: 'handling directives'!
+!PreprocessorStream methodsFor: 'handling directives'!
 
 handleUndef
     | symbol |
@@ -799,7 +753,7 @@ skipDirective
 ! !
 
 
-!PPStream methodsFor: 'private'!
+!PreprocessorStream methodsFor: 'private'!
 
 setStream: aStream
     streamStack := StreamStack new.
@@ -811,5 +765,4 @@ setStream: aStream
 ! !
 
 
-PPStream initialize!
 PreprocessorStream initialize!
