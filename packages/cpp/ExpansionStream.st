@@ -65,14 +65,6 @@ recordExpansionOf: aMacroName into: tokenCollection
 
 isAlreadyExpanded: aMacroName
     ^stream containsExpansion: aMacroName
-! 
-
-nextBypass
-    ^stream nextBypass
-!
-
-atRealEnd
-    ^stream atRealEnd
 ! !
 
 "

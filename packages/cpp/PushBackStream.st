@@ -59,11 +59,6 @@ next
 	ifFalse: [ stream next ]
 !
 
-nextBypass
-    "hack!!"
-    ^self next
-!
-
 peek
     self atEnd ifTrue: [ ^nil ].
     ^queue size == 0 
@@ -86,10 +81,6 @@ stream
 
 atEnd
     ^(queue size == 0) and: [ (stream atEnd) ]
-!
-
-atRealEnd
-    ^self atEnd
 !
 
 putBack: anElement

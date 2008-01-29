@@ -69,16 +69,6 @@ popStream
     | stream |
     stream _ stack removeFirst.
     stream key close
-! 
-
-nextBypass
-    ^self topStream next
-    "^self topStream nextBypass"
-!
-
-atRealEnd
-    ^self topStream atEnd
-    "^self topStream atRealEnd"
 ! !
 
 
