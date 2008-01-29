@@ -382,12 +382,9 @@ expandDefinedFrom: expStream
     
    "'expanding defined' print. ident printNl.  "
 
-    result _ OrderedCollection new.
-    result addLast: 
-	(IntegerTok value: ((cppSymbols includesKey: ident)
+    ^{ IntegerTok value: ((cppSymbols includesKey: ident)
 			    ifTrue: [ 1 ] 
-			    ifFalse: [ 0 ])).
-    ^result
+			    ifFalse: [ 0 ]) }
 !
 
 nextLine
@@ -632,14 +629,8 @@ handleDefine
     tok class == OpenParenTok
 	ifTrue: [ "'doing parameters' printNl." params _ self parseMacroParams ].
 
-    definition _ OrderedCollection new.
-    [ lineStream atEnd ] whileFalse:
-	[ definition addLast: lineStream next ].
-    "we'll let the #<name> directive deal with trailing white space
-     removal, other things don't care"
-
     macroDef _ PPMacroDefinition params: params
-				 definition: definition.
+				 definition: lineStream upToEnd.
     cppSymbols at: symbol put: macroDef.
 !
 

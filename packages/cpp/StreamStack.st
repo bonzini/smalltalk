@@ -109,5 +109,5 @@ popFinishedStreams
 !StreamStack methodsFor: 'private'!
 
 init
-    stack _ OrderedCollection new: 0.
+    stack _ OrderedCollection new.
 ! !
