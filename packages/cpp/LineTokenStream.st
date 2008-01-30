@@ -30,7 +30,7 @@
 
 
 StreamWrapper subclass: #LineTokenStream
-       instanceVariableNames: 'lineStream'
+       instanceVariableNames: 'lineStream lookahead '
        classVariableNames: 'LexMethods LexExtra ReservedIds COperatorDict'
        poolDictionaries: 'CKeywords'
        category: nil
@@ -38,8 +38,8 @@ StreamWrapper subclass: #LineTokenStream
 
 LineTokenStream comment:
 'I expect to read from a Stream of lines, and tokenize the characters that I 
-find there.  I yield, via my #next method, collections of tokens which
-correspond to those input lines' !
+find there.  I yield individual tokens via my #next method or, via #nextLine,
+collections of tokens which correspond to those input lines' !
 
 
 !LineTokenStream class methodsFor: 'initialization'!
@@ -218,8 +218,8 @@ onStream: aStream
 
 !LineTokenStream methodsFor: 'basic'!
 
-next
-    | token tempTok result |
+nextLine
+    | tok result |
     result _ (Array new: 5) writeStream.
 
     "cases:
@@ -235,26 +235,59 @@ next
      we compress out other white tokens into a single white token
      "
 
-
-    stream atEnd ifTrue: [ ^nil ].
-
-    self advanceLine.
+    lookahead notNil
+	ifTrue: [ result nextPut: lookahead. lookahead := nil ].
 
     "collect and return a line of tokens"
-    [ token _ self nextToken.
-      token isNil ] 
-	whileFalse: [ result nextPut: token ].
+    [ lineStream atEnd ]
+	whileFalse: [
+	   tok := self nextToken.
+	   tok isNil ifFalse: [ result nextPut: tok ] ].
 
     ^result contents
+!
+
+next
+    | result |
+    lookahead isNil ifTrue: [ self peek ].
+    result := lookahead.
+    lookahead := nil.
+    ^result
+!
+
+atEnd
+    ^self peek isNil
+!
+
+peek
+    [ lookahead isNil ] whileTrue: [
+      lineStream atEnd ifTrue: [
+          stream atEnd ifTrue: [ ^nil ].
+	  self advanceLine ].
+
+      lookahead _ self nextToken.
+    ].
+    ^lookahead
 ! !
 
 
 !LineTokenStream methodsFor: 'token parsing'!
 
+peekChar
+    | ch |
+    [
+	lineStream atEnd ifTrue: [ ^Character nl ].
+	ch := lineStream next.
+	ch = $\ and: [ lineStream atEnd ] ]
+	    whileTrue: [ self advanceLine ].
+    lineStream putBack: ch.
+    ^ch
+!
+
 nextChar
     | ch |
     [
-	lineStream atEnd ifTrue: [ ^nil ].
+	lineStream atEnd ifTrue: [ self advanceLine. ^Character nl ].
 	ch := lineStream next.
 	ch = $\ and: [ lineStream atEnd ] ]
 	    whileTrue: [ self advanceLine ].
@@ -262,17 +295,13 @@ nextChar
 !
 
 advanceLine
-    lineStream _ PushBackStream on: (ReadStream on: stream next)
+    lineStream _ PushBackStream on: (ReadStream on: stream next).
 !
 
 nextToken
-    | ch tok |
-
-    [ ch _ self nextChar.
-      ch isNil ifTrue: [ ^nil ].
-      tok _ self perform: (LexMethods at: ch asciiValue) with: ch.
-      tok isNil ] whileTrue.
-    ^tok
+    | ch |
+    ch _ self nextChar.
+    ^self perform: (LexMethods at: ch asciiValue) with: ch.
 !
 
 ignoreTok: aChar
@@ -311,14 +340,14 @@ parseStringoid: delimitingChar
     | bs ch quoted |
 
     bs := WriteStream on: (String new: 10).
-    [ ch := lineStream next.
+    [ ch := self nextChar.
       ch = delimitingChar ] whileFalse: [
       
       bs nextPut: ch.
       ch == $\ ifTrue: [
-	  ch := lineStream peek.
+	  ch := self peekChar.
 	  ch isNil ifFalse: [
-	      lineStream next. "gobble the quoted guy"
+	      self nextChar. "gobble the quoted guy"
 	      bs nextPut: ch
 	  ]
       ]
@@ -334,16 +363,16 @@ oneCharTok: aChar
 floatTok: aChar
     "got '.', either have a floating point number, or a structure member"
     | ch | 
-    ch _ lineStream peek.
+    ch _ self peekChar.
     (self isDigit: ch base: 10) 
 	ifTrue: [ "### revisit this "
 		  ^FloatTok value: (self parseFrac: 0.0) ].
     ch == $.			"seen .., could be ...?"
-	ifFalse: [ ^DotTok ].
-    lineStream next.		"eat it"
-    ch _ lineStream peek.
+	ifFalse: [ ^DotTok new ].
+    self nextChar.		"eat it"
+    ch _ self peekChar.
     ch == $.			"do we have '...'?"
-	ifTrue: [ ^DotDotDotTok ].
+	ifTrue: [ ^DotDotDotTok new ].
 	
     "nope, false alarm.  put things back the way they were."
     lineStream putBack: ch.
@@ -373,21 +402,21 @@ assignment ops
 
 opTok: aChar
     | bs ch cont opStr |
-    bs _ WriteStream on: (String new: 2).
-    ch _ lineStream peek.
-    bs nextPut: aChar.
+    ch _ self peekChar.
 
     (aChar == $/ and: [ ch == $* ])
 	ifTrue: [ ^self parseComment ].
 
+    bs _ WriteStream on: (String new: 2).
+    bs nextPut: aChar.
     self handleNormalOperators: bs firstChar: aChar secondChar: ch.
     "should be allowed to peek more than once, shouldn't I?"
-    ch _ lineStream peek.
+    ch _ self peekChar.
     opStr _ bs contents.
     ch == $=
 	ifTrue: [ (self isAssignable: opStr) 
 		      ifTrue: [ "gobble assignment operator"
-				bs nextPut: lineStream next.
+				bs nextPut: self nextChar.
 				opStr _ bs contents ].
 		  ].
     
@@ -401,7 +430,7 @@ opTok: aChar
 handleNormalOperators: bs firstChar: aChar secondChar: ch
     (self isDoublable: aChar)
 	ifTrue: [ ch == aChar
-		      ifTrue: [ lineStream next.
+		      ifTrue: [ self nextChar.
 				^bs nextPut: aChar ] ].
     self handleTwoCharCases: bs firstChar: aChar secondChar: ch. 
 !
@@ -412,10 +441,10 @@ isDoublable: aChar
 !
 
 handleTwoCharCases: bs firstChar: aChar secondChar: ch 
-    (aChar == $- and: [ ch == $> ]) ifTrue: [ ^bs nextPut: lineStream next ].
-    (aChar == $> and: [ ch == $= ]) ifTrue: [ ^bs nextPut: lineStream next ].
-    (aChar == $< and: [ ch == $= ]) ifTrue: [ ^bs nextPut: lineStream next ].
-    (aChar == $! and: [ ch == $= ]) ifTrue: [ ^bs nextPut: lineStream next ].
+    (aChar == $- and: [ ch == $> ]) ifTrue: [ ^bs nextPut: self nextChar ].
+    (aChar == $> and: [ ch == $= ]) ifTrue: [ ^bs nextPut: self nextChar ].
+    (aChar == $< and: [ ch == $= ]) ifTrue: [ ^bs nextPut: self nextChar ].
+    (aChar == $! and: [ ch == $= ]) ifTrue: [ ^bs nextPut: self nextChar ].
 !
 
 isAssignable: opStr
@@ -475,13 +504,13 @@ numberTok: aChar
     lineStream putBack: ch.
     ch == $0 
 	ifTrue: 
-	     [ lineStream next. "gobble char"
+	     [ self nextChar. "gobble char"
 	       lineStream atEnd
 		   ifTrue: [ ^IntegerTok value: 0 ].
 
-	       ch _ lineStream peek.
+	       ch _ self peekChar.
 	       (ch == $x) | (ch == $X)
-		   ifTrue: [ lineStream next.
+		   ifTrue: [ self nextChar.
 			     ^self parseHexConstant ].
 	       (self isDigit: ch base: 8)
 		   ifTrue: [ ^self parseOctalConstant ].
@@ -492,13 +521,13 @@ numberTok: aChar
     
     
     num _ self parseDigits: ch base: 10.
-    ch _ lineStream peek.
+    ch _ self peekChar.
     ch == $.
-	ifTrue: [ lineStream next. "gobble '.'"
+	ifTrue: [ self nextChar. "gobble '.'"
 		  ^FloatTok value: (self parseFrac: num) ].
 		  
     (ch == $e) | (ch == $E)
-	ifTrue: [ lineStream next. "gobble 'e'"
+	ifTrue: [ self nextChar. "gobble 'e'"
 		  ^FloatTok value: (self parseExponent: num) ].
 					 
     "must have been an integer"
@@ -514,30 +543,16 @@ numberTok: aChar
 
 !LineTokenStream methodsFor: 'utility methods'!
 
-maybeLoadAnotherLine
-    [ (lineStream isNil or: [ lineStream atEnd ]) ]
-	whileTrue: 
-	    [ self atEnd
-		  ifTrue: [ ^nil ].
-	      lineStream _ PushBackStream on: (ReadStream on: stream next) ].
-!    
-
-
 parseComment
     "Scanner is at /*<> ... "
-    | ch |
-    [ self maybeLoadAnotherLine isNil
-	  ifTrue: [ ^nil ].
+    | ch ch2 |
+    ch _ self nextChar.
       
-      ch _ lineStream next.
-      ch == $* 
-	  ifTrue: [ lineStream peek == $/ 
-			ifTrue: [ "we're done!"
-				  lineStream next. 
-				  ^nil ].
-		    ].
-      true] whileTrue: [ ].
-    ^nil
+    [ ch isNil ifTrue: [ ^nil ].
+      ch2 _ self nextChar.
+      (ch == $* and: [ ch2 == $/ ]) ifTrue: [ ^nil ].
+      ch _ ch2.
+    ] repeat.
 !
 
 isSpecial: ch
@@ -547,7 +562,7 @@ isSpecial: ch
 parseHexConstant
     "scanner at 0x<>..."
     | num ch |
-    ch _ lineStream peek.
+    ch _ self peekChar.
     num _ self parseDigits: ch base: 16.
     self gobbleIntegerSuffix.
     ^IntegerTok value: num truncated.
@@ -557,7 +572,7 @@ parseHexConstant
 parseOctalConstant
     "scanner at 0<>..."
     | num ch |
-    ch _ lineStream peek.
+    ch _ self peekChar.
     num _ self parseDigits: ch base: 8.
     self gobbleIntegerSuffix.
     ^IntegerTok value: num truncated.
@@ -566,12 +581,12 @@ parseOctalConstant
 gobbleIntegerSuffix
     | ch |
     "scanner at <digits><>...  may be [luLU][luLU]"
-    ch _ lineStream peek.
+    ch _ self peekChar.
     (ch == $l) | (ch == $L) | (ch == $U) | (ch == $u)
-	ifTrue: [ lineStream next.  "ignore it"
-		  ch _ lineStream peek.
+	ifTrue: [ self nextChar.  "ignore it"
+		  ch _ self peekChar.
 		  (ch == $l) | (ch == $L) | (ch == $U) | (ch == $u)
-		      ifTrue: [ lineStream next.  "ignore it" ].
+		      ifTrue: [ self nextChar.  "ignore it" ].
 		  ].
     
 !
@@ -583,9 +598,9 @@ parseFrac: aNumber
 
     num _ aNumber.
     scale _ 1.0.
-    [ ch _ lineStream peek. self isDigit: ch base: 10 ] whileTrue:
+    [ ch _ self peekChar. self isDigit: ch base: 10 ] whileTrue:
 	[ num _ num * 10.0 + ch digitValue.
-	  lineStream next. 
+	  self nextChar. 
 	  scale _ scale / 10.0 .
 	  ].
 
@@ -593,7 +608,7 @@ parseFrac: aNumber
 
     (ch == $e) | (ch == $E)
 	ifTrue: 
-	    [ lineStream next.	"gobble the 'e' "
+	    [ self nextChar.	"gobble the 'e' "
 	      num _ self parseExponent: num ]
 	ifFalse: 
 	    [ self gobbleFloatSuffix ].
@@ -604,9 +619,9 @@ parseExponent: aNumber
     "scanner at ....e<>..."
     | ch isNegative exponent | 
     
-    ch _ lineStream peek.
+    ch _ self peekChar.
     ch == $-
-	ifTrue: [ lineStream next.	"gobble it"
+	ifTrue: [ self nextChar.	"gobble it"
 		  isNegative _ true. ]
 	ifFalse: [ isNegative _ false. ].
     
@@ -617,9 +632,9 @@ parseExponent: aNumber
 
 gobbleFloatSuffix
     | ch |
-    ch _ lineStream peek.
+    ch _ self peekChar.
     (ch == $f) | (ch == $F) | (ch == $l) | (ch == $L)
-	ifTrue: [ lineStream next. ]
+	ifTrue: [ self nextChar. ]
 ! 
 
 parseDigits: ch base: base
@@ -629,8 +644,8 @@ parseDigits: ch base: base
     num _ 0.0.			"accumulate FP in case we're really getting FP"
     [ c notNil and: [ self isDigit: c base: base ] ] whileTrue:
 	[ num _ num * base + c asUppercase digitValue.
-	  lineStream next. 
-	  c _ lineStream peek ].
+	  self nextChar. 
+	  c _ self peekChar ].
     ^num
 !
 
@@ -661,10 +676,10 @@ parseIdent
     | s ch id reservedId |
     s _ WriteStream on: (String new: 1).
     [ lineStream atEnd not
-	  and: [ ch _ lineStream peek.
+	  and: [ ch _ self peekChar.
 		 ch isLetter or: [ ch isDigit or: [ ch == $_ ] ] ] ]
 	whileTrue: [ s nextPut: ch.
-		     lineStream next ].
+		     self nextChar ].
     id _ s contents.
     reservedId _ self isReserved: id.
     reservedId notNil
@@ -680,7 +695,8 @@ isReserved: aString
 !LineTokenStream methodsFor: 'private'!
 
 setStream: aStream
-    super init: aStream
+    super init: aStream.
+    self advanceLine
 ! !
 
 

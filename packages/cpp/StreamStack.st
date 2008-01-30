@@ -104,6 +104,16 @@ popFinishedStreams
 	whileTrue: [ self popStream ]
 ! !
 
+!StreamStack methodsFor: 'hacks'!
+
+peekChar
+    ^self topStream peekChar
+!
+
+nextLine
+    ^self topStream nextLine
+! !
+
 
 
 !StreamStack methodsFor: 'private'!

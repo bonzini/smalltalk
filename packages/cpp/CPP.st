@@ -310,7 +310,6 @@ onStream: aStream
 atEnd
     [ (lineStream isNil or: [ lineStream atEnd ]) ]
 	  whileTrue: [
-	      "!!! need to check for real end of stream "
 	       lineStream _ self nextLine.
 	       lineStream isNil ifTrue: [ ^true ].
 	  ].
@@ -342,26 +341,20 @@ expandDefinedFrom: expStream
 !
 
 nextLine
-    | line ch |
+    | ch |
     [ streamStack atEnd ] whileFalse: 
-	[ line _ streamStack next.
-	  lineStream _ ReadStream on: line.
-    
-	  lineStream atEnd
-	      ifFalse: 
-		  [ ch _ lineStream peek.
-		    (self isSharp: ch)
-			ifTrue: 
-			    [ "It's for us!!!"
-			      lineStream next. "gobble '#'"
-			      self dispatchDirective.
-			      ]
-			ifFalse: [
-				  state isIgnoring
-					ifFalse: [ ^self macroExpandRemainder ]
-			 ]
-		  ]
-
+	  [ ch _ streamStack peek.
+	    (self isSharp: ch)
+		ifTrue: 
+		    [ "It's for us!!!"
+		      streamStack next. "gobble '#'"
+		      self dispatchDirective.
+		      ]
+		ifFalse: [
+			  state isIgnoring
+				ifTrue: [ streamStack nextLine ]
+				ifFalse: [ ^self macroExpandRemainder ]
+		 ]
 	].
     ^nil
 !
@@ -370,10 +363,11 @@ nextLine
 
 
 macroExpandRemainder
-    | result expStream expansion token |
-    result _ WriteStream on: (Array new: lineStream size - lineStream position).
+    | result lineTokens expStream expansion token |
+    lineTokens _ streamStack nextLine.
+    result _ WriteStream on: (Array new: lineTokens size).
     expStream _ ExpansionStreamStack new.
-    expStream pushStream: lineStream.
+    expStream pushStream: lineTokens readStream.
     [ expStream atEnd ] whileFalse:
 	[ token _ expStream next.
 	   "'reading from exp: ' print. token printNl."
@@ -551,7 +545,7 @@ isSharp: token
 
 dispatchDirective
     | directive |
-    directive := lineStream next.
+    directive := streamStack next.
 
     self perform: (DirectiveHandlers
 	at: directive value
@@ -566,7 +560,7 @@ handleUndef
     state isIgnoring
 	ifTrue: [ ^true ].
 
-    symbol _ lineStream next.
+    symbol _ streamStack next.
     "'undefining' print. symbol value printNl."
     cppSymbols removeKey: symbol ifAbsent: [].
 !
@@ -576,31 +570,31 @@ handleDefine
     state isIgnoring
 	ifTrue: [ ^true ].
 
-    symbol _ lineStream next.
+    symbol _ streamStack next.
 
     "'defining' print. symbol value printNl."
-    tok _ lineStream peek.
-    tok class == OpenParenTok
-	ifTrue: [ "'doing parameters' printNl." params _ self parseMacroParams ].
+    streamStack peekChar = $(
+	ifTrue: [
+	    "'doing parameters' printNl." params _ self parseMacroParams ].
 
     macroDef _ PPMacroDefinition params: params
-				 definition: lineStream upToEnd.
+				 definition: streamStack nextLine.
     cppSymbols at: symbol put: macroDef.
 !
 
 parseMacroParams
     "scanner at #define foo/\(...) "
     | params ident tok |
-    lineStream next.		"gobble paren"
+    streamStack next.		"gobble paren"
     params _ OrderedCollection new.
-    tok _ lineStream peek.
+    tok _ streamStack peek.
     tok class ~~ CloseParenTok 
 	ifTrue: 
-	    [ [ ident _ lineStream next.
+	    [ [ ident _ streamStack next.
 		params addLast: ident.
-		tok _ lineStream next.
+		tok _ streamStack next.
 		tok value = ',' ] whileTrue: [ ] ]
-	ifFalse: [ lineStream next ].
+	ifFalse: [ streamStack next ].
     "must have gobbled the close paren already (we're not a full C
      language, and we presume syntactically correct C programs), so we
      are done."
@@ -616,7 +610,7 @@ handleIfdef
 		  "we continue ignoring and do no further processing"
 		  ^self ].
 		  
-    symbol _ lineStream next.
+    symbol _ streamStack next.
     
     isDefined _ (cppSymbols includesKey: symbol).
     "'ifdef' print. symbol value printNl.  isDefined printNl."
@@ -631,7 +625,7 @@ handleIfndef
 		  "we continue ignoring and do no further processing"
 		  ^self ].
 		  
-    symbol _ lineStream next.
+    symbol _ streamStack next.
     
     isDefined _ (cppSymbols includesKey: symbol).
     "'ifndef' print. symbol value printNl.  isDefined printNl."
@@ -643,7 +637,7 @@ handleInclude
     state isIgnoring
 	ifTrue: [ ^true ].
 
-    token _ lineStream next.
+    token _ streamStack next.
     token class == StringTok
 	ifTrue: [ fileName _ token value.
 		  searchLocal _ true ]
@@ -651,7 +645,7 @@ handleInclude
 	    [ "should be < dir/dir/dir.../filename > "
 	      searchLocal _ false.
 	      fileName _ ''.
-	      [ token _ lineStream next.
+	      [ token _ streamStack next.
 		token value ~= '>' ] whileTrue:
 		    [ fileName _ fileName, token value ].
 	      ].
@@ -709,7 +703,7 @@ handleIf
 ! 
 
 parseExpression
-    " parse some set of stuff from lineStream and return it as an expression
+    " parse a line of stuff from streamStack and return it as an expression
      tree"
     | exprParser expr cleanedLine |
     
@@ -749,7 +743,7 @@ handleEndif
 
 skipDirective
     "does doing nothing work for pragmas etc.?"
-    ^self
+    streamStack nextLine
 ! !
 
 

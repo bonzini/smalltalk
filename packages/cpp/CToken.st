@@ -30,7 +30,7 @@
  ======================================================================"
 
 Object subclass: #CToken
-       instanceVariableNames: 'location'
+       instanceVariableNames: ''
        classVariableNames: ''
        poolDictionaries:''
        category: 'Compiler'
