@@ -1,5 +1,6 @@
 <package>
-  <name>CPP</name>
+  <name>CParser</name>
+  <namespace>CParser</namespace>
 
   <filein>StreamWrapper.st</filein>
   <filein>PushBackStream.st</filein>

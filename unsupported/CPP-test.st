@@ -1,5 +1,5 @@
 "Test out the C Preprocessor"
 
-PackageLoader fileInPackage: 'CPP'!
+PackageLoader fileInPackage: 'CParser'!
 
-PreprocessorStream test: '/usr/include/sqlite3.h'!
+CParser.PreprocessorStream test: '/usr/include/sqlite3.h'!

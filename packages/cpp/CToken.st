@@ -309,7 +309,7 @@ printOn: aStream
 
 
 
-Smalltalk at: #CKeywords put: Dictionary new!
+Namespace current at: #CKeywords put: Dictionary new!
 
 CKeywords at: #AutoKey put: (CKeyword value: 'auto').
 CKeywords at: #BreakKey put: (CKeyword value: 'break').
@@ -345,7 +345,7 @@ CKeywords at: #VoidKey put: (CKeyword value: 'void').
 CKeywords at: #VolatileKey put: (CKeyword value: 'volatile').
 CKeywords at: #WhileKey put: (CKeyword value: 'while')!
 
-Smalltalk at: #CPPKeywords put: Dictionary new!
+Namespace current at: #CPPKeywords put: Dictionary new!
 
 CPPKeywords at: #IfdefKey put: (CKeyword value: 'ifdef').
 CPPKeywords at: #DefinedKey put: (CKeyword value: 'defined').
@@ -353,7 +353,7 @@ CPPKeywords at: #ElifKey put: (CKeyword value: 'elif').
 CPPKeywords at: #EndifKey put: (CKeyword value: 'endif').
 CPPKeywords at: #IfndefKey put: (CKeyword value: 'ifndef').
 
-Smalltalk at: #CToks put: Dictionary new!
+Namespace current at: #CToks put: Dictionary new!
 
 CToks at: #DotTok put: (CValueToken value: '.').
 CToks at: #ColonTok put: (CValueToken value: ':').
