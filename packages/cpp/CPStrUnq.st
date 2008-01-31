@@ -48,8 +48,8 @@ strings and chars are "fixed"'!
 next
     | result nextTok |
     result _ super next.
-    ((result isKindOf: StringTok) or: 
-	 [ result isKindOf: CharLiteralTok ])
+    ((result isKindOf: CStringToken) or: 
+	 [ result isKindOf: CCharacterToken ])
 	ifTrue: [ ^self processQuotedChars: result ]
 	ifFalse: [ ^result ]     
 ! !

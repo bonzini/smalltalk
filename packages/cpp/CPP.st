@@ -59,7 +59,7 @@
 Stream subclass: #PreprocessorStream
        instanceVariableNames: 'streamStack lineStream stateStack state cppSymbols'
        classVariableNames: 'DirectiveHandlers Defines SystemDefines IncludePaths SystemIncludePaths'
-       poolDictionaries: ''
+       poolDictionaries: 'CToks'
        category: nil
 ! 
 
@@ -242,17 +242,17 @@ test: aFilename
 define: symbol
     Defines
 	at: symbol
-	put: (PPMacroDefinition params: nil definition: (IntegerTok value: 1))
+	put: (PPMacroDefinition params: nil definition: (CIntegerToken value: 1))
 !
 
 systemDefine: symbol
     SystemDefines
 	at: symbol
-	put: (PPMacroDefinition params: nil definition: (IntegerTok value: 1)).
+	put: (PPMacroDefinition params: nil definition: (CIntegerToken value: 1)).
 
     Defines
 	at: symbol
-	put: (PPMacroDefinition params: nil definition: (IntegerTok value: 1))
+	put: (PPMacroDefinition params: nil definition: (CIntegerToken value: 1))
 !
 
 resetSymbols
@@ -328,14 +328,14 @@ expandDefinedFrom: expStream
     "Either 'defined/\ <anIdent>' or 'defined/\(<anIdent>)'"
     | ident tok result|
     tok _ expStream next.
-    tok class == OpenParenTok
+    tok == OpenParenTok
 	ifTrue: [ ident _ expStream next.
 		  expStream next "gobble ')' " ]
 	ifFalse: [ ident _ tok ].
     
    "'expanding defined' print. ident printNl.  "
 
-    ^{ IntegerTok value: ((cppSymbols includesKey: ident)
+    ^{ CIntegerToken value: ((cppSymbols includesKey: ident)
 			    ifTrue: [ 1 ] 
 			    ifFalse: [ 0 ]) }
 !
@@ -372,7 +372,7 @@ macroExpandRemainder
 	[ token _ expStream next.
 	   "'reading from exp: ' print. token printNl."
    
-	  ((token isMemberOf: IdentifierTok) and: 
+	  ((token isMemberOf: CIdentifierToken) and: 
 	       [ (cppSymbols includesKey: token) and: 
 		     [ (expStream isAlreadyExpanded: token ) not ] ])
 	      ifTrue: [ expansion _ self expandMacro: token from: expStream.
@@ -422,17 +422,17 @@ processMacroToken: token into: result fromStream: expStream withParams: params
 	    [ lastToken _ result removeLast.
 	      nextToken _ expStream next.
 	      "'[[[[[[[[[ next is ' print. nextToken printNl."
-	      (nextToken class == IdentifierTok
+	      (nextToken class == CIdentifierToken
 		   and: [ params includesKey: nextToken ])
 		  ifTrue: [ nextParams _ params at: nextToken.
 			    "!!! Here we assume we always have identifiertokens"
-			    lastToken class == IdentifierTok
+			    lastToken class == CIdentifierToken
 				ifFalse: [^self error: '## called with non identifier' ].
-			    lastToken _ IdentifierTok value: 
+			    lastToken _ CIdentifierToken value: 
 				lastToken value , nextParams removeFirst valueString.
 			    nextParams addFirst: lastToken.
 			    ^result addAllLast: nextParams ]
-		  ifFalse: [ lastToken _ IdentifierTok value: 
+		  ifFalse: [ lastToken _ CIdentifierToken value: 
 				 lastToken value, nextToken valueString.
 			     ^result addLast: lastToken ]
 	      ].
@@ -441,7 +441,7 @@ processMacroToken: token into: result fromStream: expStream withParams: params
 		  ^result addLast: 
 		      (self stringifyActual: 
 			   (params at: paramName)) ].
-    (token class == IdentifierTok
+    (token class == CIdentifierToken
 	 and: [ params includesKey: token ])
 	ifTrue: [ ^result addAllLast: 
 		      (params at: token) ].
@@ -460,11 +460,11 @@ stringifyActual: macroActualParam
 		   tokenString _ self toString: token.
 		   result nextPutAll: tokenString.
 		       ].
-    ^StringTok value: result contents
+    ^CStringToken value: result contents
 !
 
 toString: token
-    (token isKindOf: StringoidTok)
+    (token isKindOf: CStringoidToken)
 	  ifTrue: [ ^token quotedStringValue ].
     ^token valueString
 !
@@ -503,14 +503,14 @@ parseMacroActual: expStream
     
     [ token _ expStream peek.
       parenLevel == 0
-	  and: [ (token class == CloseParenTok)
+	  and: [ (token == CloseParenTok)
 		     or: [ token class == CBinaryOperatorToken and: 
 			       [ token value = ',' ] ] ] ]
 	whileFalse: [ result addLast: token.
 		      expStream next. "gobble it"
-		      token class == OpenParenTok
+		      token == OpenParenTok
 			  ifTrue: [ parenLevel _ parenLevel + 1 ].
-		      token class == CloseParenTok
+		      token == CloseParenTok
 			  ifTrue: [ parenLevel _ parenLevel - 1 ]. 
 		      ].
 
@@ -638,7 +638,7 @@ handleInclude
 	ifTrue: [ ^true ].
 
     token _ streamStack next.
-    token class == StringTok
+    token class == CStringToken
 	ifTrue: [ fileName _ token value.
 		  searchLocal _ true ]
 	ifFalse:
@@ -755,7 +755,7 @@ setStream: aStream
     state _ PPState ignoring: false handled: false.
     stateStack _ OrderedCollection new.
     cppSymbols _ PreprocessorStream symbols.
-    cppSymbols at: (IdentifierTok value: 'defined') put: 1. "value does not matter"
+    cppSymbols at: (CIdentifierToken value: 'defined') put: 1. "value does not matter"
 ! !
 
 

@@ -32,7 +32,7 @@
 StreamWrapper subclass: #LineTokenStream
        instanceVariableNames: 'lineStream lookahead '
        classVariableNames: 'LexMethods LexExtra ReservedIds COperatorDict'
-       poolDictionaries: 'CKeywords'
+       poolDictionaries: 'CKeywords CToks'
        category: nil
 !
 
@@ -310,7 +310,7 @@ ignoreTok: aChar
     lineStream printNl.
     lineStream do: [ :ch | ch printNl ].
     stream next printNl.
-    ^CharLiteralTok value: '3'
+    ^CCharacterToken value: '3'
 !
 
 whiteTok: aChar
@@ -321,7 +321,7 @@ charLitTok: aChar
     "Called with aChar == '"
     | ch value |
     value _ self parseStringoid: $'.
-    ^CharLiteralTok value: value.
+    ^CCharacterToken value: value.
 !			     
 
 idTok: aChar
@@ -332,7 +332,7 @@ idTok: aChar
 stringTok: aChar
     | value |
     value _ self parseStringoid: $".
-    ^StringTok value: value
+    ^CStringToken value: value
 
 !
 
@@ -356,8 +356,7 @@ parseStringoid: delimitingChar
 !
 
 oneCharTok: aChar
-    ^(Smalltalk at: ((LexExtra at: (aChar asciiValue)), 'Tok') asSymbol)
-	new
+    ^CToks at: ((LexExtra at: (aChar asciiValue)), 'Tok') asSymbol
 !
 
 floatTok: aChar
@@ -366,13 +365,13 @@ floatTok: aChar
     ch _ self peekChar.
     (self isDigit: ch base: 10) 
 	ifTrue: [ "### revisit this "
-		  ^FloatTok value: (self parseFrac: 0.0) ].
+		  ^CFloatToken value: (self parseFrac: 0.0) ].
     ch == $.			"seen .., could be ...?"
-	ifFalse: [ ^DotTok new ].
+	ifFalse: [ ^DotTok ].
     self nextChar.		"eat it"
     ch _ self peekChar.
     ch == $.			"do we have '...'?"
-	ifTrue: [ ^DotDotDotTok new ].
+	ifTrue: [ ^DotDotDotTok ].
 	
     "nope, false alarm.  put things back the way they were."
     lineStream putBack: ch.
@@ -506,7 +505,7 @@ numberTok: aChar
 	ifTrue: 
 	     [ self nextChar. "gobble char"
 	       lineStream atEnd
-		   ifTrue: [ ^IntegerTok value: 0 ].
+		   ifTrue: [ ^CIntegerToken value: 0 ].
 
 	       ch _ self peekChar.
 	       (ch == $x) | (ch == $X)
@@ -524,18 +523,18 @@ numberTok: aChar
     ch _ self peekChar.
     ch == $.
 	ifTrue: [ self nextChar. "gobble '.'"
-		  ^FloatTok value: (self parseFrac: num) ].
+		  ^CFloatToken value: (self parseFrac: num) ].
 		  
     (ch == $e) | (ch == $E)
 	ifTrue: [ self nextChar. "gobble 'e'"
-		  ^FloatTok value: (self parseExponent: num) ].
+		  ^CFloatToken value: (self parseExponent: num) ].
 					 
     "must have been an integer"
 	     
     self gobbleIntegerSuffix.
 
 
-    ^IntegerTok value: num truncated.
+    ^CIntegerToken value: num truncated.
 ! !
 
 
@@ -565,7 +564,7 @@ parseHexConstant
     ch _ self peekChar.
     num _ self parseDigits: ch base: 16.
     self gobbleIntegerSuffix.
-    ^IntegerTok value: num truncated.
+    ^CIntegerToken value: num truncated.
 !
 
 
@@ -575,7 +574,7 @@ parseOctalConstant
     ch _ self peekChar.
     num _ self parseDigits: ch base: 8.
     self gobbleIntegerSuffix.
-    ^IntegerTok value: num truncated.
+    ^CIntegerToken value: num truncated.
 !
 
 gobbleIntegerSuffix
@@ -684,7 +683,7 @@ parseIdent
     reservedId _ self isReserved: id.
     reservedId notNil
 	ifTrue: [ ^reservedId ]
-	ifFalse: [ ^IdentifierTok value: id ]
+	ifFalse: [ ^CIdentifierToken value: id ]
 ! 
 
 isReserved: aString

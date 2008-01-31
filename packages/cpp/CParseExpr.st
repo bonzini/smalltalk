@@ -44,7 +44,7 @@
 Object subclass: #CExpressionParser
        instanceVariableNames: 'stream'
        classVariableNames: ''
-       poolDictionaries: ''
+       poolDictionaries: 'CToks'
        category: nil
 ! 
 
@@ -66,13 +66,13 @@ conditionalExpression
     | anExpr sym colonExpr |
     anExpr _ self corExpression.
     sym _ stream peek.
-    sym class == QuestionTok
+    sym == QuestionTok
 	ifTrue: 
 	    [ stream next.
 	      anExpr _ ConditionalNode left: anExpr op: sym.
 	      colonExpr _ ColonNode left: self corExpression.
 	      sym _ stream peek.
-	      sym class == ColonTok
+	      sym == ColonTok
 		  ifFalse: [ ^self error: 'expected '':''' ].
 	      stream next.
 	      colonExpr op: sym; right: self conditionalExpression.
@@ -146,7 +146,7 @@ primaryExpression
      "
     | sym expr usedIt |
     sym _ stream peek.
-    sym class == OpenParenTok
+    sym == OpenParenTok
 	ifTrue:
 	    [ stream next.	"gobble '('"
 	      " !!! Where is casting handled"
@@ -154,7 +154,7 @@ primaryExpression
 	      expr printNl.
 	      sym _ stream next.
 	      sym printNl.
-	      sym class == CloseParenTok
+	      sym == CloseParenTok
 		  ifFalse: [ ^self error: 'expecting '')''']. ]
 	ifFalse: [ 
     "###should be sure to exclude comments if they could be in the stream"
@@ -164,10 +164,10 @@ primaryExpression
 		   expr _ sym. ].
     [ sym _ stream peek.
       usedIt _ false.
-      sym class == OpenParenTok
+      sym == OpenParenTok
 	  ifTrue: [ expr _ self parseFunctionCall: expr.
 		    usedIt _ true ].
-      sym class == OpenBracketTok
+      sym == OpenBracketTok
 	  ifTrue: [ expr _ self parseSubscript: expr.
 		    usedIt _ true ].
       (sym class == CBinaryOperatorToken and:

@@ -46,12 +46,12 @@ into one long string token.'
 next
     | result nextTok |
     result _ super next.
-    (result isKindOf: StringTok)
+    (result isKindOf: CStringToken)
 	ifTrue: 
 	    [ [ stream atEnd not and: 
-		    [ (nextTok _ super peek) isKindOf: StringTok ] ]
+		    [ (nextTok _ super peek) isKindOf: CStringToken ] ]
 		  whileTrue: [ super next. "gobble the string"
-			       result _ StringTok value: (result value, 
+			       result _ CStringToken value: (result value, 
 							      nextTok value) ].
 	      ].
     ^result
