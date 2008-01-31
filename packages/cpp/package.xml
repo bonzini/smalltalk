@@ -32,4 +32,5 @@
   <file>CDeclNode.st</file>
   <file>CSymbolTable.st</file>
   <file>CParseType.st</file>
+  <file>README</file>
 </package>
