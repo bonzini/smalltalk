@@ -1,0 +1,11 @@
+<package>
+  <name>Seaside-Examples</name>
+  <namespace>Seaside</namespace>
+
+  <prereq>Seaside-Core</prereq>
+
+  <filein>Seaside-Examples.st</filein>
+  <file>Seaside-Examples.st</file>
+</package>
+
+

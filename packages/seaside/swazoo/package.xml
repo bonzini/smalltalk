@@ -1,0 +1,10 @@
+<package>
+  <name>Seaside-Swazoo</name>
+  <namespace>Seaside</namespace>
+
+  <prereq>Seaside-Core</prereq>
+  <prereq>Swazoo</prereq>
+
+  <filein>Seaside-Adapters-Swazoo.st</filein>
+  <file>Seaside-Adapters-Swazoo.st</file>
+</package>
