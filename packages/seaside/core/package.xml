@@ -17,13 +17,13 @@
       Seaside.WACanvasBrushTest Seaside.WAFormTagTest
       Seaside.WAHtmlBuilderTest Seaside.WAHtmlRootTest
       Seaside.WAEncoderTest Seaside.WAExternalIDTest Seaside.WAMimeTypeTest
+      Seaside.WAProxyTest
 <!--
 Seaside.WADispatcherTest
 Seaside.WADocumentHandlerTest
 Seaside.WAFileLibraryTest
 Seaside.WAFileTest
 Seaside.WALocaleTest
-Seaside.WAProxyTest
 Seaside.WAResourceBaseUrlTest
 -->
     </sunit>

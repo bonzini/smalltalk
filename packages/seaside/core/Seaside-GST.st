@@ -160,6 +160,14 @@ Symbol extend [
     asMutator [
          ^(self copyWith: $:) asSymbol
     ]
+
+    isKeyword [
+	^self last = $:
+    ]
+
+    isUnary [
+	^self numArgs = 0
+    ]
 ]
 
 FileStream extend [
