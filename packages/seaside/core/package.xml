@@ -14,7 +14,8 @@
       Seaside.WACookieUnitTest Seaside.WADictionaryTest
       Seaside.WADynamicVariableTest Seaside.WAResponseTest
       Seaside.WAUrlTest Seaside.WAAcceptTest Seaside.WABacktrackingTest
-      Seaside.WACanvasBrushTest
+      Seaside.WACanvasBrushTest Seaside.WAFormTagTest
+      Seaside.WAHtmlBuilderTest Seaside.WAHtmlRootTest
 <!--
 Seaside.WADispatcherTest
 Seaside.WADocumentHandlerTest
@@ -22,9 +23,6 @@ Seaside.WAEncoderTest
 Seaside.WAExternalIDTest
 Seaside.WAFileLibraryTest
 Seaside.WAFileTest
-Seaside.WAFormTagTest
-Seaside.WAHtmlBuilderTest
-Seaside.WAHtmlRootTest
 Seaside.WALocaleTest
 Seaside.WAMimeTypeTest
 Seaside.WAProxyTest

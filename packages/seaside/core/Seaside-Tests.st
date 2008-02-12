@@ -2605,7 +2605,7 @@ TestCase subclass: WAHtmlRootTest [
 	<category: 'testing'>
 	self 
 	    assert: [:html | html stylesheet add: 'body { margin: 0pt; padding: 0pt;}']
-	    gives: '<title></title><link rel="stylesheet" type="text/css">body { margin: 0pt; padding: 0pt;}</link>'
+	    gives: '<title></title><style type="text/css">/*<![CDATA[*/body { margin: 0pt; padding: 0pt;}/*]]>*/</style>'
     ]
 
     testRevealedConditionalComment [

@@ -156,19 +156,6 @@ Integer extend [
     ]
 ]
 
-String extend [
-    trimBlanks [
-	<category: '*Seaside-Squeak-Core'>
-	^self trimSeparators
-    ]
-
-    findTokens: aStringOrCharacter [
-	^aStringOrCharacter isString
-	    ifTrue: [ self subStrings: aStringOrCharacter first ]
-	    ifFalse: [ self subStrings: aStringOrCharacter ]
-    ]
-]
-
 Symbol extend [
     asMutator [
          ^(self copyWith: $:) asSymbol
@@ -318,6 +305,22 @@ ByteArray extend [
 ]
 
 CharacterArray extend [
+    includesSubString: aString [
+	<category: '*Seaside-Squeak-Core'>
+	^(self indexOfSubCollection: aString ifAbsent: [0]) > 0
+    ]
+
+    trimBlanks [
+	<category: '*Seaside-Squeak-Core'>
+	^self trimSeparators
+    ]
+
+    findTokens: aStringOrCharacter [
+	^aStringOrCharacter isString
+	    ifTrue: [ self subStrings: aStringOrCharacter first ]
+	    ifFalse: [ self subStrings: aStringOrCharacter ]
+    ]
+
     toString [
 	<category: '*Seaside-Squeak-Core'>
 	^self asString
