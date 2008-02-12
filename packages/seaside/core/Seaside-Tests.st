@@ -2074,8 +2074,8 @@ TestCase subclass: WAEncoderTest [
 	    assert: ea
 	    encoder: WAHtmlEncoder
 	    gives: ea.
-	hiraA := (Character value: 12354) toString.	"HIRAGANA LETTER A"
-	hiraO := (Character value: 12362) toString.	"HIRAGANA LETTER O"
+	hiraA := (Character codePoint: 12354) asString.	"HIRAGANA LETTER A"
+	hiraO := (Character codePoint: 12362) asString.	"HIRAGANA LETTER O"
 	hiraAO := hiraA , hiraO.
 	self 
 	    assert: hiraA
@@ -2093,7 +2093,7 @@ TestCase subclass: WAEncoderTest [
 	"The Supplementary Multilingual Plane (SMP: Plane 1, U+010000 - U+01FFFF)
 	 http://www.unicode.org/charts/PDF/U10140.pdf
 	 Ancient Greek Zero Sign"
-	zero := (Character value: 65930) toString.
+	zero := (Character codePoint: 65930) asString.
 	self 
 	    assert: zero
 	    encoder: WAHtmlEncoder
@@ -2123,8 +2123,7 @@ TestCase subclass: WAEncoderTest [
 	    encoder: WAUrlEncoder
 	    gives: 'a%25'.
 	self 
-	    assert: '
-'
+	    assert: (String with: Character cr)
 	    encoder: WAUrlEncoder
 	    gives: '%0D'
     ]
