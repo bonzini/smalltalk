@@ -2476,10 +2476,10 @@ TestCase subclass: WAFileTest [
 
 	| koreanName |
 	self shouldnt: 
-		[koreanName := (String 
-			    with: (Character value: 50976)
-			    with: (Character value: 47532)
-			    with: (Character value: 47484)) , '.txt']
+		[koreanName := (UnicodeString 
+			    with: (Character codePoint: 50976)
+			    with: (Character codePoint: 47532)
+			    with: (Character codePoint: 47484)) asString, '.txt']
 	    raise: Error.
 	file fileName: koreanName.
 	self assert: file fileName = koreanName.
