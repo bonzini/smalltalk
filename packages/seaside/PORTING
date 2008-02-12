@@ -69,9 +69,6 @@ Errors left:
     Seaside.WADispatcherTest>>#testAlternateFiles
     Seaside.WADispatcherTest>>#testDefaultConfig
     Seaside.WADispatcherTest>>#testRootDispatcher
-    Seaside.WADocumentHandlerTest>>#testByteArray
-    Seaside.WADocumentHandlerTest>>#testString
-    Seaside.WAFileLibraryTest>>#testFilenames
 
 Failures (all in Squeak too):
     Seaside.WADispatcherTest>>#testRootDispatcherChange

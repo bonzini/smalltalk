@@ -25,6 +25,7 @@ Object subclass: MIMEDocument [
     ]
 
     contentStream [
+	contentStream isNil ifTrue: [ ^content readStream ].
 	^contentStream
     ]
 
@@ -62,7 +63,7 @@ Stream extend [
 
     asMIMEDocumentType: mimeType [
 	<category: '*Seaside-Squeak-Core'>
-	^MIMEDocument contentType: mimeType toString contentStream:  self
+	^Seaside.MIMEDocument contentType: mimeType toString contentStream: self
     ]
 
     upToAndSkipThroughAll: aCollection [

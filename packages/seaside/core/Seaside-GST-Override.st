@@ -36,3 +36,16 @@ WAResponse extend [
         stream nextPutAll: aString
     ]
 ]
+
+"these are here because we need to add the Seaside prefix."
+Object extend [
+    validationError: message [
+        <category: '*Seaside-Core'>
+        ^Seaside.WAValidationNotification raiseSignal: message
+    ]
+
+    deprecatedApi: aString [
+	<category: '*Seaside-Core'>
+	Seaside.WADeprecatedApi raiseSignal: aString
+    ]
+]

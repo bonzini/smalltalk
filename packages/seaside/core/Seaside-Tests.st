@@ -1950,7 +1950,7 @@ TestCase subclass: WADocumentHandlerTest [
 	<category: 'private'>
 	self 
 	    createAndVerifyDocumentNamed: aFilename
-	    content: WADispatcherFiles default logoPng
+	    content: WAFileLibraryDemo default mainJpg
 	    mimeType: 'image/jpeg'
 	    hasAttachement: aHttpHeaderValue
     ]
@@ -1974,7 +1974,7 @@ TestCase subclass: WADocumentHandlerTest [
 	<category: 'private'>
 	self 
 	    createAndVerifyDocumentNamed: aFilename
-	    content: WADispatcherFiles default mainCss
+	    content: WAFileLibraryDemo default mainCss
 	    mimeType: 'text/css'
 	    hasAttachement: aHttpHeaderValue
     ]
@@ -2296,8 +2296,8 @@ TestCase subclass: WAFileLibraryTest [
     testFilenames [
 	<category: 'testing'>
 	| expected actual |
-	expected := #(#editorCss #topJpg #mainCss #savePng).
-	actual := WADispatcherFiles new fileSelectors.
+	expected := #(#mainJpg #mainCss).
+	actual := WAFileLibraryDemo new fileSelectors.
 	"VW does not implement #= in Sets"
 	self assert: actual size = expected size.
 	expected do: [:each | self assert: (expected includes: each)]
