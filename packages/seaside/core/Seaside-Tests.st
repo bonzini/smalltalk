@@ -1372,7 +1372,7 @@ WACanvasBrushTest subclass: WAResourceBaseUrlTest [
     testScriptTag [
 	<category: 'testing'>
 	self assert: [:html | html script resourceUrl: 'track.js']
-	    gives: '<srcript src="https:/www.seaside.st/resources/track.js">/*<![CDATA[*//*]]>*/</srcript>'
+	    gives: '<script src="https:/www.seaside.st/resources/track.js" type="text/javascript">/*<![CDATA[*//*]]>*/</script>'
     ]
 
     testSylesheet [

@@ -18,11 +18,10 @@
       Seaside.WAHtmlBuilderTest Seaside.WAHtmlRootTest
       Seaside.WAEncoderTest Seaside.WAExternalIDTest Seaside.WAMimeTypeTest
       Seaside.WAProxyTest Seaside.WAFileLibraryTest Seaside.WAFileTest
-      Seaside.WALocaleTest
+      Seaside.WALocaleTest Seaside.WAResourceBaseUrlTest
 <!--
 Seaside.WADispatcherTest
 Seaside.WADocumentHandlerTest
-Seaside.WAResourceBaseUrlTest
 -->
     </sunit>
   </test>

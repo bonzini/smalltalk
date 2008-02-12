@@ -3336,7 +3336,7 @@ WATagBrush subclass: WAScriptTag [
     with: aString [
 	<category: 'public'>
 	self attributes at: 'type' ifAbsentPut: ['text/javascript'].
-	super with: [self document nextPutAll: aString toString]
+	super with: [aString isNil ifFalse: [self document nextPutAll: aString toString]]
     ]
 ]
 
