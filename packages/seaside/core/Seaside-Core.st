@@ -236,7 +236,7 @@ IdentityDictionary subclass: WASnapshot [
 
 
 
-BlockContext extend [
+BlockClosure extend [
 
     handleRequest: aRequest [
 	<category: '*Seaside-Core'>

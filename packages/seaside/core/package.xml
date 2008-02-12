@@ -14,8 +14,8 @@
       Seaside.WACookieUnitTest Seaside.WADictionaryTest
       Seaside.WADynamicVariableTest Seaside.WAResponseTest
       Seaside.WAUrlTest Seaside.WAAcceptTest Seaside.WABacktrackingTest
+      Seaside.WACanvasBrushTest
 <!--
-Seaside.WACanvasBrushTest
 Seaside.WADispatcherTest
 Seaside.WADocumentHandlerTest
 Seaside.WAEncoderTest
