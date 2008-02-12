@@ -171,55 +171,55 @@ TestCase subclass: WAAcceptTest [
 	    at: 1
 	    main: 'image'
 	    sub: 'gif'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 2
 	    main: 'image'
 	    sub: 'x-xbitmap'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 3
 	    main: 'image'
 	    sub: 'jpeg'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 4
 	    main: 'image'
 	    sub: 'pjpeg'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 5
 	    main: 'application'
 	    sub: 'vnd.ms-excel'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 6
 	    main: 'application'
 	    sub: 'msword'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 7
 	    main: 'application'
 	    sub: 'vnd.ms-powerpoint'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 8
 	    main: 'application'
 	    sub: 'x-shockwave-flash'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 9
 	    main: '*'
 	    sub: '*'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	acceptEncoding := 'gzip, deflate'.
 	accpetLanguage := WAAcceptLanguage fromString: 'de-ch'.
 	self assert: accpetLanguage size = 1.
@@ -228,7 +228,7 @@ TestCase subclass: WAAcceptTest [
 	    at: 1
 	    language: 'de'
 	    country: 'ch'
-	    quality: Float infinity
+	    quality: FloatD infinity
     ]
 
     testMozilla [
@@ -242,37 +242,37 @@ TestCase subclass: WAAcceptTest [
 	    at: 1
 	    main: 'text'
 	    sub: 'xml'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 2
 	    main: 'application'
 	    sub: 'xml'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 3
 	    main: 'application'
 	    sub: 'xhtml+xml'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 4
 	    main: 'text'
 	    sub: 'html'
-	    quality: 0.9000000000000001.
+	    quality: 0.9.
 	self 
 	    assert: accept
 	    at: 5
 	    main: 'text'
 	    sub: 'plain'
-	    quality: 0.8000000000000001.
+	    quality: 0.8.
 	self 
 	    assert: accept
 	    at: 6
 	    main: 'image'
 	    sub: 'png'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accept
 	    at: 7
@@ -289,13 +289,13 @@ TestCase subclass: WAAcceptTest [
 	    at: 1
 	    language: 'de'
 	    country: 'de'
-	    quality: Float infinity.
+	    quality: FloatD infinity.
 	self 
 	    assert: accpetLanguage
 	    at: 2
 	    language: 'de'
 	    country: nil
-	    quality: 0.8000000000000001.
+	    quality: 0.8.
 	self 
 	    assert: accpetLanguage
 	    at: 3

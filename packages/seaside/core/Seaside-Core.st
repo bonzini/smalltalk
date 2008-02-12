@@ -13519,10 +13519,10 @@ value
 			(each includes: $;) 
 			    ifTrue: 
 				[value := self valueClass fromString: (each copyUpTo: $;) trimBlanks.
-				quality := Float readFrom: ((each copyAfter: $;) copyAfter: $=) readStream]
+				quality := FloatD readFrom: ((each copyAfter: $;) copyAfter: $=) readStream]
 			    ifFalse: 
 				[value := self valueClass fromString: each trimBlanks.
-				quality := Float infinity].
+				quality := FloatD infinity].
 			stream nextPut: (self value: value quality: quality)]]
     ]
 
