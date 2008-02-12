@@ -1,18 +1,25 @@
 <package>
   <name>Seaside-Core</name>
   <namespace>Seaside</namespace>
+  <prereq>Iconv</prereq>
 
   <test>
     <prereq>Seaside-Examples</prereq>
     <filein>Seaside-Tests.st</filein>
+    <filein>Seaside-Adapters-Tests.st</filein>
+
+    <sunit>Seaside.WACodecTest</sunit>
   </test>
 
   <filein>Seaside-Core.st</filein>
-  <filein>Seaside-GST-Core.st</filein>
+  <filein>Seaside-GST.st</filein>
   <filein>Seaside-Adapters-Core.st</filein>
+  <filein>Seaside-Adapters-GST.st</filein>
 
-  <file>Seaside-Tests.st</file>
   <file>Seaside-Core.st</file>
-  <file>Seaside-GST-Core.st</file>
+  <file>Seaside-GST.st</file>
+  <file>Seaside-Tests.st</file>
   <file>Seaside-Adapters-Core.st</file>
+  <file>Seaside-Adapters-GST.st</file>
+  <file>Seaside-Adapters-Tests.st</file>
 </package>
