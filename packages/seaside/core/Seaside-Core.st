@@ -6283,7 +6283,7 @@ Object subclass: WAEncoder [
 		Character value: 65535.
 		65535] 
 			on: Error
-			do: [255].
+			do: [:ex | 255].
 	table := Array new: characterLimit.
 	stream := WriteStream on: (String new: 6).
 	1 to: characterLimit
@@ -9254,12 +9254,12 @@ zza|||Zaza; Dimili; Dimli; Kirdki; Kirmanjki; Zazaki|zaza; dimili; dimli; kirdki
 	| string lines |
 	iso2Countries := Dictionary new.
 	string := self countryList.
-	lines := string subStrings: String crlf.
+	lines := string lines.
 	lines allButFirst collect: 
 		[:each | 
 		| parts |
 		parts := each findTokens: $;.
-		iso2Countries at: parts second put: parts first]
+		parts size >= 2 ifTrue: [iso2Countries at: parts second put: parts first]]
     ]
 
     WALocale class >> parseLanguageString [
@@ -9268,7 +9268,7 @@ zza|||Zaza; Dimili; Dimli; Kirdki; Kirmanjki; Zazaki|zaza; dimili; dimli; kirdki
 	iso2Languages := Dictionary new.
 	iso3Languages := Dictionary new.
 	string := self languageList.
-	lines := string findTokens: Character cr.
+	lines := string lines.
 	lines do: 
 		[:each | 
 		| threeCode twoCode language firstIndex secondIndex thirdIndex fourthIndex |

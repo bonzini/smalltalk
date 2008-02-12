@@ -2,19 +2,43 @@
   <name>Seaside-Core</name>
   <namespace>Seaside</namespace>
   <prereq>Iconv</prereq>
+  <prereq>Sport</prereq>
 
   <test>
     <prereq>Seaside-Examples</prereq>
     <filein>Seaside-Tests.st</filein>
     <filein>Seaside-Adapters-Tests.st</filein>
 
-    <sunit>Seaside.WACodecTest</sunit>
+    <sunit>Seaside.WACodecTest Seaside.WAPlatformTest Seaside.ContinuationTest
+      Seaside.WAAttributesTest Seaside.WAConfigurationTest
+      Seaside.WACookieUnitTest Seaside.WADictionaryTest
+      Seaside.WADynamicVariableTest Seaside.WAResponseTest
+      Seaside.WAUrlTest
+<!--
+Seaside.WAAcceptTest
+Seaside.WABacktrackingTest
+Seaside.WACanvasBrushTest
+Seaside.WADispatcherTest
+Seaside.WADocumentHandlerTest
+Seaside.WAEncoderTest
+Seaside.WAExternalIDTest
+Seaside.WAFileLibraryTest
+Seaside.WAFileTest
+Seaside.WAFormTagTest
+Seaside.WAHtmlBuilderTest
+Seaside.WAHtmlRootTest
+Seaside.WALocaleTest
+Seaside.WAMimeTypeTest
+Seaside.WAProxyTest
+Seaside.WAResourceBaseUrlTest
+-->
+    </sunit>
   </test>
 
-  <filein>Seaside-Core.st</filein>
   <filein>Seaside-GST.st</filein>
   <filein>Seaside-Adapters-Core.st</filein>
   <filein>Seaside-Adapters-GST.st</filein>
+  <filein>Seaside-Core.st</filein>
 
   <file>Seaside-Core.st</file>
   <file>Seaside-GST.st</file>

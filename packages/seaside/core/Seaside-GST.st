@@ -13,8 +13,9 @@ Object subclass: MIMEDocument [
     ]
 
     asMIMEDocumentType: type [
-	type = contentType ifTrue: [ ^self ].
-	^self class contentType: type contentStream: contentStream
+	type toString = contentType toString ifTrue: [ ^self ].
+	^self class new
+	    contentType: type contentStream: contentStream content: content
     ]
 
     contentType: mimeType contentStream: stream content: anObject [
@@ -116,13 +117,36 @@ Time extend [
 ]
 
 Character extend [
+    to: aCharacter [
+	^self codePoint
+	    to: aCharacter codePoint
+	    collect: [ :i | Character codePoint: i ]
+    ]
+	
     asUnicode [
 	<category: '*Seaside-Squeak-Core'>
 	^self codePoint
     ]
 ]
 
+SequenceableCollection extend [
+    atRandom: aRandom [
+	<category: '*Seaside-Squeak-Core'>
+	^self at: aRandom next
+    ]
+]
+
 Integer extend [
+    atRandom [
+	<category: '*Seaside-Squeak-Core'>
+	^Random between: 1 and: self size
+    ]
+
+    printStringBase: anInteger [
+	<category: '*Seaside-Squeak-Core'>
+	^self printString: anInteger
+    ]
+
     asTwoCharacterString [
 	<category: '*Seaside-Squeak-Core'>
 	(self between: 0 and: 9)
@@ -136,19 +160,6 @@ String extend [
     trimBlanks [
 	<category: '*Seaside-Squeak-Core'>
 	^self trimSeparators
-    ]
-
-    toMimeType [
-	<category: '*Seaside-Squeak-Core'>
-	^self
-    ]
-
-    asMIMEDocument [
-	^MIMEDocument contentType: 'text/plain' contentStream: self readStream
-    ]
-
-    asMIMEDocumentType: type [
-	^MIMEDocument contentType: type contentStream: self readStream
     ]
 
     findTokens: aStringOrCharacter [
@@ -299,6 +310,17 @@ CharacterArray extend [
 	<category: '*Seaside-Squeak-Core'>
 	^self asString
     ]
+
+    padded: where to: size with: aCharacter [
+	<category: '*Seaside-Squeak-Core'>
+	| start result |
+	self size = size ifTrue: [ ^self ].
+	result := String new: size withAll: aCharacter.
+	start := where == #left ifTrue: [ size - self size + 1 ] ifFalse: [ 1 ].
+	result replaceFrom: start to: start + self size - 1 with: self startingAt: 1.
+	^result
+    ]
+
 ]
 
 Exception extend [
@@ -311,7 +333,7 @@ Exception extend [
 
 Object subclass: WAGNUSmalltalkPlatform [
     WAGNUSmalltalkPlatform class >> initialize [
-	Namespace current at: #SeasidePlatformSupport put: self new
+	Smalltalk at: #SeasidePlatformSupport put: self new
     ]
 
     addToShutDownList: anObject [

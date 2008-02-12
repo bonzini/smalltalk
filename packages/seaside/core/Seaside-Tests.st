@@ -2939,7 +2939,7 @@ TestCase subclass: WAPlatformTest [
     testDaysInMonthForYear [
 	<category: 'testing'>
 	(1 to: 12) with: #(31 28 31 30 31 30 31 31 30 31 30 31)
-	    do: [:month :days | self assert: days = (Month daysInMonth: month forYear: 2007)]
+	    do: [:month :days | self assert: days = (Date daysInMonthNumber: month forYear: 2007)]
     ]
 
     testEmptyOrNil [
@@ -3008,7 +3008,7 @@ TestCase subclass: WAPlatformTest [
 		    monthNumber: 11
 		    year: 2007.
 	self assert: date year = 2007.
-	self assert: date day = 310
+	self assert: date dayOfYear = 310
     ]
 
     testPrintStringAsCents [
