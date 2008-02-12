@@ -16,11 +16,10 @@
       Seaside.WAUrlTest Seaside.WAAcceptTest Seaside.WABacktrackingTest
       Seaside.WACanvasBrushTest Seaside.WAFormTagTest
       Seaside.WAHtmlBuilderTest Seaside.WAHtmlRootTest
-Seaside.WAEncoderTest
+      Seaside.WAEncoderTest Seaside.WAExternalIDTest
 <!--
 Seaside.WADispatcherTest
 Seaside.WADocumentHandlerTest
-Seaside.WAExternalIDTest
 Seaside.WAFileLibraryTest
 Seaside.WAFileTest
 Seaside.WALocaleTest

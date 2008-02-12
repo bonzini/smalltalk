@@ -132,7 +132,7 @@ Character extend [
 SequenceableCollection extend [
     atRandom: aRandom [
 	<category: '*Seaside-Squeak-Core'>
-	^self at: aRandom next
+	^self at: (aRandom between: 1 and: self size)
     ]
 ]
 
