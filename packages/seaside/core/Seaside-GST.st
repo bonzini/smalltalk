@@ -51,6 +51,10 @@ Fraction extend [
 ]
 
 Stream extend [
+    binary [
+	<category: '*Seaside-Squeak-Core'>
+    ]
+
     asMIMEDocument [
 	<category: '*Seaside-Squeak-Core'>
 	^self asMIMEDocumentType: 'text/plain' toMimeType
@@ -89,6 +93,11 @@ BlockClosure extend [
 ]
 
 Collection extend [
+    removeAllFoundIn: aCollection [
+	<category: '*Seaside-Squeak-Core'>
+	self removeAll: aCollection ifAbsent: [ :x | ]
+    ]
+
     isEmptyOrNil [
 	<category: '*Seaside-Squeak-Core'>
 	^self isEmpty
@@ -313,6 +322,14 @@ ByteArray extend [
 ]
 
 CharacterArray extend [
+    capitalized [
+	<category: '*Seaside-Squeak-Core'>
+	| s |
+	s := self copy.
+	s at: 1 put: (self at: 1) asUppercase.
+	^s
+    ]
+
     beginsWith: aString [
 	<category: '*Seaside-Squeak-Core'>
 	^self startsWith: aString
@@ -392,6 +409,16 @@ Object subclass: WAGNUSmalltalkPlatform [
 	SpEnvironment removeStartupActionFor: anObject
     ]
 
+    asMethodReturningString: aByteArrayOrString named: aSymbol [
+	"Generates the source of a method named aSymbol that returns aByteArrayOrString as a String"
+	<category: 'file-library'>
+	^String streamContents: [ :stream |
+		stream nextPutAll: aSymbol; nextPutAll: ' [ '; nl.
+		stream tab; nextPutAll: '    ^'.
+		aByteArrayOrString storeLiteralOn: stream.
+		stream nl; nextPutAll: ']' ]
+    ]
+
     asMethodReturningByteArray: aByteArrayOrString named: aSymbol [
 	"Generates the source of a method named aSymbol that returns aByteArrayOrString as a ByteArray"
 	<category: 'file-library'>
@@ -458,7 +485,7 @@ Object subclass: WAGNUSmalltalkPlatform [
     ]
 
     convertToSmalltalkNewlines: aString [
-	^self
+	^aString
     ]
 
     defaultDispatcherName [

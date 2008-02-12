@@ -2280,9 +2280,6 @@ TestCase subclass: WAFileLibraryTest [
 	self assert: first = data.
 	second := library perform: #demoTxt.
 	self assert: first == second.
-	source := WAFileLibraryDemo sourceCodeAt: #demoTxt.
-	self assert: source toString = 'demoTxt
-	^ ''this is a string'''.
 	library removeFile: file fileName.
 	self deny: (library class selectors includes: #demoTxt)
     ]
