@@ -205,6 +205,18 @@ Date class extend [
     ]
 ]
 
+Dictionary extend [
+    restoreFromSnapshot: anObject [
+	<category: '*Seaside-Squeak-Core'>
+	super restoreFromSnapshot: anObject snapshotCopy
+    ]
+
+    snapshotCopy [
+	<category: '*Seaside-Squeak-Core'>
+	^self deepCopy
+    ]
+]
+
 Bag extend [
     restoreFromSnapshot: anObject [
 	<category: '*Seaside-Squeak-Core'>
@@ -213,7 +225,7 @@ Bag extend [
 
     snapshotCopy [
 	<category: '*Seaside-Squeak-Core'>
-	^self copy
+	^self deepCopy
     ]
 ]
 

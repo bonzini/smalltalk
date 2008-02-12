@@ -13,9 +13,8 @@
       Seaside.WAAttributesTest Seaside.WAConfigurationTest
       Seaside.WACookieUnitTest Seaside.WADictionaryTest
       Seaside.WADynamicVariableTest Seaside.WAResponseTest
-      Seaside.WAUrlTest Seaside.WAAcceptTest
+      Seaside.WAUrlTest Seaside.WAAcceptTest Seaside.WABacktrackingTest
 <!--
-Seaside.WABacktrackingTest
 Seaside.WACanvasBrushTest
 Seaside.WADispatcherTest
 Seaside.WADocumentHandlerTest
@@ -38,9 +37,11 @@ Seaside.WAResourceBaseUrlTest
   <filein>Seaside-Adapters-Core.st</filein>
   <filein>Seaside-Adapters-GST.st</filein>
   <filein>Seaside-Core.st</filein>
+  <filein>Seaside-GST-Override.st</filein>
 
   <file>Seaside-Core.st</file>
   <file>Seaside-GST.st</file>
+  <file>Seaside-GST-Override.st</file>
   <file>Seaside-Tests.st</file>
   <file>Seaside-Adapters-Core.st</file>
   <file>Seaside-Adapters-GST.st</file>
