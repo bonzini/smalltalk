@@ -305,6 +305,11 @@ ByteArray extend [
 ]
 
 CharacterArray extend [
+    beginsWith: aString [
+	<category: '*Seaside-Squeak-Core'>
+	^self startsWith: aString
+    ]
+
     includesSubString: aString [
 	<category: '*Seaside-Squeak-Core'>
 	^(self indexOfSubCollection: aString ifAbsent: [0]) > 0
