@@ -68,10 +68,15 @@ RAConcreteRelation subclass: RASQLRelation [
 	self subclassResponsibility
     ]
 
+    connection [
+	<category: 'accessing'>
+	^connection
+    ]
+
     deleteFor: aRelation [
 	<category: 'removing'>
 	| conditionString |
-	conditionString := RASingleTableSqlPrinter print: aRelation.
+	conditionString := RASingleTableSqlPrinter print: aRelation for: self.
 	self exec: (self sqlDeleteWhere: conditionString)
     ]
 
@@ -87,7 +92,7 @@ RAConcreteRelation subclass: RASQLRelation [
 
     for: aRelation do: aBlock [
 	<category: 'private'>
-	(self query: (self sqlPrinterClass print: aRelation)) 
+	(self query: (self sqlPrinterClass print: aRelation for: self)) 
 	    do: [:ea | aBlock value: (RASimpleTuple relation: aRelation values: ea)]
     ]
 
@@ -96,7 +101,7 @@ RAConcreteRelation subclass: RASQLRelation [
 	| tuple conditionString |
 	tuple := RAUpdateTuple relation: aRelation.
 	aBlock value: tuple.
-	conditionString := RASingleTableSqlPrinter print: aRelation.
+	conditionString := RASingleTableSqlPrinter print: aRelation for: self.
 	self exec: (self sqlUpdate: tuple nodes where: conditionString)
     ]
 
@@ -166,19 +171,20 @@ RAConcreteRelation subclass: RASQLRelation [
 		    separatedBy: [stream nextPutAll: ', '].
 		stream nextPutAll: ') VALUES ('.
 		anArray do: 
-			[:each | 
-			each isString 
-			    ifTrue: 
-				[stream
-				    nextPut: $';
-				    nextPutAll: each asEscapedSql;
-				    nextPut: $']
-			    ifFalse: 
-				[stream nextPutAll: (each isNil 
-					    ifTrue: ['NULL']
-					    ifFalse: [each asString printString])]]
+			[:each | self print: each on: stream ]
 		    separatedBy: [stream nextPutAll: ', '].
 		stream nextPutAll: ')']
+    ]
+
+    print: anObject on: aStream [
+        <category: 'printing'>
+	anObject isNil ifTrue: [
+	    aStream nextPutAll: 'NULL'. ^self ].
+	aStream nextPut: $'.
+	anObject isString
+	    ifTrue: [ aStream nextPutAll: anObject asEscapedSql ]
+	    ifFalse: [ aStream nextPutAll: anObject printString asEscapedSql ].
+	aStream nextPut: $'
     ]
 
     sqlPrinterClass [
@@ -199,7 +205,7 @@ RAConcreteRelation subclass: RASQLRelation [
 			stream
 			    nextPutAll: '"' , attribute originalAttribute name , '"';
 			    nextPutAll: ' = (';
-			    nextPutAll: (RASqlUpdatePrinter print: node);
+			    nextPutAll: (RASqlUpdatePrinter print: node for: self);
 			    nextPutAll: '), '].
 		stream skip: -2.
 		stream nextPutAll: ' WHERE '.
@@ -208,20 +214,7 @@ RAConcreteRelation subclass: RASQLRelation [
 ]
 
 
-RAPrinter subclass: RAEscapingSqlPrinter [
-    
-    <category: 'Roe-Visitors'>
-    <comment: nil>
-
-    visitString: anObject [
-	<category: 'visiting-objects'>
-	^self visitObject: anObject asEscapedSql
-    ]
-]
-
-
-
-RAEscapingSqlPrinter subclass: RASingleTableSqlPrinter [
+RAPrinter subclass: RASingleTableSqlPrinter [
     
     <category: 'Roe-Visitors'>
     <comment: nil>
@@ -307,7 +300,7 @@ RAEscapingSqlPrinter subclass: RASingleTableSqlPrinter [
 
 
 
-RAEscapingSqlPrinter subclass: RASqlPrinter [
+RAPrinter subclass: RASqlPrinter [
     | tableCounter columnCounter columnMap |
     
     <category: 'Roe-Visitors'>
@@ -398,7 +391,7 @@ RAEscapingSqlPrinter subclass: RASqlPrinter [
 
     visitBoolean: aBoolean [
 	<category: 'visiting-objects'>
-	self visitObject: aBoolean printString
+	self visitObject: aBoolean
     ]
 
     visitCartesianProduct: aRelation [
@@ -416,7 +409,7 @@ RAEscapingSqlPrinter subclass: RASqlPrinter [
 
     visitDate: aDate [
 	<category: 'visiting-objects'>
-	self visitObject: aDate printString
+	self visitObject: aDate
     ]
 
     visitDifference: aRelation [
@@ -522,7 +515,7 @@ RAEscapingSqlPrinter subclass: RASqlPrinter [
 
 
 
-RAEscapingSqlPrinter subclass: RASqlUpdatePrinter [
+RAPrinter subclass: RASqlUpdatePrinter [
     
     <category: 'Roe-Visitors'>
     <comment: nil>
@@ -533,19 +526,18 @@ RAEscapingSqlPrinter subclass: RASqlUpdatePrinter [
     ]
 ]
 
-
 
-
 String extend [
 
     asEscapedSql [
-	<category: '*Roe'>
-	^String streamContents: 
-		[:stream | 
-		self do: 
-			[:char | 
-			(#($' $\) includes: char) ifTrue: [stream nextPut: char].
-			stream nextPut: char]]
+       <category: '*Roe'>
+       ^String streamContents: 
+               [:stream | 
+               self do: 
+                       [:char | 
+                       (#($' $\) includes: char) ifTrue: [stream nextPut: char].
+
+                       stream nextPut: char]]
     ]
 
 ]

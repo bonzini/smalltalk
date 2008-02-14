@@ -133,7 +133,7 @@ Collection subclass: RARelation [
     asAlgebraicString [
 	<category: 'converting'>
 	^String 
-	    streamContents: [:stream | (RAAlgebraicPrinter on: stream) visit: self]
+	    streamContents: [:stream | (RAAlgebraicPrinter on: stream for: self) visit: self]
     ]
 
     asArray [
@@ -343,6 +343,11 @@ Collection subclass: RARelation [
 		(ea valueForAttributeNamed: attributePair first) 
 		    = (ea valueForAttributeNamed: attributePair last)]
     ]
+
+    print: anObject on: aStream [
+	<category: 'printing'>
+	anObject printOn: aStream
+    ]
 ]
 
 
@@ -539,8 +544,6 @@ RARelation subclass: RAConcreteRelation [
 ]
 
 
-
-
 
 RARelation subclass: RAIndexedRelation [
     
@@ -1686,17 +1689,18 @@ Object subclass: RAVisitor [
 
 
 RAVisitor subclass: RAPrinter [
-    | stream |
+    | stream relation |
     
     <category: 'Roe-Visitors'>
     <comment: nil>
 
-    RAPrinter class >> on: aStream [
-	^self new stream: aStream
+    RAPrinter class >> on: aStream for: aConcreteRelation [
+	^self new stream: aStream relation: aConcreteRelation
     ]
 
-    RAPrinter class >> print: aRelation [
-	^String streamContents: [:s | (self on: s) visit: aRelation]
+    RAPrinter class >> print: aRelation for: aConcreteRelation [
+	^String streamContents: [:s |
+	    (self on: s for: aConcreteRelation) visit: aRelation]
     ]
 
     printOperator: aNode [
@@ -1704,9 +1708,10 @@ RAVisitor subclass: RAPrinter [
 	stream nextPutAll: aNode operator
     ]
 
-    stream: aStream [
+    stream: aStream relation: aConcreteRelation [
 	<category: 'accessing'>
-	stream := aStream
+	stream := aStream.
+	relation := aConcreteRelation
     ]
 
     tupleFor: aRelation [
@@ -1735,7 +1740,7 @@ RAVisitor subclass: RAPrinter [
 
     visitObject: anObject [
 	<category: 'visiting'>
-	anObject printOn: stream
+	relation print: anObject on: stream
     ]
 
     visitRelation: aRelation [

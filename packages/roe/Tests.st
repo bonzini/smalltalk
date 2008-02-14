@@ -573,22 +573,23 @@ TestCase subclass: RATestSyntax [
 
     testPrintingSql [
 	<category: 'testing'>
-	| notNullQuery nullQuery dateQuery trueQuery |
+	| notNullQuery nullQuery dateQuery trueQuery dummyRelation |
+	dummyRelation := RASQLRelation basicNew.
 	notNullQuery := abc select: [:ea | ea a ~= nil].
-	self assert: (RASqlPrinter print: notNullQuery) 
+	self assert: (RASqlPrinter print: notNullQuery for: dummyRelation) 
 		    = 'SELECT * FROM (SELECT "a" AS c1, "b" AS c2, "c" AS c3 FROM abc) AS t1 WHERE (c1 IS NOT NULL)'.
 	nullQuery := abc select: [:ea | ea a = nil].
-	self assert: (RASqlPrinter print: nullQuery) 
+	self assert: (RASqlPrinter print: nullQuery for: dummyRelation) 
 		    = 'SELECT * FROM (SELECT "a" AS c1, "b" AS c2, "c" AS c3 FROM abc) AS t1 WHERE (c1 IS NULL)'.
 	dateQuery := abc 
 		    select: [:ea | ea a = (Date 
 				    newDay: 10
 				    monthIndex: 11
 				    year: 2006)].
-	self assert: (RASqlPrinter print: dateQuery) 
+	self assert: (RASqlPrinter print: dateQuery for: dummyRelation) 
 		    = 'SELECT * FROM (SELECT "a" AS c1, "b" AS c2, "c" AS c3 FROM abc) AS t1 WHERE (c1=''10-Nov-2006'')'.
 	trueQuery := abc select: [:ea | ea a = true].
-	self assert: (RASqlPrinter print: trueQuery) 
+	self assert: (RASqlPrinter print: trueQuery for: dummyRelation) 
 		    = 'SELECT * FROM (SELECT "a" AS c1, "b" AS c2, "c" AS c3 FROM abc) AS t1 WHERE (c1=''true'')'
     ]
 ]
