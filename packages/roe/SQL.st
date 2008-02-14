@@ -37,6 +37,16 @@ RAConcreteRelation subclass: RASQLRelation [
     
     <category: 'Roe-Relations-Concrete'>
     <comment: nil>
+    
+    Log := false.
+
+    RASQLRelation class >> log [
+	^Log
+    ]
+
+    RASQLRelation class >> log: aBoolean [
+	Log := aBoolean.
+    ]
 
     RASQLRelation class >> name: aString [
 	self shouldNotImplement
@@ -113,18 +123,17 @@ RAConcreteRelation subclass: RASQLRelation [
 
     log [
 	<category: 'private'>
-	^true
+	^Log
     ]
 
     logging: aString do: aBlock [
 	<category: 'private'>
 	| time val |
+	self log
+	    ifTrue: [Transcript nextPutAll: aString].
 	time := Time millisecondsToRun: [val := aBlock value].
-	self log 
-	    ifTrue: 
-		[Transcript
-		    cr;
-		    show: aString , ' [' , time asString , ']'].
+	self log
+	    ifTrue: [Transcript nextPutAll: ' [' , time asString , ']'; nl].
 	^val
     ]
 
