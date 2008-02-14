@@ -133,7 +133,7 @@ RAConcreteRelation subclass: RASQLRelation [
 	    ifTrue: [Transcript nextPutAll: aString].
 	time := Time millisecondsToRun: [val := aBlock value].
 	self log
-	    ifTrue: [Transcript nextPutAll: ' [' , time asString , ']'; nl].
+	    ifTrue: [Transcript nextPutAll: ' [' , time printString , ']'; nl].
 	^val
     ]
 
@@ -350,13 +350,13 @@ RAPrinter subclass: RASqlPrinter [
 	<category: 'accessing'>
 	columnCounter := columnCounter ifNil: [1]
 		    ifNotNil: [:foo | columnCounter + 1].
-	^'c' , columnCounter asString
+	^'c' , columnCounter printString
     ]
 
     nextTableName [
 	<category: 'accessing'>
 	tableCounter := tableCounter ifNil: [1] ifNotNil: [:foo | tableCounter + 1].
-	^'t' , tableCounter asString
+	^'t' , tableCounter printString
     ]
 
     printOperator: aNode [
