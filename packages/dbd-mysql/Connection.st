@@ -764,8 +764,8 @@ Connection subclass: MySQLConnection [
 	    table := (MySQLTable name: aString connection: self)
 		columnsArray;
 		yourself ]
-value."	    on: Error
-	    do: [ :ex | ex return ]."
+	    on: Error
+	    do: [ :ex | ex return ].
 
 	table isNil ifTrue: [ ^aBlock value ].
 	^table
