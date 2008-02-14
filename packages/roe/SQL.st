@@ -319,15 +319,16 @@ RAPrinter subclass: RASqlPrinter [
 	<category: 'private'>
 	^String streamContents: 
 		[:s | 
-		aCollection with: aliasCollection
+		(1 to: aCollection size)
 		    do: 
-			[:attr :alias | 
+			[:index || attr alias |
+			attr := aCollection at: index.
+			alias := aliasCollection at: index.
 			s
 			    nextPutAll: (self columnNameForAttribute: attr);
 			    nextPutAll: ' AS ';
-			    nextPutAll: (self columnNameForAttribute: alias);
-			    nextPutAll: ', '].
-		s skip: -2]
+			    nextPutAll: (self columnNameForAttribute: alias) ]
+		    separatedBy: [s nextPutAll: ', ']]
     ]
 
     columnNameForAttribute: anAttribute [
@@ -414,11 +415,9 @@ RAPrinter subclass: RASqlPrinter [
 
     visitDifference: aRelation [
 	<category: 'visiting'>
-	stream nextPutAll: '('.
 	self visit: aRelation left.
-	stream nextPutAll: ') EXCEPT ('.
+	stream nextPutAll: ' EXCEPT '.
 	self visit: aRelation right.
-	stream nextPutAll: ')'
     ]
 
     visitDistinct: aRelation [
@@ -437,11 +436,9 @@ RAPrinter subclass: RASqlPrinter [
 
     visitIntersection: aRelation [
 	<category: 'visiting'>
-	stream nextPutAll: '('.
 	self visit: aRelation left.
-	stream nextPutAll: ') INTERSECT ('.
+	stream nextPutAll: ' INTERSECT '.
 	self visit: aRelation right.
-	stream nextPutAll: ')'
     ]
 
     visitInterval: aRelation [
@@ -505,11 +502,9 @@ RAPrinter subclass: RASqlPrinter [
 
     visitUnion: aRelation [
 	<category: 'visiting'>
-	stream nextPutAll: '('.
 	self visit: aRelation left.
-	stream nextPutAll: ') UNION ('.
+	stream nextPutAll: ' UNION '.
 	self visit: aRelation right.
-	stream nextPutAll: ')'
     ]
 ]
 
