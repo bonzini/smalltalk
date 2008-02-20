@@ -73,6 +73,8 @@ The script I used for conversion:
      (``@object lines)' \
   -r'(``@object newFrom: ``@arg2 )->
      (``@object from: ``@arg2)' \
+  -r'(``@object withIndexDo: ``@arg2 )->
+     (``@object doWithIndex: ``@arg2)' \
   -r'(Dictionary withAll: ``@arg2 )->
      (Dictionary from: ``@arg2)' \
   -r'((Character value: ``@arg2 ) toString)->

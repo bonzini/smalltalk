@@ -293,7 +293,7 @@ ByteArray subclass: WAExternalID [
 	<category: 'instance-creation'>
 	| id |
 	id := self new: aString size.
-	aString withIndexDo: [:each :index | id at: index put: each asInteger].
+	aString doWithIndex: [:each :index | id at: index put: each asInteger].
 	^id
     ]
 
@@ -384,7 +384,7 @@ Object extend [
 	| members |
 	members := Array new writeStream.
 	self class allInstVarNames 
-	    withIndexDo: [:each :index | members nextPut: each -> (self instVarAt: index)].
+	    doWithIndex: [:each :index | members nextPut: each -> (self instVarAt: index)].
 	self class isVariable 
 	    ifTrue: 
 		[1 to: self size do: [:index | members nextPut: index -> (self at: index)]].
@@ -10976,7 +10976,7 @@ Instance Variables:
 	    with: 
 		    [html tableRow: [self renderMonthHeadingsOn: html].
 		    html tableRow: [self renderDayHeadingsOn: html].
-		    rows withIndexDo: 
+		    rows doWithIndex: 
 			    [:each :index | 
 			    html tableRow: 
 				    [self 
@@ -12260,7 +12260,7 @@ WAComponent subclass: WATableReport [
 
     renderRowsOn: html [
 	<category: 'rendering'>
-	self rows withIndexDo: 
+	self rows doWithIndex: 
 		[:row :i | 
 		self 
 		    renderRowNumber: i

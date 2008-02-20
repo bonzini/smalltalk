@@ -39,6 +39,18 @@ Object subclass: MIMEDocument [
     ]
 ]
 
+Collection extend [
+    Object >> isCollection [
+	<category: '*Seaside-Squeak-Core'>
+	^false
+    ]
+
+    isCollection [
+	<category: '*Seaside-Squeak-Core'>
+	^true
+    ]
+]
+
 Fraction extend [
     Object >> isFraction [
 	<category: '*Seaside-Squeak-Core'>
