@@ -55,7 +55,7 @@ SwazooSeaside encoding: ''utf-8'''>
 
 
 
-HTTPMessage extend [
+Swazoo.HTTPMessage extend [
 
     remoteAddress [
 	<category: '*Seaside-Adapters-Swazoo'>
@@ -66,7 +66,7 @@ HTTPMessage extend [
 
 
 
-Site subclass: SeasideSite [
+Swazoo.Site subclass: SeasideSite [
     | dispatcher codec |
     
     <comment: 'I am the implementation of the Seaside server adaptor for Swazoo 2.'>

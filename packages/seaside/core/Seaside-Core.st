@@ -404,11 +404,6 @@ Object extend [
 	aRenderer text: self
     ]
 
-    restoreFromSnapshot: anObject [
-	<category: '*Seaside-Core'>
-	self copyFrom: anObject
-    ]
-
     snapshotCopy [
 	<category: '*Seaside-Core'>
 	^self shallowCopy

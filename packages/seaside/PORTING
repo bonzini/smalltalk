@@ -1,62 +1,26 @@
-Portability problems submitted to seaside-dev:
+Portability problems fixed upstream:
 
-Changes:
+*1) we placed WACodecTest in a separate file, they might want to do that too
 
-1) we placed WACodecTest in a separate file, they might want to do that too
+*3) #day expected to return #dayOfYear -- fixed in WAPlatformTest
 
-2) there are NULLs in testUtf16, I killed that test case
+*5) WALocale class >> parseCountryString
 
-3) #day expected to return #dayOfYear -- fixed in WAPlatformTest
+*6) WAHtmlRootTest >> testLinkElementWithContent is actually correct, should give '<title></title><style type="text/css">/*<![CDATA[*/body { margin: 0pt; padding: 0pt;}/*]]>*/</style>'.  how come it passes in Squeak?
 
-4) Month vs. a special message in Date.  Month class is a big problem,
-I hope they get rid of it fully.
-
-5) WALocale class >> parseCountryString
-
-6) WAHtmlRootTest >> testLinkElementWithContent is actually correct, should give '<title></title><style type="text/css">/*<![CDATA[*/body { margin: 0pt; padding: 0pt;}/*]]>*/</style>'.  how come it passes in Squeak?
-
-7) expected '%0D' in WAEncoderTest>>#testEncodedUrl is a problem;
+*7) expected '%0D' in WAEncoderTest>>#testEncodedUrl is a problem;
 should use (String with: Character cr) instead
 
-8) Remove sourceCodeAt: check from WAFileLibrary
+*9) Different implementation of WAScriptTag >> with:, checking specially for nil
 
-9) Different implementation of WAScriptTag >> with:, checking specially for nil
+*10) WAResourceBaseUrlTest>>#testScriptTag is actually correct, should give '<script src="https:/www.seaside.st/resources/track.js" type="text/javascript">/*<![CDATA[*//*]]>*/</script>'
 
-10) WAResourceBaseUrlTest>>#testScriptTag is actually correct, should give '<script src="https:/www.seaside.st/resources/track.js" type="text/javascript">/*<![CDATA[*//*]]>*/</script>'
-
-11) Different implementation of WAResponseTag >> nextPutAll:, just delegating
-
-Also, I wonder if one should leave Object >> restoreSnapshotFrom: to the
-platform.  For now, I override it in Seaside-GST-Override.st.
-
-----------
-
-Missing WAPlatformTest testcases (not a big deal):
-
-1) SequenceableCollection>>#atRandom
-   SequenceableCollection>>#atRandom:
-   Integer>>#atRandom
-2) Character>>#to: and running #collect: on the result.
-3) Integer>>#printStringBase:
-4) String>>#padded:to:with:
-5) String>>#copyUpToLast:
-6) String>>#copyAfterLast:
-7) String>>#copyAfter:
-8) String>>#includesSubString:
-9) String>>#beginsWith:
-10) Symbol>>#isKeyword
-11) Symbol>>#isUnary
-12) String>>#capitalized
-13) Collection>>#removeAllFoundIn:
-
-----------
-
-Where is WADispatcherFiles?
+*12) Where is WADispatcherFiles?
 
 ----------
 
 Changes to do manually:
-1) add imports to the classes in Seaside-Adapters-Swazoo
+1) add imports to the classes in Seaside-Adapters-Swazoo and namespaces to superclasses
 2) BlockContext -> BlockClosure
 3) WAAcceptTest >> testMozilla, remove ...000000001 tail
 4) remove testColorAsHtmlColor
