@@ -1,21 +1,7 @@
-Portability problems fixed upstream:
+Portability problems not fixed upstream:
 
-*1) we placed WACodecTest in a separate file, they might want to do that too
-
-*3) #day expected to return #dayOfYear -- fixed in WAPlatformTest
-
-*5) WALocale class >> parseCountryString
-
-*6) WAHtmlRootTest >> testLinkElementWithContent is actually correct, should give '<title></title><style type="text/css">/*<![CDATA[*/body { margin: 0pt; padding: 0pt;}/*]]>*/</style>'.  how come it passes in Squeak?
-
-*7) expected '%0D' in WAEncoderTest>>#testEncodedUrl is a problem;
-should use (String with: Character cr) instead
-
-*9) Different implementation of WAScriptTag >> with:, checking specially for nil
-
-*10) WAResourceBaseUrlTest>>#testScriptTag is actually correct, should give '<script src="https:/www.seaside.st/resources/track.js" type="text/javascript">/*<![CDATA[*//*]]>*/</script>'
-
-*12) Where is WADispatcherFiles?
+1) testCompileString, remove #sourceCodeAt:
+2) remove testColorAsHtmlColor
 
 ----------
 
@@ -23,61 +9,73 @@ Changes to do manually:
 1) add imports to the classes in Seaside-Adapters-Swazoo and namespaces to superclasses
 2) BlockContext -> BlockClosure
 3) WAAcceptTest >> testMozilla, remove ...000000001 tail
-4) remove testColorAsHtmlColor
-5) UnicodeString in testNonLatinWindowsPath?
-
-----------
-
-Errors left:
-    Seaside.WADispatcherTest>>#testAlternateConfig
-    Seaside.WADispatcherTest>>#testAlternateFiles
-    Seaside.WADispatcherTest>>#testDefaultConfig
-    Seaside.WADispatcherTest>>#testRootDispatcher
-
-Failures (all in Squeak too):
-    Seaside.WADispatcherTest>>#testRootDispatcherChange
-    Seaside.WADispatcherTest>>#testRootDispatcherDependency
-    Seaside.WALocaleTest>>#testLanguageNameIso3
-    Seaside.WAResourceBaseUrlTest>>#testAbsoluteFtpUrl
-    Seaside.WAResourceBaseUrlTest>>#testFileNameWithHttp
+4) UnicodeString in testNonLatinWindowsPath?
+5) remove testColorAsHtmlColor (bogus)
+6) remove testCapitalizedUmlauts (unsupported in GST)
+7) remove testLanguageNameIso3 (unsupported in Seaside)
 
 ----------
 
 The script I used for conversion:
 
-./gst -f ../scripts/Convert.st -f squeak \
-  -c'-^Seaside-Platform$' \
-  -C'-^Continuation$' \
-  -r'Float->FloatD' \
-  -r'MessageSend->DirectedMessage' \
-  -r'DateAndTime->DateTime' \
-  -r'(``@object ifNil: ``@arg ifNotNil: [ | `@t2 | `@.s2 ] )->
-     (``@object ifNil: ``@arg ifNotNil: [ :foo || `@t2 | `@.s2 ])' \
-  -r'(``@object ifNotNil: [ | `@t2 | `@.s2 ] ifNil: ``@arg )->
-     (``@object ifNotNil: [ :foo || `@t2 | `@.s2 ] ifNil: ``@arg)' \
-  -r'(``@object ifNotNil: [ | `@t2 | `@.s2 ] )->
-     (``@object ifNotNil: [ :foo || `@t2 | `@.s2 ])' \
-  -r'(``@object ifNil: ``@arg1 ifNotNilDo: ``@arg2 )->
-     (``@object ifNil: ``@arg1 ifNotNil: ``@arg2)' \
-  -r'(``@object ifNotNilDo: ``@arg2 ifNil: ``@arg1 )->
-     (``@object ifNotNil: ``@arg2 ifNil: ``@arg1)' \
-  -r'(``@object ifNotNilDo: ``@arg2 )->
-     (``@object ifNotNil: ``@arg2)' \
-  -r'(``@object doIfNotNil: ``@arg2 )->
-     (``@object ifNotNil: ``@arg2)' \
-  -r'(``@object on: ``@arg2 do: [ | `@t2 | `@.s2 ])->
-     (``@object on: ``@arg2 do: [ :ex || `@t2 | `@.s2 ])' \
-  -r'(``@object findTokens: Character cr )->
-     (``@object lines)' \
-  -r'(``@object subStrings: String crlf )->
-     (``@object lines)' \
-  -r'(``@object newFrom: ``@arg2 )->
-     (``@object from: ``@arg2)' \
-  -r'(``@object withIndexDo: ``@arg2 )->
-     (``@object doWithIndex: ``@arg2)' \
-  -r'(Dictionary withAll: ``@arg2 )->
-     (Dictionary from: ``@arg2)' \
-  -r'((Character value: ``@arg2 ) toString)->
-     ((Character codePoint: ``@arg2) asString)' \
-  -r'(``@object day )->(``@object dayOfYear)' \
- "$@"
+cd mcz
+for i in *.mcz; do
+  unzip -p $i snapshot/source.st | tr \\r \\n > ../sq/$i.st
+done
+cd ../sq
+for i in *.st Seaside-Tests-Functional.st; do
+  if test $i = Seaside-Tests-Functional.st; then
+    cat_func=-c'^Seaside-Tests-Functional$'
+    in=`echo Seaside-Tests-*`
+  else
+    cat_func=-c'-^Seaside-Tests-Functional$'
+    in=$i
+  fi
+  echo converting $in to $i
+  ../../gst -I ../../gst.im -f ../../../scripts/Convert.st -f squeak $cat_func \
+    -C'-^Continuation$' \
+    -r'Float->FloatD' \
+    -r'MessageSend->DirectedMessage' \
+    -r'DateAndTime->DateTime' \
+    -r'(``@object ifNil: ``@arg ifNotNil: [ | `@t2 | `@.s2 ] )->
+       (``@object ifNil: ``@arg ifNotNil: [ :foo || `@t2 | `@.s2 ])' \
+    -r'(``@object ifNotNil: [ | `@t2 | `@.s2 ] ifNil: ``@arg )->
+       (``@object ifNotNil: [ :foo || `@t2 | `@.s2 ] ifNil: ``@arg)' \
+    -r'(``@object ifNotNil: [ | `@t2 | `@.s2 ] )->
+       (``@object ifNotNil: [ :foo || `@t2 | `@.s2 ])' \
+    -r'(``@object ifNil: ``@arg1 ifNotNilDo: ``@arg2 )->
+       (``@object ifNil: ``@arg1 ifNotNil: ``@arg2)' \
+    -r'(``@object ifNotNilDo: ``@arg2 ifNil: ``@arg1 )->
+       (``@object ifNotNil: ``@arg2 ifNil: ``@arg1)' \
+    -r'(``@object ifNotNilDo: ``@arg2 )->
+       (``@object ifNotNil: ``@arg2)' \
+    -r'(``@object doIfNotNil: ``@arg2 )->
+       (``@object ifNotNil: ``@arg2)' \
+    -r'(``@object on: ``@arg2 do: [ | `@t2 | `@.s2 ])->
+       (``@object on: ``@arg2 do: [ :ex || `@t2 | `@.s2 ])' \
+    -r'(``@object findTokens: Character cr )->
+       (``@object lines)' \
+    -r'(``@object subStrings: String crlf )->
+       (``@object lines)' \
+    -r'(``@object newFrom: ``@arg2 )->
+       (``@object from: ``@arg2)' \
+    -r'(``@object withIndexDo: ``@arg2 )->
+       (``@object doWithIndex: ``@arg2)' \
+    -r'[Character value: 65535. 65535]->
+       [Character codePoint: 65535. 65535]' \
+    -r'(Month daysInMonthNumber: ``@arg1 forYear: ``@arg2 )->
+       (Date daysInMonth: ``@arg1 forYear: ``@arg2)' \
+    -r'(Dictionary withAll: ``@arg2 )->
+       (Dictionary from: ``@arg2)' \
+    -r'((Character value: ``@arg2 ) toString)->
+       ((Character codePoint: ``@arg2) asString)' \
+    $in ../gst/$i
+done
+
+echo mv Seaside-Adapters-Core-* ../../../packages/seaside/core/Seaside-Adapters-Core.st 
+echo mv Seaside-Adapters-Tests-* ../../../packages/seaside/core/Seaside-Adapters-Tests.st 
+echo mv Seaside-Core-* ../../../packages/seaside/core/Seaside-Core.st 
+echo mv Seaside-Development-Core-* ../../../packages/seaside/dev/Seaside-Development-Core.st 
+echo mv Seaside-Examples-* ../../../packages/seaside/examples/Seaside-Examples.st 
+echo mv Seaside-Tests-* ../../packages/seaside/core/Seaside-Tests.st
+echo mv Seaside-Tests-Functional.st ../../packages/seaside/examples/

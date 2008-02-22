@@ -6,6 +6,7 @@
 
   <test>
     <prereq>Seaside-Examples</prereq>
+    <prereq>Seaside-Development</prereq>
     <filein>Seaside-Tests.st</filein>
     <filein>Seaside-Adapters-Tests.st</filein>
 

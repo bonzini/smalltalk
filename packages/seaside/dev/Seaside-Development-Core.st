@@ -1215,12 +1215,6 @@ WADispatcherComponent subclass: WADispatcherViewer [
 	^super entryPoints 
 	    select: [:each | each isDispatcher or: [each isApplication]]
     ]
-
-    initialize [
-	<category: 'initialization'>
-	super initialize.
-	entryPoint := self application parent
-    ]
 ]
 
 
@@ -1691,8 +1685,8 @@ WAComponent subclass: WAWalkback [
 		    renderObject: aContext receiver
 		    labelled: 'self'
 		    on: html.
-		aContext tempNames withIndexDo: 
-			[:name :index | 
+		aContext tempNames keysAndValuesDo: 
+			[:index :name | 
 			self 
 			    renderObject: (aContext tempAt: index)
 			    labelled: name

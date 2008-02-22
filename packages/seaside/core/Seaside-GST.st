@@ -183,6 +183,11 @@ Symbol extend [
          ^(self copyWith: $:) asSymbol
     ]
 
+    capitalized [
+	<category: '*Seaside-Squeak-Core'>
+	^self asString capitalized asSymbol
+    ]
+
     isKeyword [
 	^self last = $:
     ]
@@ -575,6 +580,15 @@ Object subclass: WAGNUSmalltalkPlatform [
     semaphoreClass [
 	"used by Gemstone/S traditional Semaphores which cannot be persisted"
 	^Semaphore
+    ]
+
+    defaultDirectoryName [
+	<category: '*Seaside-Squeak-Core'>
+	^Directory working
+    ]
+
+    platformString [
+	^'GNU Smalltalk'
     ]
 
     versionString [

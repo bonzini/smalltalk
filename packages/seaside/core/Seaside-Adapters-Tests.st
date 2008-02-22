@@ -1,10 +1,7 @@
-
-
-
 TestCase subclass: WACodecTest [
     
     <comment: nil>
-    <category: 'Seaside-Adapters-Core'>
+    <category: 'Seaside-Adapters-Tests'>
 
     testGeneric [
 	<category: 'testing'>

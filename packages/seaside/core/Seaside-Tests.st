@@ -570,6 +570,14 @@ TestCase subclass: WABacktrackingTest [
 	self assert: original contents = 2
     ]
 
+    testObject [
+	<category: 'testing'>
+	| original snapshot |
+	original := Object new.
+	snapshot := original snapshotCopy.
+	original restoreFromSnapshot: snapshot
+    ]
+
     testOrderedCollection [
 	<category: 'testing'>
 	| original snapshot |
@@ -1110,6 +1118,8 @@ c'] gives: 'a<br/>b<br/>c'
 	<category: 'testing-tags'>
 	self assert: [:html | html script: 'alert("<foo>")']
 	    gives: '<script type="text/javascript">/*<![CDATA[*/alert("<foo>")/*]]>*/</script>'.
+	self assert: [:html | html script: 'true & false']
+	    gives: '<script type="text/javascript">/*<![CDATA[*/true & false/*]]>*/</script>'.
 	self assert: 
 		[:html | 
 		(html script)
@@ -1159,19 +1169,24 @@ c'] gives: 'a<br/>b<br/>c'
 
     testTextArea [
 	<category: 'testing-tags-forms'>
-	self assert: [:html | html textArea] gives: '<textarea></textarea>'.
+	self assert: [:html | html textArea]
+	    gives: '<textarea rows="auto" cols="auto"></textarea>'.
+	self assert: [:html | html textArea columns: 4]
+	    gives: '<textarea rows="auto" cols="4"></textarea>'.
+	self assert: [:html | html textArea rows: 40]
+	    gives: '<textarea rows="40" cols="auto"></textarea>'.
 	self assert: [:html | html textArea callback: [:value | ]]
-	    gives: '<textarea name="1"></textarea>'.
+	    gives: '<textarea rows="auto" cols="auto" name="1"></textarea>'.
 	self assert: [:html | html textArea value: 'foo bar&zork']
-	    gives: '<textarea>foo bar&amp;zork</textarea>'.
+	    gives: '<textarea rows="auto" cols="auto">foo bar&amp;zork</textarea>'.
 	self assert: [:html | html textArea with: 'foo bar&zork']
-	    gives: '<textarea>foo bar&amp;zork</textarea>'.
+	    gives: '<textarea rows="auto" cols="auto">foo bar&amp;zork</textarea>'.
 	self assert: 
 		[:html | 
 		(html textArea)
 		    callback: [:value | ];
 		    with: 'foo bar&zork']
-	    gives: '<textarea name="1">foo bar&amp;zork</textarea>'
+	    gives: '<textarea rows="auto" cols="auto" name="1">foo bar&amp;zork</textarea>'
     ]
 
     testTextInput [
@@ -1876,57 +1891,12 @@ TestCase subclass: WADispatcherTest [
 	self assert: app basePath = ('/' , baseName , '/tests')
     ]
 
-    testRootDispatcher [
-	<category: 'testing'>
-	| app |
-	app := defaultDispatcher entryPointAt: 'examples/counter'.
-	self deny: app isRoot.
-	self deny: app parent isRoot.
-	self assert: app parent parent isRoot.
-	self assert: app rootDispatcher == defaultDispatcher
-    ]
-
-    testRootDispatcherChange [
-	<category: 'testing'>
-	| app before old |
-	before := defaultDispatcher version.
-	app := defaultDispatcher entryPointAt: 'examples/counter'.
-	old := app preferenceAt: #sessionExpirySeconds.
-	app preferenceAt: #sessionExpirySeconds put: old.
-	self deny: defaultDispatcher version = before.
-	before := defaultDispatcher version.
-	app := defaultDispatcher entryPointAt: 'examples/counter'.
-	app addLibrary: Object.
-	app removeLibrary: Object.
-	self deny: defaultDispatcher version = before.
-	before := defaultDispatcher version.
-	app := defaultDispatcher defaultName: defaultDispatcher defaultName.
-	self deny: defaultDispatcher version = before
-    ]
-
-    testRootDispatcherDependency [
-	<category: 'testing'>
-	| app old |
-	lastUpdate := nil.
-	app := defaultDispatcher entryPointAt: 'examples/counter'.
-	old := app preferenceAt: #sessionExpirySeconds.
-	app preferenceAt: #sessionExpirySeconds put: old.
-	self deny: lastUpdate isNil.
-	self assert: lastUpdate class == TimeStamp.
-	defaultDispatcher removeDependent: self
-    ]
-
     testShortTests [
 	<category: 'testing'>
 	| app |
 	app := shortDispatcher entryPointAt: 'tests'.
 	self assert: shortDispatcher basePath = ''.
 	self assert: app basePath = '/tests'
-    ]
-
-    update: anAspectSymbol [
-	<category: 'changing'>
-	lastUpdate := defaultDispatcher lastUpdate
     ]
 ]
 
@@ -1950,8 +1920,8 @@ TestCase subclass: WADocumentHandlerTest [
 	<category: 'private'>
 	self 
 	    createAndVerifyDocumentNamed: aFilename
-	    content: WAFileLibraryDemo default mainJpg
-	    mimeType: 'image/jpeg'
+	    content: WAStandardFiles default profilerPng
+	    mimeType: 'image/png'
 	    hasAttachement: aHttpHeaderValue
     ]
 
@@ -1974,7 +1944,7 @@ TestCase subclass: WADocumentHandlerTest [
 	<category: 'private'>
 	self 
 	    createAndVerifyDocumentNamed: aFilename
-	    content: WAFileLibraryDemo default mainCss
+	    content: WAStandardFiles default toolbarCss
 	    mimeType: 'text/css'
 	    hasAttachement: aHttpHeaderValue
     ]
@@ -1990,15 +1960,15 @@ TestCase subclass: WADocumentHandlerTest [
     testByteArray [
 	<category: 'testing'>
 	self createAndVerifyBinaryDocumentNamed: nil hasAttachement: nil.
-	self createAndVerifyBinaryDocumentNamed: 'logo.png'
-	    hasAttachement: 'attachment; filename="logo.png"'
+	self createAndVerifyBinaryDocumentNamed: 'profiler.png'
+	    hasAttachement: 'attachment; filename="profiler.png"'
     ]
 
     testString [
 	<category: 'testing'>
 	self createAndVerifyTextDocumentNamed: nil hasAttachement: nil.
-	self createAndVerifyTextDocumentNamed: 'main.css'
-	    hasAttachement: 'attachment; filename="main.css"'
+	self createAndVerifyTextDocumentNamed: 'toolbar.css'
+	    hasAttachement: 'attachment; filename="toolbar.css"'
     ]
 ]
 
@@ -2154,6 +2124,13 @@ TestCase subclass: WAExternalIDTest [
 	^512
     ]
 
+    testFromString [
+	<category: 'testing'>
+	| string |
+	string := 'abCD12_-'.
+	self assert: (WAExternalID fromString: string) printString = string
+    ]
+
     testStartUp [
 	<category: 'testing'>
 	| collection |
@@ -2296,8 +2273,8 @@ TestCase subclass: WAFileLibraryTest [
     testFilenames [
 	<category: 'testing'>
 	| expected actual |
-	expected := #(#mainJpg #mainCss).
-	actual := WAFileLibraryDemo new fileSelectors.
+	expected := #(#editorCss #topJpg #mainCss #savePng).
+	actual := WAHandlerEditorFiles new fileSelectors.
 	"VW does not implement #= in Sets"
 	self assert: actual size = expected size.
 	expected do: [:each | self assert: (expected includes: each)]
@@ -2449,6 +2426,58 @@ TestCase subclass: WAFileLibraryTest [
 
 
 
+TestCase subclass: WAFileSystemTest [
+    | fileSystem |
+    
+    <comment: nil>
+    <category: 'Seaside-Tests-Unit'>
+
+    requestWithUrl: aString [
+	<category: 'private'>
+	^WARequest 
+	    method: 'POST'
+	    url: aString
+	    headers: Dictionary new
+	    fields: Dictionary new
+	    cookies: Dictionary new
+    ]
+
+    setUp [
+	<category: 'running'>
+	super setUp.
+	fileSystem := WAFileSystem new.
+	fileSystem setName: 'culture'
+    ]
+
+    testAsAbsoluteUrlRelativeTo [
+	<category: 'testing'>
+	| request |
+	fileSystem configuration valueAt: #directory put: '/home/philppe/pr0n'.
+	request := self requestWithUrl: '/culture/pictures'.
+	self 
+	    assert: (fileSystem asAbsoluteUrl: 'cleopatra.jpeg' relativeTo: request) 
+		    = '/culture/pictures/cleopatra.jpeg'.
+	request := self requestWithUrl: '/culture/pictures/'.
+	self 
+	    assert: (fileSystem asAbsoluteUrl: 'cleopatra.jpeg' relativeTo: request) 
+		    = '/culture/pictures/cleopatra.jpeg'
+    ]
+
+    testPathForRequest [
+	<category: 'testing'>
+	| request |
+	fileSystem configuration valueAt: #directory put: '/home/philppe/pr0n'.
+	request := self requestWithUrl: '/culture/cleopatra.jpeg'.
+	self assert: (fileSystem pathForRequest: request) 
+		    = '/home/philppe/pr0n/cleopatra.jpeg'.
+	fileSystem configuration valueAt: #directory put: '/home/philppe/pr0n/'.
+	self assert: (fileSystem pathForRequest: request) 
+		    = '/home/philppe/pr0n/cleopatra.jpeg'
+    ]
+]
+
+
+
 TestCase subclass: WAFileTest [
     | file |
     
@@ -2585,6 +2614,12 @@ TestCase subclass: WAHtmlRootTest [
 	    gives: '<title></title><meta http-equiv="Content-Type" content="application/xhml+xml"/>'
     ]
 
+    testJavascript [
+	<category: 'testing'>
+	self assert: [:html | html javascript add: 'true & false']
+	    gives: '<title></title><script type="text/javascript">/*<![CDATA[*/true & false/*]]>*/</script>'
+    ]
+
     testLinkElement [
 	<category: 'testing'>
 	self assert: 
@@ -2599,9 +2634,10 @@ TestCase subclass: WAHtmlRootTest [
 
     testLinkElementWithContent [
 	<category: 'testing'>
-	self 
-	    assert: [:html | html stylesheet add: 'body { margin: 0pt; padding: 0pt;}']
-	    gives: '<title></title><style type="text/css">/*<![CDATA[*/body { margin: 0pt; padding: 0pt;}/*]]>*/</style>'
+	self assert: [:html | html stylesheet add: 'div > em { color: blue; }']
+	    gives: '<title></title><style type="text/css">/*<![CDATA[*/div > em { color: blue; }/*]]>*/</style>'.
+	self assert: [:html | html stylesheet add: 'E[foo$="bar"]']
+	    gives: '<title></title><style type="text/css">/*<![CDATA[*/E[foo$="bar"]/*]]>*/</style>'
     ]
 
     testRevealedConditionalComment [
@@ -2652,16 +2688,6 @@ TestCase subclass: WALocaleTest [
 	self assert: locale languageName = 'German'.
 	locale := WALocale fromString: 'gsw'.
 	self assert: locale languageName = 'Swiss German; Alemannic'
-    ]
-
-    testLanguageNameIso3 [
-	<category: 'testing'>
-	| locale |
-	locale := WALocale fromString: 'gsw-CHE'.
-
-	"this is ok to fail because ISO 3 codes are not yet implemented
-	 I couldn't find a list anywhere"
-	self shouldnt: [locale countryName] raise: Error
     ]
 
     testLangugeAndCountry [
@@ -2877,6 +2903,19 @@ TestCase subclass: WAPlatformTest [
 	self assert: 'ABC' asUppercase = 'ABC'
     ]
 
+    testAtRandom [
+	"don't change this to an Interval, we want to test SequenceableCollection"
+
+	<category: 'testing'>
+	self assert: (#(0 1 2 3 4 5 6 7 8 9) atRandom between: 0 and: 9).
+
+	"don't change this to an Interval, we want to test SequenceableCollection"
+	self 
+	    assert: ((#(0 1 2 3 4 5 6 7 8 9) 
+		    atRandom: SeasidePlatformSupport randomClass new) between: 0 and: 9).
+	self assert: (9 between: 1 and: 9)
+    ]
+
     testBeMutable [
 	<category: 'testing'>
 	self shouldnt: [Object new beMutable] raise: MessageNotUnderstood
@@ -2896,6 +2935,16 @@ TestCase subclass: WAPlatformTest [
 	self assert: (block valueWithPossibleArgument: 3)
     ]
 
+    testCapitalized [
+	<category: 'testing'>
+	self assert: 'capitalized' capitalized = 'Capitalized'.
+	self assert: 'Capitalized' capitalized = 'Capitalized'.
+	self assert: 'CAPITALIZED' capitalized = 'CAPITALIZED'.
+	self assert: #capitalized capitalized = #Capitalized.
+	self assert: #Capitalized capitalized = #Capitalized.
+	self assert: #CAPITALIZED capitalized = #CAPITALIZED
+    ]
+
     testCharacterAsUnicode [
 	"test for:
 	 Character >> #asUnicode
@@ -2903,6 +2952,32 @@ TestCase subclass: WAPlatformTest [
 
 	<category: 'testing'>
 	self assert: $S asUnicode = 83
+    ]
+
+    testCharacterTo [
+	<category: 'testing'>
+	| actual expected |
+	actual := ($a to: $z) , ($A to: $Z) , ($0 to: $9) 
+		    , (Array with: $_ with: $-) collect: [:each | each asInteger].
+	expected := #(97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 48 49 50 51 52 53 54 55 56 57 95 45).
+	self assert: actual size = expected size.
+	actual with: expected do: [:first :second | self assert: first = second]
+    ]
+
+    testCopyAfter [
+	<category: 'testing'>
+	self assert: ('de_CH' copyAfter: $_) = 'CH'
+    ]
+
+    testCopyAfterLast [
+	<category: 'testing'>
+	self assert: ('britney.sex.tape.mkv' copyAfterLast: $.) = 'mkv'
+    ]
+
+    testCopyUpToLast [
+	<category: 'testing'>
+	self 
+	    assert: ('britney.sex.tape.mkv' copyUpToLast: $.) = 'britney.sex.tape'
     ]
 
     testCount [
@@ -2914,6 +2989,12 @@ TestCase subclass: WAPlatformTest [
 	<category: 'testing'>
 	(1 to: 12) with: #(31 28 31 30 31 30 31 31 30 31 30 31)
 	    do: [:month :days | self assert: days = (Date daysInMonthNumber: month forYear: 2007)]
+    ]
+
+    testDefaultPathName [
+	<category: 'testing-files'>
+	self deny: SeasidePlatformSupport defaultDirectoryName isNil.
+	self deny: SeasidePlatformSupport defaultDirectoryName isEmpty
     ]
 
     testEmptyOrNil [
@@ -2958,6 +3039,28 @@ TestCase subclass: WAPlatformTest [
 	self assert: (1 ifNil: [2]) = 1
     ]
 
+    testIncludesSubString [
+	<category: 'testing'>
+	self assert: ('britney.sex.tape.mkv' beginsWith: 'britney').
+	self deny: ('britney.sex.tape.mkv' beginsWith: 'sex')
+    ]
+
+    testIsKeyword [
+	<category: 'testing'>
+	self deny: #isKeyword isKeyword.
+	self deny: #+ isKeyword.
+	self assert: #isKeyword: isKeyword.
+	self assert: #isKeyword:isKeyword: isKeyword
+    ]
+
+    testIsUnary [
+	<category: 'testing'>
+	self assert: #isUnary isUnary.
+	self deny: #+ isUnary.
+	self deny: #isUnary: isUnary.
+	self deny: #isUnary:isUnary: isUnary
+    ]
+
     testMessageSendValueWithPossibleArgument [
 	"test for:
 	 MessageSend >> #valueWithPossibleArgument: anArg
@@ -2985,9 +3088,42 @@ TestCase subclass: WAPlatformTest [
 	self assert: date dayOfYear = 310
     ]
 
+    testPaddedToWith [
+	<category: 'testing'>
+	self assert: ('X' 
+		    padded: #left
+		    to: 2
+		    with: $0) = '0X'.
+	self assert: ('XX' 
+		    padded: #left
+		    to: 2
+		    with: $0) = 'XX'
+    ]
+
+    testPlatformString [
+	<category: 'testing-accessing'>
+	self deny: SeasidePlatformSupport versionString isNil.
+	self deny: SeasidePlatformSupport versionString isEmpty
+    ]
+
     testPrintStringAsCents [
 	<category: 'testing'>
 	self assert: 523 printStringAsCents = '$5.23'
+    ]
+
+    testPrintStringBase [
+	<category: 'testing'>
+	self assert: (15 printStringBase: 16) = 'F'.
+	self assert: (16 printStringBase: 16) = '10'
+    ]
+
+    testRemoveAllFoundIn [
+	<category: 'testing'>
+	| actual |
+	actual := #(1 2 3) asOrderedCollection.
+	actual removeAllFoundIn: #(1 2).
+	self assert: actual size = 1.
+	self assert: actual first = 3
     ]
 
     testSeconds [
@@ -3040,8 +3176,8 @@ TestCase subclass: WAPlatformTest [
 	self assert: nil toString = 'nil'.
 	[1 / 0] on: ZeroDivide
 	    do: [:error | self assert: error toString = 'ZeroDivide'].
-	self assert: 0.1 toString isString.
-	self assert: 0.1 toString asNumber = 0.1.
+	self assert: 15.25 toString isString.
+	self assert: 15.25 toString asNumber = 15.25.
 	self assert: nil toString isString.
 	self assert: (4 @ 2) toString = '4@2'.
 	self assert: #(101 97) asByteArray toString = 'ea'.
@@ -3061,29 +3197,11 @@ TestCase subclass: WAPlatformTest [
 	<category: 'testing'>
 	self assert: '	abc ' trimBlanks = 'abc'
     ]
-]
 
-
-
-TestCase subclass: WAProxyTest [
-    
-    <comment: nil>
-    <category: 'Seaside-Tests-Unit'>
-
-    test [
-	<category: 'testing'>
-	| cookie proxy |
-	cookie := WACookie new.
-	cookie key: 'The Metaphor'.
-	proxy := WAModelProxy on: cookie.
-	self assert: proxy key = cookie key.
-	self assert: cookie expiry isNil.
-	self assert: proxy expiry = cookie expiry.
-	proxy expiry: (DateTime fromSeconds: 36209).
-	self assert: proxy expiry = (DateTime fromSeconds: 36209).
-	self assert: cookie expiry isNil.
-	proxy commit.
-	self assert: cookie expiry = (DateTime fromSeconds: 36209)
+    testVersionString [
+	<category: 'testing-accessing'>
+	self deny: SeasidePlatformSupport platformString isNil.
+	self deny: SeasidePlatformSupport platformString isEmpty
     ]
 ]
 
@@ -3151,11 +3269,31 @@ TestCase subclass: WAUrlTest [
 	self assert: url toString = '/files/WAStandardFiles/seaside.jpg'
     ]
 
+    testEqual [
+	<category: 'testing-comparing'>
+	url
+	    hostname: 'seaside.st';
+	    addParameter: 'foo' value: 'bar'.
+	self assert: url = url.
+	self deny: url = WAUrl new.
+	self deny: url = url printString.
+	self deny: url = url withoutParameters.
+	self deny: url = (url withParameter: 'zork').
+	self deny: url = (url withParameter: 'zork' value: 'zonk')
+    ]
+
     testFragment [
 	<category: 'testing'>
 	url fragment: 'id'.
 	self assert: url fragment = 'id'.
 	self assert: url toString = '#id'
+    ]
+
+    testHash [
+	<category: 'testing-comparing'>
+	url hostname: 'seaside.st'.
+	self assert: url hash = url hash.
+	self assert: url hash = url copy hash
     ]
 
     testHostname [
@@ -3263,3 +3401,12 @@ TestCase subclass: WAUrlTest [
 	self assert: url toString = 'http://foo@seaside.st'
     ]
 ]
+
+
+
+Eval [
+    WAAllTests initialize.
+    WADateSelectorTest initialize.
+    WAExpirySession initialize
+]
+

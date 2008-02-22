@@ -1,3 +1,100 @@
+String extend [
+
+    asCapitalizedPhrase [
+	<category: '*Seaside-Core'>
+	| read words currentWord capitalizedWord |
+	(self noneSatisfy: [:ea | ea isLowercase]) ifTrue: [^self].
+	words := WriteStream on: String new.
+	read := ReadStream on: self.
+	[read atEnd] whileFalse: 
+		[currentWord := WriteStream on: String new.
+		currentWord nextPut: read next.
+		
+		[| x |
+		x := read peek.
+		x isNil or: [x isUppercase]] 
+			whileFalse: [currentWord nextPut: read next].
+		capitalizedWord := currentWord contents capitalized.
+		(#(#Of #In #At #A #Or #To #By) includes: capitalizedWord) 
+		    ifTrue: [capitalizedWord := capitalizedWord asLowercase].
+		words nextPutAll: capitalizedWord.
+		words nextPutAll: ' '].
+	words skip: -1.
+	^words contents
+    ]
+
+    asMIMEDocument [
+	<category: '*Seaside-Core'>
+	^self asMIMEDocumentType: 'text/plain' toMimeType
+    ]
+
+    asMIMEDocumentType: mimeType [
+	<category: '*Seaside-Core'>
+	^SeasidePlatformSupport mimeDocumentClass contentType: mimeType toString
+	    content: self
+    ]
+
+    encodeOn: aDocument [
+	<category: '*Seaside-Core'>
+	aDocument htmlEncoder nextPutAll: self
+    ]
+
+    renderOn: aRenderer [
+	<category: '*Seaside-Core'>
+	aRenderer text: self
+    ]
+
+    toMimeType [
+	<category: '*Seaside-Core'>
+	^WAMimeType fromString: self
+    ]
+
+]
+
+
+
+DirectedMessage extend [
+
+    fixCallbackTemps [
+	"for polymorphism with BlockContext >> #fixCallbackTemps"
+
+	<category: '*Seaside-Core'>
+	
+    ]
+
+    numArgs [
+	<category: '*Seaside-Core'>
+	^selector numArgs
+    ]
+
+    renderOn: html [
+	<category: '*Seaside-Core'>
+	self value: html
+    ]
+
+    value: anObject [
+	<category: '*Seaside-Core'>
+	^self evaluateWithArguments: (Array with: anObject)
+    ]
+
+    valueWithPossibleArgument: anArg [
+	"Evaluate the block represented by the receiver.
+	 If the block requires one argument, use anArg, if it requires more than one,
+	 fill up the rest with nils."
+
+	<category: '*Seaside-Core'>
+	self numArgs = 0 ifTrue: [^self value].
+	self numArgs = 1 ifTrue: [^self value: anArg].
+	self numArgs > 1 
+	    ifTrue: 
+		[^self 
+		    valueWithArguments: (Array with: anArg) , (Array new: self numArgs - 1)]
+    ]
+
+]
+
+
+
 Notification subclass: WADeprecatedApi [
     
     <category: 'Seaside-Core-Exceptions'>
@@ -80,131 +177,15 @@ Notification subclass: WAValidationNotification [
 
 
 
-Integer extend [
+Error subclass: WAComponentsNotFoundError [
+    
+    <category: 'Seaside-Core-Exceptions'>
+    <comment: nil>
 
-    printStringAsCents [
-	<category: '*Seaside-Core'>
-	^'$' , (self // 100) toString , '.' , (self \\ 100) asTwoCharacterString
+    possibleCauses [
+	<category: 'accessing'>
+	^#('you do not implement #children correctly' 'you do not backtrack #children correctly' 'you do not implement #states correctly')
     ]
-
-]
-
-
-
-DirectedMessage extend [
-
-    fixCallbackTemps [
-	"for polymorphism with BlockContext >> #fixCallbackTemps"
-
-	<category: '*Seaside-Core'>
-	
-    ]
-
-    numArgs [
-	<category: '*Seaside-Core'>
-	^selector numArgs
-    ]
-
-    renderOn: html [
-	<category: '*Seaside-Core'>
-	self value: html
-    ]
-
-    value: anObject [
-	<category: '*Seaside-Core'>
-	^self evaluateWithArguments: (Array with: anObject)
-    ]
-
-    valueWithPossibleArgument: anArg [
-	"Evaluate the block represented by the receiver.
-	 If the block requires one argument, use anArg, if it requires more than one,
-	 fill up the rest with nils."
-
-	<category: '*Seaside-Core'>
-	self numArgs = 0 ifTrue: [^self value].
-	self numArgs = 1 ifTrue: [^self value: anArg].
-	self numArgs > 1 
-	    ifTrue: 
-		[^self 
-		    valueWithArguments: (Array with: anArg) , (Array new: self numArgs - 1)]
-    ]
-
-]
-
-
-
-String extend [
-
-    asCapitalizedPhrase [
-	<category: '*Seaside-Core'>
-	| read words currentWord capitalizedWord |
-	(self noneSatisfy: [:ea | ea isLowercase]) ifTrue: [^self].
-	words := WriteStream on: String new.
-	read := ReadStream on: self.
-	[read atEnd] whileFalse: 
-		[currentWord := WriteStream on: String new.
-		currentWord nextPut: read next.
-		
-		[| x |
-		x := read peek.
-		x isNil or: [x isUppercase]] 
-			whileFalse: [currentWord nextPut: read next].
-		capitalizedWord := currentWord contents capitalized.
-		(#(#Of #In #At #A #Or #To #By) includes: capitalizedWord) 
-		    ifTrue: [capitalizedWord := capitalizedWord asLowercase].
-		words nextPutAll: capitalizedWord.
-		words nextPutAll: ' '].
-	words skip: -1.
-	^words contents
-    ]
-
-    asMIMEDocument [
-	<category: '*Seaside-Core'>
-	^self asMIMEDocumentType: 'text/plain' toMimeType
-    ]
-
-    asMIMEDocumentType: mimeType [
-	<category: '*Seaside-Core'>
-	^SeasidePlatformSupport mimeDocumentClass contentType: mimeType toString
-	    content: self
-    ]
-
-    encodeOn: aDocument [
-	<category: '*Seaside-Core'>
-	aDocument htmlEncoder nextPutAll: self
-    ]
-
-    renderOn: aRenderer [
-	<category: '*Seaside-Core'>
-	aRenderer text: self
-    ]
-
-    toMimeType [
-	<category: '*Seaside-Core'>
-	^WAMimeType fromString: self
-    ]
-
-]
-
-
-
-Collection extend [
-
-    inspectorFields [
-	<category: '*Seaside-Core'>
-	| i |
-	i := 0.
-	^self asArray collect: 
-		[:each | 
-		i := i + 1.
-		i -> each]
-    ]
-
-    renderOn: html [
-	<category: '*Seaside-Core'>
-	self do: [:each | each renderOn: html]
-    ]
-
 ]
 
 
@@ -232,6 +213,27 @@ IdentityDictionary subclass: WASnapshot [
 	<category: 'actions'>
 	self associationsDo: [:assoc | assoc value: assoc key snapshotCopy]
     ]
+]
+
+
+
+Collection extend [
+
+    inspectorFields [
+	<category: '*Seaside-Core'>
+	| i |
+	i := 0.
+	^self asArray collect: 
+		[:each | 
+		i := i + 1.
+		i -> each]
+    ]
+
+    renderOn: html [
+	<category: '*Seaside-Core'>
+	self do: [:each | each renderOn: html]
+    ]
+
 ]
 
 
@@ -293,7 +295,7 @@ ByteArray subclass: WAExternalID [
 	<category: 'instance-creation'>
 	| id |
 	id := self new: aString size.
-	aString doWithIndex: [:each :index | id at: index put: each asInteger].
+	aString keysAndValuesDo: [:index :each | id at: index put: each asInteger].
 	^id
     ]
 
@@ -2264,6 +2266,14 @@ WAAbstractTextAreaTag subclass: WATextAreaTag [
 	self attributeAt: 'cols' put: anInteger
     ]
 
+    initialize [
+	<category: 'initialization'>
+	super initialize.
+	self
+	    rows: 'auto';
+	    columns: 'auto'
+    ]
+
     isClosed [
 	<category: 'testing'>
 	^false
@@ -3195,6 +3205,12 @@ WATagBrush subclass: WAOptionGroupTag [
 
 It has crappy browser support and noone as ever used it. See WAInputTest >> #renderOptionGroupOn: for examples.'>
 
+    initialize [
+	<category: 'initialization'>
+	super initialize.
+	self label: ''
+    ]
+
     label: aString [
 	"This attribute specifies the label for the option group."
 
@@ -3331,7 +3347,8 @@ WATagBrush subclass: WAScriptTag [
     with: aString [
 	<category: 'public'>
 	self attributes at: 'type' ifAbsentPut: ['text/javascript'].
-	super with: [aString isNil ifFalse: [self document nextPutAll: aString toString]]
+	super 
+	    with: [aString isNil ifFalse: [self document nextPutAll: aString toString]]
     ]
 ]
 
@@ -3820,8 +3837,9 @@ WACallback subclass: WADispatchCallback [
 
     evaluateWithArgument: anObject [
 	<category: 'evaluation'>
-	(context callbackAt: anObject) 
-	    ifNotNil: [:callback | callback evaluateWithArgument: nil]
+	| callback |
+	callback := context callbackAt: anObject.
+	callback isNil ifFalse: [callback evaluateWithArgument: nil]
     ]
 
     priority [
@@ -5404,10 +5422,11 @@ Subclasses must implement the following messages:
 
     inheritedValueAndSourceAt: aSymbol do: aBlock [
 	<category: 'values'>
+	| value |
 	self allAncestorsDo: 
-		[:ea | 
-		(ea localValueAt: aSymbol ifAbsent: []) 
-		    ifNotNil: [:val | ^aBlock value: val value: ea]].
+		[:each | 
+		value := each localValueAt: aSymbol ifAbsent: [nil].
+		value isNil ifFalse: [^aBlock value: value value: each]].
 	^nil
     ]
 
@@ -5429,11 +5448,6 @@ Subclasses must implement the following messages:
     lookupValueAt: aSymbol [
 	<category: 'values'>
 	^self inheritedValueAndSourceAt: aSymbol do: [:value :source | value]
-    ]
-
-    name [
-	<category: 'accessing'>
-	^self subclassResponsibility
     ]
 
     potentialAncestors [
@@ -5497,11 +5511,6 @@ Subclasses must implement the following messages:
 	^(self respondsTo: aSymbol) 
 	    ifTrue: [self perform: aSymbol]
 	    ifFalse: [absentBlock value]
-    ]
-
-    name [
-	<category: 'accessing'>
-	^self class name
     ]
 ]
 
@@ -5870,21 +5879,24 @@ Instance Variables:
 
     localValues [
 	<category: 'accessing'>
-	| dict |
-	dict := Dictionary new.
+	| dictionary value |
+	dictionary := Dictionary new.
 	self allAttributes do: 
-		[:attr | 
-		(self localValueAt: attr key ifAbsent: [nil]) 
-		    ifNotNil: [:value | dict at: attr key put: (attr stringForValue: value)]].
-	^dict
+		[:each | 
+		value := self localValueAt: each key ifAbsent: [nil].
+		value isNil 
+		    ifFalse: [dictionary at: each key put: (each stringForValue: value)]].
+	^dictionary
     ]
 
     localValues: aDictionary [
 	<category: 'accessing'>
+	| value |
 	self allAttributes do: 
-		[:attr | 
-		(aDictionary at: attr key ifAbsent: [nil]) 
-		    ifNotNil: [:string | self valueAt: attr key put: (attr valueFromString: string)]]
+		[:each | 
+		value := aDictionary at: each key ifAbsent: [nil].
+		value isNil 
+		    ifFalse: [self valueAt: each key put: (each valueFromString: value)]]
     ]
 
     overrideAttribute: anAttribute [
@@ -6272,13 +6284,7 @@ Object subclass: WAEncoder [
 
 	<category: 'initialization'>
 	| stream characterLimit |
-	characterLimit := 
-		["find the maximum value of a character that we can instantiate, for Squeak 3.7 this is 255"
-
-		Character value: 65535.
-		65535] 
-			on: Error
-			do: [:ex | 255].
+	characterLimit := self maximumCharacterValue.
 	table := Array new: characterLimit.
 	stream := WriteStream on: (String new: 6).
 	1 to: characterLimit
@@ -6289,6 +6295,15 @@ Object subclass: WAEncoder [
 		    put: (stream position = 1 
 			    ifTrue: [stream contents first]
 			    ifFalse: [stream contents])]
+    ]
+
+    WAEncoder class >> maximumCharacterValue [
+	"find the maximum value of a character that we can instantiate, for Squeak 3.7 this is 255"
+
+	<category: 'private'>
+	^
+	[Character value: 65535.
+	65535] on: Error do: [:error | 255]
     ]
 
     WAEncoder class >> on: aStream [
@@ -7390,6 +7405,12 @@ html meta
 	self content: aMimeTypeOrString
     ]
 
+    initialize [
+	<category: 'initialization'>
+	super initialize.
+	self content: ''
+    ]
+
     language: aString [
 	<category: 'attributes'>
 	self attributeAt: 'lang' put: aString
@@ -7744,7 +7765,7 @@ renderContentOn: html
 	<category: 'private'>
 	| mainPart extension |
 	mainPart := (aFilename copyUpToLast: $.) 
-		    reject: [:each | each isAlphaNumeric not].
+		    select: [:each | each isAlphaNumeric].
 	[mainPart first isDigit] whileTrue: [mainPart := mainPart allButFirst].
 	extension := (aFilename copyAfterLast: $.) asLowercase capitalized.
 	^(mainPart , extension) asSymbol
@@ -9607,94 +9628,6 @@ sub
 
 
 
-Object subclass: WAModelProxy [
-    | cache model |
-    
-    <category: 'Seaside-Core-Utilities'>
-    <comment: 'I am a fake object that can be interposed between the real model object and the client, so that the data can be validated or collected before commiting to the real model.
-
-If you have a model instance like
-
-	model := WAStoreAddress new.
-	model street: ''Rathausgasse 34''.
-
-create a model proxy by evaluating the following code:
-
-	proxy := WAModelProxy on: model.
-	
-Then use the accessors of the proxy as you would do with your model:
-
-	proxy country: ''Switzerland''.
-	proxy street -> ''Rathausgasse 34''
-	...
-	
-To propagate the values into your model send #commit :
-
-	proxy commit.
-	model country -> ''Switzerland'''>
-
-    WAModelProxy class >> on: anObject [
-	<category: 'instance creation'>
-	^self new setModel: anObject
-    ]
-
-    commit [
-	<category: 'forwarding'>
-	cache 
-	    keysAndValuesDo: [:key :value | self performRealWrite: key with: value].
-	cache := Dictionary new
-    ]
-
-    doesNotUnderstand: aMessage [
-	<category: 'forwarding'>
-	^aMessage selector isUnary 
-	    ifTrue: [self performRead: aMessage selector]
-	    ifFalse: 
-		[(aMessage selector isKeyword and: [aMessage arguments size = 1]) 
-		    ifTrue: 
-			[self performWrite: aMessage selector allButLast with: aMessage argument]
-		    ifFalse: [super doesNotUnderstand: aMessage]]
-    ]
-
-    model [
-	<category: 'accessing'>
-	^model
-    ]
-
-    name [
-	<category: 'forwarding'>
-	^model name
-    ]
-
-    performRead: aSymbol [
-	<category: 'private'>
-	^cache at: aSymbol asSymbol ifAbsent: [model perform: aSymbol]
-    ]
-
-    performRealWrite: aSymbol with: anObject [
-	<category: 'private'>
-	model perform: aSymbol asSymbol asMutator with: anObject
-    ]
-
-    performWrite: aSymbol with: anObject [
-	<category: 'private'>
-	cache at: aSymbol asSymbol put: anObject
-    ]
-
-    setModel: anObject [
-	<category: 'initializing'>
-	model := anObject.
-	cache := Dictionary new
-    ]
-
-    value [
-	<category: 'forwarding'>
-	^model value
-    ]
-]
-
-
-
 Object subclass: WAOpeningConditionalComment [
     | condition |
     
@@ -9908,8 +9841,8 @@ Object subclass: WAPresenter [
 	 Whenever you override this method don't forget to send super"
 
 	<category: 'updating'>
-	self script ifNotNil: [:script | anHtmlRoot addScript: script].
-	self style ifNotNil: [:style | anHtmlRoot addStyle: style]
+	self script isNil ifFalse: [anHtmlRoot addScript: self script].
+	self style isNil ifFalse: [anHtmlRoot addStyle: self style]
     ]
 
     updateStates: aSnapshot [
@@ -10976,8 +10909,8 @@ Instance Variables:
 	    with: 
 		    [html tableRow: [self renderMonthHeadingsOn: html].
 		    html tableRow: [self renderDayHeadingsOn: html].
-		    rows doWithIndex: 
-			    [:each :index | 
+		    rows keysAndValuesDo: 
+			    [:index :each | 
 			    html tableRow: 
 				    [self 
 					renderRow: each
@@ -11966,13 +11899,13 @@ WAComponent subclass: WANavigationBar [
     | actionsSelector owner |
     
     <category: 'Seaside-Core-Components-Widgets'>
-    <comment: 'WANavigationBar has not been commented.  The comment should state the purpose of the class and also explain any unobvious aspects of the implementation.
+    <comment: 'WANavigationBar provides navigation links for a component, the WANavigationBar''s owner. WANavigationBar is vertical in that all items in the bar are rendered in a column. WANavigationBar''s owner typically is a top level component that renders a number of children components, including the WANavigationBar. When a user selects an item in the WANavigationBar a message is sent to the owner, so it can change.
+
+The owner component needs to implement the method indicated by the instance variable "actionsSelector", the default value is "actions". This method returns a collections of symbols. The symbols become the list of items in the navigation bar. The first letter of the symbol is capitalized when displayed. If the symbol represents a 0-argument method it is rendered as a link. When the user clicks on the link the original symbol is send as a message to the owner component. If the symbol represents a 1-argument method it is rendered as a label followed by a text input box. The user has to know that they hit enter after filling the text box.
 
 Instance Variables:
-	actionsSelector	<ByteSymbol>	description of actionsSelector
-	owner	<WAComponent>	description of owner
-
-'>
+	actionsSelector	<ByteSymbol>	Symbol sent to owner to get a list of items to be listed in the navigation bar. Default value is "actions".
+	owner	<WAComponent>	This is the navigation bar for the component "owner".'>
 
     actions [
 	<category: 'accessing'>
@@ -12171,7 +12104,37 @@ WAComponent subclass: WATableReport [
     | sortColumn isReversed columns rowPeriod rowColors rows |
     
     <category: 'Seaside-Core-Components-Widgets'>
-    <comment: nil>
+    <comment: 'WATableReport presents tabular data. A WATableReport contains a collections of objects, one per row, and a collection of WAReportColumns. The WAReportColumn objects are configured to produce the text for the table cell based on the each row object. Each column has a header and an optional column sum. The table can be sorted on a column by clicking its header, unless the column handles rendering on the canvas itself. A table can be given a set of html colors (rowColors), used to colors the rows to aid in viewing. 
+
+For more information see:
+	Example - WATableReportTestm (initialization code below)
+	WATableReport Tutorial - http://www.cdshaffer.com/david/Seaside/WATableReport/index.html
+
+Instance Variables:
+	columns	<Collection of WAReportColumn>	Each WAReportColumn produces the text for each table cell in a column  
+	isReversed	<Boolean>	true if the current sort column is to be sorted in reverse order
+	rowColors	<Collection of String/Symbol>	Each element is a string for an html color, which is used as a background color for table rows
+	rowPeriod	<Integer>	Each color in rowColors is used for rowPeriod consectutive rows before using the next row color.
+	rows	<Collection of Object>	Each element of the collection provides the data for a row in the table.
+	sortColumn	<WAValueHolder on WAReportColumn>	Column used to sort the the table rows
+
+Example:
+	WATableReport new
+		rows: WAComponent allSubclasses asArray;
+		columns: (OrderedCollection new
+			add: (WAReportColumn
+				selector: #fullName title: ''Name''
+				onClick: [ :each | self inform: each description ]);
+			add: ((WAReportColumn
+				selector: #canBeRoot title: ''Can Be Root'')
+				sortBlock: [ :a :b | a ]);
+			add: (WAReportColumn
+				renderBlock: [ :each :html | html emphasis: each description ]
+				title: ''Description'');
+			yourself);
+		rowColors: #(lightblue lightyellow);
+		rowPeriod: 1;
+		yourself'>
 
     chooseRow: aRow column: aColumn [
 	<category: 'private'>
@@ -12260,8 +12223,8 @@ WAComponent subclass: WATableReport [
 
     renderRowsOn: html [
 	<category: 'rendering'>
-	self rows doWithIndex: 
-		[:row :i | 
+	self rows keysAndValuesDo: 
+		[:i :row | 
 		self 
 		    renderRowNumber: i
 		    item: row
@@ -12438,8 +12401,8 @@ Instance Variables:
 
     privateIsValidSecond: theSecond hourNumber: theHour minuteNumber: theMinute [
 	<category: 'private'>
-	^(theHour between: 0 and: 23) and: [theMinute between: 0 and: 59]
-	    and: [theSecond between: 0 and: 59]
+	^(theHour between: 0 and: 23) 
+	    and: [(theMinute between: 0 and: 59) and: [theSecond between: 0 and: 59]]
     ]
 
     renderContentOn: html [
@@ -12923,7 +12886,7 @@ WAPresenter subclass: WADecoration [
 
     renderOwnerOn: html [
 	<category: 'rendering'>
-	self owner ifNotNil: [:owner | owner renderWithContext: html context]
+	self owner isNil ifFalse: [self owner renderWithContext: html context]
     ]
 
     showHalo [
@@ -13344,11 +13307,11 @@ validationBlock
 
     renderContentOn: html [
 	<category: 'rendering'>
-	message contents ifNotNil: 
-		[:msg | 
-		html div
+	message contents isNil 
+	    ifFalse: 
+		[(html div)
 		    class: 'validation-error';
-		    with: msg].
+		    with: message contents].
 	self renderOwnerOn: html
     ]
 
@@ -13514,7 +13477,8 @@ value
 			(each includes: $;) 
 			    ifTrue: 
 				[value := self valueClass fromString: (each copyUpTo: $;) trimBlanks.
-				quality := FloatD readFrom: ((each copyAfter: $;) copyAfter: $=) readStream]
+				quality := FloatD 
+					    readFrom: ((each copyAfter: $;) copyAfter: $=) readStream]
 			    ifFalse: 
 				[value := self valueClass fromString: each trimBlanks.
 				quality := FloatD infinity].
@@ -13714,7 +13678,7 @@ Object subclass: WARenderingContext [
     absoluteUrlForResource: aString [
 	<category: 'accessing'>
 	| url |
-	(aString isNil or: [aString beginsWith: 'http']) ifTrue: [^aString].
+	(aString isNil or: [aString includesSubString: '://']) ifTrue: [^aString].
 	url := self session application resourceBaseUrl.
 	url ifNil: [^aString].
 	^url , aString
@@ -13883,7 +13847,22 @@ Object subclass: WAReportColumn [
     | clickBlock formatBlock hasTotal title sortBlock valueBlock |
     
     <category: 'Seaside-Core-Components-Widgets'>
-    <comment: nil>
+    <comment: 'WAReportColumn displays a column, one cell at a time, of a WAReportTable. Columns can be sorted, have a title, can have a total, and its element can be links. The valueBlock obtains the output (an object) to display for each row from the row''s object.  The formatBlock is used to convert the valueBlock output to a string. If you need html markup to display the result, use the two argument form of valueBlock. However, columns with two argument valueBlock can not be sorted. See class methods for shortcut methods for setting the value block. 
+
+For more information see:
+	WATableReport
+
+Instance Variables:
+	clickBlock	<BlockClosure [:rowObject | ]>	When clickBlock is set items in column will be anchors. clickBlock is called with the selected object when anchor is clicked on. Typically clickBlock calls a component which generates a new page.
+	formatBlock	<BlockClosure [:object | ]>	Should convert the result of the one-argument valueBlock to the string to be displayed. If formatBlock is nil then  "displayString" is sent to the result of valueBlock for the display string for this column.  
+	hasTotal	<Boolean>	If true the column will display the sum of all elements in the column, sum is displayed in the last row.
+	sortBlock	<BlockClosure [:a :b | ]>	Used to sort the element in the column. Arguments are the value from the one argument valueBlock
+	title	<String>	Column header 
+	valueBlock	<BlockClosure [:rowObject | ] or [:rowObject :aWARenderCanvas |] >	
+		[:rowObject | ] this form results in an object that is to be displayed in a column cell, argument is the object for a given row (see WATableReport)
+		[:rowObject :aWARenderCanvas |] this form is to render the value for a column cell from rowObject directly on aWRenderCanvas
+
+'>
 
     WAReportColumn class >> new [
 	<category: 'instance creation'>
@@ -14109,9 +14088,13 @@ Object subclass: WARequest [
     ]
 
     authorization [
+	"Answer the basic authorization string from the request. This is the username and the password separated by a colon."
+
 	<category: 'private'>
-	^(self headerAt: 'Authorization' ifAbsent: [self headerAt: 'authorization']) 
-	    ifNotNil: [:auth | self decodeAuthorization: auth]
+	| authorization |
+	authorization := self headerAt: 'Authorization'
+		    ifAbsent: [self headerAt: 'authorization'].
+	^authorization isNil ifFalse: [self decodeAuthorization: authorization]
     ]
 
     cookieAt: aKey [
@@ -14190,8 +14173,12 @@ Object subclass: WARequest [
     ]
 
     password [
+	"Answer the password from basic authentication."
+
 	<category: 'accessing'>
-	^self authorization ifNotNil: [:auth | auth copyAfter: $:]
+	| authorization |
+	^(authorization := self authorization) isNil 
+	    ifFalse: [authorization copyAfter: $:]
     ]
 
     printOn: aStream [
@@ -14235,8 +14222,12 @@ Object subclass: WARequest [
     ]
 
     user [
+	"Answer the username from basic authentication."
+
 	<category: 'accessing'>
-	^self authorization ifNotNil: [:auth | auth copyUpTo: $:]
+	| authorization |
+	^(authorization := self authorization) isNil 
+	    ifFalse: [authorization copyUpTo: $:]
     ]
 
     userAgent [
@@ -14544,7 +14535,7 @@ Instance Variables:
 
 
 WAEntryPoint subclass: WADispatcher [
-    | entryPoints defaultName lastUpdate version |
+    | entryPoints defaultName |
     
     <category: 'Seaside-Core-RequestHandler'>
     <comment: 'WADispatcher takes http requests and dispatches them to the correct handler (WAApplication, WAFileHandler, WANotFoundHandler, etc). 
@@ -14639,8 +14630,7 @@ Instance Variables:
     initialize [
 	<category: 'initialization'>
 	super initialize.
-	entryPoints := Dictionary new.
-	version := 0
+	entryPoints := Dictionary new
     ]
 
     isDispatcher [
@@ -14651,11 +14641,6 @@ Instance Variables:
     isRoot [
 	<category: 'testing'>
 	^self parent isNil
-    ]
-
-    lastUpdate [
-	<category: 'accessing'>
-	^lastUpdate
     ]
 
     postCopy [
@@ -14677,11 +14662,6 @@ Instance Variables:
 	<category: 'registration'>
 	entryPoints removeKey: anEntryPoint name ifAbsent: [^nil].
 	^anEntryPoint unregistered
-    ]
-
-    version [
-	<category: 'accessing'>
-	^version ifNil: [version := 0]
     ]
 ]
 
@@ -14768,6 +14748,15 @@ WAEntryPoint subclass: WAFileSystem [
 	^'File Directory'
     ]
 
+    asAbsoluteUrl: aFileName relativeTo: aRequest [
+	<category: 'private'>
+	| url |
+	url := aRequest url.
+	^(url isEmpty or: [url last ~= $/]) 
+	    ifTrue: [url , '/' , aFileName]
+	    ifFalse: [url , aFileName]
+    ]
+
     defaultConfiguration [
 	<category: 'configuration'>
 	^super defaultConfiguration addAncestor: WAFileSystemConfiguration new
@@ -14802,10 +14791,12 @@ WAEntryPoint subclass: WAFileSystem [
 		    html unorderedList: 
 			    [(SeasidePlatformSupport filesIn: aString) do: 
 				    [:each | 
+				    | localName |
+				    localName := SeasidePlatformSupport localNameOf: each.
 				    html listItem: 
 					    [(html anchor)
-						url: aRequest url , (each copyAfterLast: $/);
-						with: (each copyAfterLast: $/)]]]]
+						url: (self asAbsoluteUrl: localName relativeTo: aRequest);
+						with: localName]]]]
     ]
 
     mimetypeForRequest: aRequest [
@@ -15108,8 +15099,10 @@ MyComponent>>someInstanceMethod
 
     handleRequest: aRequest [
 	<category: 'request handling'>
-	(aRequest cookieAt: self handlerCookieName) 
-	    ifNotNil: [:value | aRequest fields at: self handlerField ifAbsentPut: [value]].
+	| cookie |
+	cookie := aRequest cookieAt: self handlerCookieName.
+	cookie isNil 
+	    ifFalse: [aRequest fields at: self handlerField ifAbsentPut: [cookie]].
 	^super handleRequest: aRequest
     ]
 
@@ -15375,7 +15368,8 @@ Smalltalk garbageCollect'>
 		(WAResponse new)
 		    nextPutAll: '<html><script>';
 		    nextPutAll: 'self.close();';
-		    nextPutAll: 'self.opener.location=' , url toString printString;
+		    nextPutAll: 'self.opener.location=';
+		    nextPutAll: url toString printString;
 		    nextPutAll: '</script></html>';
 		    yourself]
     ]
@@ -15753,8 +15747,9 @@ Object subclass: WAResponse [
 	<category: 'instance creation'>
 	^(self new)
 	    forbidden;
-	    nextPutAll: '<h1> Error: you are forbidden to access "' , locationString 
-			, '". </h1>';
+	    nextPutAll: '<h1> Error: you are forbidden to access "';
+	    nextPutAll: locationString;
+	    nextPutAll: '". </h1>';
 	    yourself
     ]
 
@@ -15789,7 +15784,9 @@ Object subclass: WAResponse [
 	<category: 'instance creation'>
 	^(self new)
 	    notFound;
-	    nextPutAll: '<h1> Error: "' , locationString , '" not found. </h1>';
+	    nextPutAll: '<h1> Error: "';
+	    nextPutAll: locationString;
+	    nextPutAll: '" not found. </h1>';
 	    yourself
     ]
 
@@ -16029,7 +16026,9 @@ Object subclass: WAResponse [
 			aStream nextPutAll: 'Set-Cookie: '.
 			each writeOn: aStream.
 			aStream crlf]].
-	aStream nextPutAll: 'Content-Type: ' , self contentType toString.
+	aStream
+	    nextPutAll: 'Content-Type: ';
+	    nextPutAll: self contentType toString.
 	aStream crlf
     ]
 
@@ -16944,6 +16943,11 @@ Instance Variables
 	^self basicNew initialize
     ]
 
+    = anUrl [
+	<category: 'comparing'>
+	^self class = anUrl class and: [self printString = anUrl printString]
+    ]
+
     addParameter: aString [
 	<category: 'adding'>
 	self addParameter: aString value: nil
@@ -17041,6 +17045,11 @@ Instance Variables
     fragment: aString [
 	<category: 'accessing'>
 	fragment := aString
+    ]
+
+    hash [
+	<category: 'comparing'>
+	^self hostname hash bitXor: self path hash
     ]
 
     hostname [
@@ -17320,15 +17329,13 @@ MessageNotUnderstood extend [
 
 
 
-Error subclass: WAComponentsNotFoundError [
-    
-    <category: 'Seaside-Core-Exceptions'>
-    <comment: nil>
+Integer extend [
 
-    possibleCauses [
-	<category: 'accessing'>
-	^#('you do not implement #children correctly' 'you do not backtrack #children correctly' 'you do not implement #states correctly')
+    printStringAsCents [
+	<category: '*Seaside-Core'>
+	^'$' , (self // 100) toString , '.' , (self \\ 100) asTwoCharacterString
     ]
+
 ]
 
 

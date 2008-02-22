@@ -68,3 +68,4 @@ WACodec subclass: WANullCodec [
 	^aString
     ]
 ]
+

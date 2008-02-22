@@ -275,12 +275,14 @@ WAFunctionalTest subclass: WACallbackTest [
 			    [:v | 
 			    transcript
 				cr;
-				nextPutAll: 'text: ' , v printString].
+				nextPutAll: 'text: ';
+				nextPutAll: v printString].
 		    html textInput callback: 
 			    [:v | 
 			    transcript
 				cr;
-				nextPutAll: 'text2: ' , v printString].
+				nextPutAll: 'text2: ';
+				nextPutAll: v printString].
 		    html break.
 		    html submitButton.
 		    html space.
@@ -957,6 +959,14 @@ WAFunctionalTest subclass: WAEncodingTest [
 	multipart := aString
     ]
 
+    renderClassName: aString on: html [
+	<category: 'rendering'>
+	aString isNil 
+	    ifFalse: 
+		[html strong: 'Class: '.
+		html text: aString class name]
+    ]
+
     renderContentOn: html [
 	<category: 'rendering'>
 	self renderExplanationOn: html.
@@ -996,7 +1006,8 @@ WAFunctionalTest subclass: WAEncodingTest [
 	    multipart;
 	    with: 
 		    [html textInput on: #multipart of: self.
-		    html submitButton text: self multipart]
+		    html submitButton text: self multipart].
+	self renderClassName: self multipart on: html
     ]
 
     renderUrlencodedOn: html [
@@ -1009,7 +1020,8 @@ WAFunctionalTest subclass: WAEncodingTest [
 	    with: self urlencoded.
 	html form: 
 		[html textInput on: #urlencoded of: self.
-		html submitButton text: self urlencoded]
+		html submitButton text: self urlencoded].
+	self renderClassName: self urlencoded on: html
     ]
 
     urlencoded [
@@ -1568,17 +1580,17 @@ WAFunctionalTest subclass: WAHtmlTest [
 		    html space.
 		    html break.
 		    (html image)
-			url: WADispatcherFiles / #logoPng;
+			url: WAHandlerEditorFiles / #logoPng;
 			width: '80%';
 			altText: 'Seaside'.
 		    html break.
 		    (html image)
-			url: WADispatcherFiles / #logoPng;
+			url: WAHandlerEditorFiles / #logoPng;
 			height: '50px';
 			altText: 'Seaside'.
 		    html break.
 		    (html image)
-			url: WADispatcherFiles / #logoPng;
+			url: WAHandlerEditorFiles / #logoPng;
 			width: '250px';
 			height: '60px';
 			altText: 'Seaside']
@@ -1644,7 +1656,7 @@ WAFunctionalTest subclass: WAIframeTest [
 	html
 	    break;
 	    break.
-	html iframe document: WADispatcherFiles default logoPng
+	html iframe document: WAHandlerEditorFiles default logoPng
 	    mimeType: 'image/jpeg'
     ]
 
@@ -1687,7 +1699,7 @@ WAFunctionalTest subclass: WAImageMapTest [
 		    [(html image)
 			altText: 'Seaside logo';
 			width: '40%';
-			document: WADispatcherFiles new logoPng
+			document: WAHandlerEditorFiles new logoPng
 			    mimeType: 'image/jpg'
 			    fileName: 'seasideLogo.jpg']
     ]
@@ -2856,7 +2868,6 @@ WATask subclass: WANestedTransaction [
 	self inform: 'Outside parent txn'
     ]
 ]
-
 
 
 Eval [
