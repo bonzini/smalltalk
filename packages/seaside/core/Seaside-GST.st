@@ -237,6 +237,10 @@ Dictionary extend [
 	<category: '*Seaside-Squeak-Core'>
 	^self deepCopy
     ]
+
+    keysSortedSafely [
+	^self keys asSortedCollection
+    ]
 ]
 
 Bag extend [
