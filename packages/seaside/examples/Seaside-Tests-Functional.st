@@ -1272,7 +1272,7 @@ WAFunctionalTest subclass: WAFlowTest [
 	depth := 0.
 	current := aContext.
 	[current isNil] whileFalse: 
-		[current := current sender.
+		[current := current parentContext.
 		depth := depth + 1].
 	^depth
     ]

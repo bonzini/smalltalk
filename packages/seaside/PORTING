@@ -16,6 +16,15 @@ Changes to do manually:
 
 ----------
 
+broken functional tests:
+- getting dnu's from swazoo
+- urlencoded encoding
+- error (deprecated etc, more or less expected)
+- exception
+- minicalendar
+
+----------
+
 The script I used for conversion:
 
 cd mcz
@@ -65,6 +74,12 @@ for i in *.st Seaside-Tests-Functional.st; do
        [Character codePoint: 65535. 65535]' \
     -r'(Month daysInMonthNumber: ``@arg1 forYear: ``@arg2 )->
        (Date daysInMonth: ``@arg1 forYear: ``@arg2)' \
+    -r'(Time hour: ``@arg1 minute: ``@arg2 second: ``@arg3)->
+       (Time hours: ``@arg1 minutes: ``@arg2 seconds: ``@arg3)' \
+    -r'(Date year: ``@arg1 month: ``@arg2 day: ``@arg3)->
+       (Date newDay: ``@arg3 monthNumber: ``@arg2 year: ``@arg1)' \
+    -r'(``@arg1 sender)->
+       (``@arg1 parentContext)' \
     -r'(Dictionary withAll: ``@arg2 )->
        (Dictionary from: ``@arg2)' \
     -r'((Character value: ``@arg2 ) toString)->

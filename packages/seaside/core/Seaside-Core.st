@@ -798,9 +798,9 @@ See WADateTimeTest >> #renderDateTimeOn:'>
     setValueWithNewTime [
 	<category: 'private callbacks'>
 	^value := Time 
-		    hour: hours
-		    minute: (minutes min: 59)
-		    second: (seconds min: 59)
+		    hours: hours
+		    minutes: (minutes min: 59)
+		    seconds: (seconds min: 59)
     ]
 
     with: aBlock [
@@ -10700,9 +10700,9 @@ Instance Variables:
 	    monthNumber: month
 	    year: year) ifFalse: [self error: 'Invalid date'].
 	^self dateClass 
+	    newDay: day
+	    monthNumber: month
 	    year: year
-	    month: month
-	    day: day
     ]
 
     date: aDate [
@@ -12453,9 +12453,9 @@ Instance Variables:
 	    hourNumber: hour
 	    minuteNumber: minute) ifFalse: [self error: 'Invalid time'].
 	^self timeClass 
-	    hour: hour
-	    minute: minute
-	    second: second
+	    hours: hour
+	    minutes: minute
+	    seconds: second
     ]
 
     time: aTime [

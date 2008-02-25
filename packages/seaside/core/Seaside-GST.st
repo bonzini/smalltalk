@@ -353,6 +353,11 @@ CharacterArray extend [
 	^self startsWith: aString
     ]
 
+    caseInsensitiveLessOrEqual: aString [
+	<category: '*Seaside-Squeak-Core'>
+	^self asLowercase < aString asLowercase
+    ]
+
     includesSubString: aString [
 	<category: '*Seaside-Squeak-Core'>
 	^(self indexOfSubCollection: aString ifAbsent: [0]) > 0
@@ -390,6 +395,29 @@ Exception extend [
     toString [
 	<category: '*Seaside-Squeak-Core'>
 	^self class fullName asString
+    ]
+]
+
+
+SmallInteger extend [
+    day [
+	<category: '*Seaside-Squeak-Core'>
+	^(self * 86400) second
+    ]
+
+    hour [
+	<category: '*Seaside-Squeak-Core'>
+	^(self * 3600) second
+    ]
+
+    minute [
+	<category: '*Seaside-Squeak-Core'>
+	^(self * 60) second
+    ]
+
+    second [
+	<category: '*Seaside-Squeak-Core'>
+	^Duration fromSeconds: self
     ]
 ]
 
