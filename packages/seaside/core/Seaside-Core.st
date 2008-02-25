@@ -11574,9 +11574,8 @@ Instance Variables:
 
 
 WAComponent subclass: WAMiniCalendar [
-    | month date canSelectBlock selectBlock |
+    | monthIndex year date canSelectBlock selectBlock |
     
-    <category: 'Seaside-Core-Components-Widgets'>
     <comment: 'WAMiniCalendar renders a monthly calendar. Users can navigate by month, year, or select a year and a month. Users can select a date in the calendar. Set canSelectBlock to control which dates a user can select. Use selectBlock to perform an action when a user selects a date. WAMiniCalendar>>date returns the selected date.
 
 Select "Mini Calendar" tab of the Functional Seaside Test Suite to run an example  (http://127.0.0.1:xxxx/seaside/tests/alltests)
@@ -11584,10 +11583,12 @@ Select "Mini Calendar" tab of the Functional Seaside Test Suite to run an exampl
 Instance Variables:
 	canSelectBlock	<BlockClosure with date argument>	return true if date argument should be rendered with a link, ie user can select that date
 	date	<WAValueHolder on a date>	Selected date
-	month	<WAValueHolder on a Month>	Currently displayed month
+	monthIndex	<WAValueHolder on an Integer>	Currently displayed month
+	year	<WAValueHolder on an Integer>	Currently displayed year
 	selectBlock	<BlockClosure with date argument> called when user selects a date
 
 '>
+    <category: 'Seaside-Core-Components-Widgets'>
 
     WAMiniCalendar class >> canBeRoot [
 	<category: 'testing'>
@@ -11595,7 +11596,7 @@ Instance Variables:
     ]
 
     WAMiniCalendar class >> example [
-	<category: 'accessing'>
+	<category: 'testing'>
 	^self new
     ]
 
@@ -11609,6 +11610,30 @@ Instance Variables:
 	canSelectBlock := aBlock
     ]
 
+    month [
+	<category: 'accessing'>
+	^Month month: self monthIndex year: self year
+    ]
+
+    month: aMonth [
+	<category: 'accessing'>
+	self monthIndex: aMonth monthIndex.
+	self year: aMonth year
+    ]
+
+    selectBlock: aBlock [
+	<category: 'accessing'>
+	selectBlock := aBlock
+    ]
+
+    states [
+	<category: 'accessing'>
+	^Array 
+	    with: date
+	    with: monthIndex
+	    with: year
+    ]
+
     date [
 	<category: 'accessing-delegated'>
 	^date contents
@@ -11617,42 +11642,79 @@ Instance Variables:
     date: aDate [
 	<category: 'accessing-delegated'>
 	date contents: aDate.
-	month contents: aDate month
+	monthIndex contents: aDate monthIndex.
+	year contents: aDate year
+    ]
+
+    monthIndex [
+	<category: 'accessing-delegated'>
+	^monthIndex contents
+    ]
+
+    monthIndex: anInteger [
+	<category: 'accessing-delegated'>
+	monthIndex contents: anInteger
+    ]
+
+    year [
+	<category: 'accessing-delegated'>
+	^year contents
+    ]
+
+    year: anIntegerOrString [
+	<category: 'accessing-delegated'>
+	year 
+	    contents: ([anIntegerOrString asInteger] on: Error do: [:error | 1900])
     ]
 
     initialize [
 	<category: 'initialization'>
 	super initialize.
-	month := WAValueHolder with: Date today month.
+	monthIndex := WAValueHolder with: Date today monthIndex.
+	year := WAValueHolder with: Date today year.
 	date := WAValueHolder new.
 	canSelectBlock := [:value | true].
 	selectBlock := [:value | self answer: value]
     ]
 
-    month [
-	<category: 'accessing-delegated'>
-	^month contents
+    monthNames [
+	<category: 'localization'>
+	^(1 to: 12) collect: [:each | Date nameOfMonth: each]
     ]
 
-    month: aMonth [
-	<category: 'accessing-delegated'>
-	^month contents: aMonth
+    weekDays [
+	<category: 'localization'>
+	^(1 to: 7) collect: [:i | (Date nameOfDay: i) first: 3]
+    ]
+
+    monthName [
+	<category: 'private'>
+	^Date nameOfMonth: self monthIndex
     ]
 
     monthHeading [
 	<category: 'private'>
-	^self month name , ' ' , self month year toString
+	^self monthName , ' ' , self year toString
     ]
 
-    months [
+    weeksDo: aBlock [
 	<category: 'private'>
-	^(1 to: 12) collect: [:i | Month month: i year: self year]
+	| day nextMonth |
+	day := Date 
+		    newDay: 1
+		    monthIndex: self monthIndex
+		    year: self year.
+	day := day subtractDays: day dayOfWeek.
+	nextMonth := self monthIndex \\ 12 + 1.
+	[day monthIndex = nextMonth] whileFalse: 
+		[aBlock value: day.
+		day := day addDays: 7]
     ]
 
     renderCellForDate: aDate on: html [
 	<category: 'rendering'>
 	html tableData: 
-		[aDate month = self month 
+		[(aDate monthIndex = self monthIndex and: [aDate year = self year]) 
 		    ifTrue: 
 			[(html span)
 			    class: (self date = aDate ifTrue: ['calendarArchiveDate']);
@@ -11677,7 +11739,7 @@ Instance Variables:
 			    [(html tableRow)
 				class: 'calendarTitle';
 				with: [self weekDays do: [:each | html tableData: each]].
-			    self month weeksDo: [:week | self renderRowForWeek: week on: html]].
+			    self weeksDo: [:week | self renderRowForWeek: week on: html]].
 		    self renderMonthNavigationOn: html.
 		    html
 			space;
@@ -11689,9 +11751,9 @@ Instance Variables:
 	<category: 'rendering'>
 	html form: 
 		[(html select)
-		    list: self months;
-		    on: #month of: self;
-		    labels: [:eachMonth | eachMonth name].
+		    list: (1 to: 12);
+		    on: #monthIndex of: self;
+		    labels: [:index | Date nameOfMonth: index].
 		(html textInput)
 		    maxLength: 4;
 		    on: #year of: self.
@@ -11700,25 +11762,40 @@ Instance Variables:
 
     renderMonthNavigationOn: html [
 	<category: 'rendering'>
+	| tab |
+	tab := #(12 1 2 3 4 5 6 7 8 9 10 11 12 1).
 	(html span)
 	    class: 'calendarPrevious';
 	    with: 
 		    [(html anchor)
-			callback: [self month: self month previous];
-			with: (self month previous name first: 3)].
+			callback: 
+				[self monthIndex = 1 
+				    ifTrue: 
+					[self
+					    monthIndex: 12;
+					    year: self year - 1]
+				    ifFalse: [self monthIndex: self monthIndex - 1]];
+			with: ((self monthNames at: (tab at: self monthIndex)) first: 3)].
 	html space.
 	(html span)
 	    class: 'calendarNext';
 	    with: 
 		    [(html anchor)
-			callback: [self month: self month next];
-			with: (self month next name first: 3)]
+			callback: 
+				[self monthIndex = 12 
+				    ifTrue: 
+					[self
+					    monthIndex: 1;
+					    year: self year + 1]
+				    ifFalse: [self monthIndex: self monthIndex + 1]];
+			with: ((self monthNames at: (tab at: self monthIndex + 2)) first: 3)]
     ]
 
-    renderRowForWeek: aWeek on: html [
+    renderRowForWeek: initialDay on: html [
 	<category: 'rendering'>
-	html 
-	    tableRow: [aWeek datesDo: [:each | self renderCellForDate: each on: html]]
+	html tableRow: 
+		[0 to: 6
+		    do: [:each | self renderCellForDate: (initialDay addDays: each) on: html]]
     ]
 
     renderYearNavigationOn: html [
@@ -11743,34 +11820,8 @@ Instance Variables:
 	self date: aDate.
 	selectBlock value: aDate
     ]
-
-    selectBlock: aBlock [
-	<category: 'accessing'>
-	selectBlock := aBlock
-    ]
-
-    states [
-	<category: 'accessing'>
-	^Array with: date with: month
-    ]
-
-    weekDays [
-	<category: 'private'>
-	^(1 to: 7) collect: [:i | (Date nameOfDay: i) first: 3]
-    ]
-
-    year [
-	<category: 'accessing-delegated'>
-	^self month year
-    ]
-
-    year: anIntegerOrString [
-	<category: 'accessing-delegated'>
-	| year |
-	year := [anIntegerOrString asInteger] on: Error do: [:error | 1900].
-	self month: (Month month: self month monthIndex year: year)
-    ]
 ]
+
 
 
 

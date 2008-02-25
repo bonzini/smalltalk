@@ -73,7 +73,7 @@ for i in *.st Seaside-Tests-Functional.st; do
     -r'[Character value: 65535. 65535]->
        [Character codePoint: 65535. 65535]' \
     -r'(Month daysInMonthNumber: ``@arg1 forYear: ``@arg2 )->
-       (Date daysInMonth: ``@arg1 forYear: ``@arg2)' \
+       (Date daysInMonthNumber: ``@arg1 forYear: ``@arg2)' \
     -r'(Time hour: ``@arg1 minute: ``@arg2 second: ``@arg3)->
        (Time hours: ``@arg1 minutes: ``@arg2 seconds: ``@arg3)' \
     -r'(Date year: ``@arg1 month: ``@arg2 day: ``@arg3)->
