@@ -95,7 +95,7 @@ Swazoo.Site subclass: SeasideSite [
 
     SeasideSite class >> defaultPort [
 	<category: 'accessing-defaults'>
-	^8088
+	^8080
     ]
 
     SeasideSite class >> doEncoding: aBoolean [

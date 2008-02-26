@@ -8,11 +8,12 @@ Portability problems not fixed upstream:
 Changes to do manually:
 1) add imports to the classes in Seaside-Adapters-Swazoo and namespaces to superclasses
 2) BlockContext -> BlockClosure
-3) WAAcceptTest >> testMozilla, remove ...000000001 tail
+3) WAMiniCalendar rewrite
 4) UnicodeString in testNonLatinWindowsPath?
 5) remove testColorAsHtmlColor (bogus)
 6) remove testCapitalizedUmlauts (unsupported in GST)
 7) remove testLanguageNameIso3 (unsupported in Seaside)
+8) make sure SeasideSite's defaultPort is 8080.
 
 ----------
 
