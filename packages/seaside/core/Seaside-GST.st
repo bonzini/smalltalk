@@ -152,6 +152,11 @@ Character extend [
 ]
 
 SequenceableCollection extend [
+    associationsDo: aBlock [
+	<category: '*Seaside-Squeak-Core'>
+	self do: aBlock
+    ]
+
     atRandom: aRandom [
 	<category: '*Seaside-Squeak-Core'>
 	^self at: (aRandom between: 1 and: self size)
@@ -334,6 +339,15 @@ Object extend [
 	<category: '*Seaside-Squeak-Core'>
 	^self displayString
     ]
+
+    printStringLimitedTo: anInteger [
+	<category: 'accessing'>
+	^(TCP.WriteBuffer on: (String new: anInteger))
+	    flushBlock: [ :coll :size | ^(coll copyFrom: 1 to: size), '...' ];
+	    print: self;
+	    contents
+    ]
+
 ]
 
 ByteArray extend [

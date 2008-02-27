@@ -14905,7 +14905,7 @@ Instance Variables:
 
     WARegistry class >> clearAllHandlers [
 	<category: 'initialization'>
-	self allSubInstancesDo: [:each | each clearHandlers]
+	self allSubinstancesDo: [:each | each clearHandlers]
     ]
 
     clearHandlers [
