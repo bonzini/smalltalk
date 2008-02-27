@@ -2,6 +2,19 @@ Portability problems not fixed upstream:
 
 1) testCompileString, remove #sourceCodeAt:
 2) remove testColorAsHtmlColor
+3) should add to SeasidePlatformSupport #asMethodReturningString:named:,
+   to use it in WAViewer too
+
+More methods to test for in WAPlatformTest:
+
+1) SequenceableCollection>>#associationsDo:
+2) Object>>#printStringLimitedTo:
+3) Dictionary>>#keysSortedSafely
+4) SmallInteger>>#day / #hour / #minute / #second
+5) Object>>#isCollection / Collection>>#isCollection
+6) String>>#caseInsensitiveLessOrEqual:
+7) #defaultDirectoryName
+8) #platformString
 
 ----------
 
