@@ -1,56 +1,3 @@
-Object subclass: MIMEDocument [
-    | contentStream content contentType |
-    MIMEDocument class >> contentType: mimeType content: content [
-	^self new contentType: mimeType contentStream: nil content: content
-    ]
-
-    MIMEDocument class >> contentType: mimeType contentStream: stream [
-	^self new contentType: mimeType contentStream: stream content: nil
-    ]
-
-    asMIMEDocument [
-	^self
-    ]
-
-    asMIMEDocumentType: type [
-	type toString = contentType toString ifTrue: [ ^self ].
-	^self class new
-	    contentType: type contentStream: contentStream content: content
-    ]
-
-    contentType: mimeType contentStream: stream content: anObject [
-        contentType := mimeType.
-	contentStream := stream.
-	content := anObject
-    ]
-
-    contentStream [
-	contentStream isNil ifTrue: [ ^content readStream ].
-	^contentStream
-    ]
-
-    contentType [
-	^contentType
-    ]
-
-    content [
-	contentStream isNil ifFalse: [ ^contentStream contents ].
-	^content
-    ]
-]
-
-Collection extend [
-    Object >> isCollection [
-	<category: '*Seaside-Squeak-Core'>
-	^false
-    ]
-
-    isCollection [
-	<category: '*Seaside-Squeak-Core'>
-	^true
-    ]
-]
-
 Fraction extend [
     Object >> isFraction [
 	<category: '*Seaside-Squeak-Core'>
@@ -60,29 +7,6 @@ Fraction extend [
     isFraction [
 	<category: '*Seaside-Squeak-Core'>
 	^true
-    ]
-]
-
-Stream extend [
-    binary [
-	<category: '*Seaside-Squeak-Core'>
-    ]
-
-    asMIMEDocument [
-	<category: '*Seaside-Squeak-Core'>
-	^self asMIMEDocumentType: 'text/plain' toMimeType
-    ]
-
-    asMIMEDocumentType: mimeType [
-	<category: '*Seaside-Squeak-Core'>
-	^Seaside.MIMEDocument contentType: mimeType toString contentStream: self
-    ]
-
-    upToAndSkipThroughAll: aCollection [
-	"Needed for Seaside ports to other dialects where #upToAll: may have
-	different semantics"
-	<category: '*Seaside-Squeak-Core'>
-	^self upToAll: aCollection
     ]
 ]
 
@@ -102,133 +26,6 @@ BlockClosure extend [
 	^self numArgs = 0
 	    ifTrue: [ self value ]
 	    ifFalse: [ self value: anObject ]
-    ]
-]
-
-Collection extend [
-    removeAllFoundIn: aCollection [
-	<category: '*Seaside-Squeak-Core'>
-	self removeAll: aCollection ifAbsent: [ :x | ]
-    ]
-
-    isEmptyOrNil [
-	<category: '*Seaside-Squeak-Core'>
-	^self isEmpty
-    ]
-]
-
-Object extend [
-    isEmptyOrNil [
-	<category: '*Seaside-Squeak-Core'>
-	^false
-    ]
-]
-
-UndefinedObject extend [
-    isEmptyOrNil [
-	<category: '*Seaside-Squeak-Core'>
-	^true
-    ]
-]
-
-Time extend [
-    Time class >> totalSeconds [
-	<category: '*Seaside-Squeak-Core'>
-	^Time secondClock
-    ]
-]
-
-Character extend [
-    to: aCharacter [
-	^self codePoint
-	    to: aCharacter codePoint
-	    collect: [ :i | Character codePoint: i ]
-    ]
-	
-    asUnicode [
-	<category: '*Seaside-Squeak-Core'>
-	^self codePoint
-    ]
-]
-
-SequenceableCollection extend [
-    associationsDo: aBlock [
-	<category: '*Seaside-Squeak-Core'>
-	self do: aBlock
-    ]
-
-    atRandom: aRandom [
-	<category: '*Seaside-Squeak-Core'>
-	^self at: (aRandom between: 1 and: self size)
-    ]
-]
-
-Integer extend [
-    atRandom [
-	<category: '*Seaside-Squeak-Core'>
-	^Random between: 1 and: self size
-    ]
-
-    printStringBase: anInteger [
-	<category: '*Seaside-Squeak-Core'>
-	^self printString: anInteger
-    ]
-
-    asTwoCharacterString [
-	<category: '*Seaside-Squeak-Core'>
-	(self between: 0 and: 9)
-	    ifTrue: [ ^String with: $0 with: (Character digitValue: self) ].
-	(self between: -9 and: 99) ifTrue: [ ^self printString ].
-	^self printString copyFrom: 1 to: 2.
-    ]
-]
-
-Symbol extend [
-    asMutator [
-         ^(self copyWith: $:) asSymbol
-    ]
-
-    capitalized [
-	<category: '*Seaside-Squeak-Core'>
-	^self asString capitalized asSymbol
-    ]
-
-    isKeyword [
-	^self last = $:
-    ]
-
-    isUnary [
-	^self numArgs = 0
-    ]
-]
-
-FileStream extend [
-    Stream >> closed [
-	<category: '*Seaside-Squeak-Core'>
-	^false
-    ]
-
-    closed [
-	<category: '*Seaside-Squeak-Core'>
-	^self isOpen not
-    ]
-]
-
-Number extend [
-    printStringAsCents [
-	^'$', ((self / 100) asScaledDecimal: 2) displayString
-    ]
-]
-
-Date class extend [
-    daysInMonthNumber: monthNumber forYear: yearNumber [
-	<category: '*Seaside-Squeak-Core'>
-	^self daysInMonthIndex: monthNumber forYear: yearNumber
-    ]
-
-    newDay: dayNumber monthNumber: monthNumber year: yearNumber [
-	<category: '*Seaside-Squeak-Core'>
-	^self newDay: dayNumber monthIndex: monthNumber year: yearNumber
     ]
 ]
 
@@ -284,21 +81,200 @@ Set extend [
     ]
 ]
 
-Signal extend [
-    resumeContext [
-	^resumeBlock outerContext home
+SequenceableCollection extend [
+    associationsDo: aBlock [
+	<category: '*Seaside-Squeak-Core'>
+	self do: aBlock
+    ]
+
+    atRandom: aRandom [
+	<category: '*Seaside-Squeak-Core'>
+	^self at: (aRandom between: 1 and: self size)
     ]
 ]
 
-Exception class extend [
-    raiseSignal [
+Collection extend [
+    Object >> isCollection [
 	<category: '*Seaside-Squeak-Core'>
-	^ self signal
+	^false
     ]
 
-   raiseSignal: aString [
+    isCollection [
 	<category: '*Seaside-Squeak-Core'>
-	^ self signal: aString
+	^true
+    ]
+
+    removeAllFoundIn: aCollection [
+	<category: '*Seaside-Squeak-Core'>
+	self removeAll: aCollection ifAbsent: [ :x | ]
+    ]
+
+    isEmptyOrNil [
+	<category: '*Seaside-Squeak-Core'>
+	^self isEmpty
+    ]
+]
+
+UndefinedObject extend [
+    isEmptyOrNil [
+	<category: '*Seaside-Squeak-Core'>
+	^true
+    ]
+]
+
+Object extend [
+    isEmptyOrNil [
+	<category: '*Seaside-Squeak-Core'>
+	^false
+    ]
+
+    beMutable [
+	<category: '*Seaside-Squeak-Core'>
+	"a hack that allows to cache a value in a literal array"
+	self makeReadOnly: false
+    ]
+
+    className [
+	<category: '*Seaside-Squeak-Core'>
+	^self class name
+    ]
+
+    printStringLimitedTo: anInteger [
+	<category: 'accessing'>
+	^(TCP.WriteBuffer on: (String new: anInteger))
+	    flushBlock: [ :coll :size | ^(coll copyFrom: 1 to: size), '...' ];
+	    print: self;
+	    contents
+    ]
+
+   restoreFromSnapshot: anObject [
+        <category: '*Seaside-Core'>
+	self basicSize = anObject basicSize
+	    ifFalse: [ self become: (self class basicNew: anObject basicSize) ].
+	self class instSize = anObject class instSize
+	    ifFalse: [ self halt ].
+        1 to: self class instSize do: [ :i |
+	    self instVarAt: i put: (anObject instVarAt: i) ].
+        1 to: self basicSize do: [ :i |
+	    self basicAt: i put: (anObject basicAt: i) ]
+    ]
+]
+
+Time extend [
+    Time class >> totalSeconds [
+	<category: '*Seaside-Squeak-Core'>
+	^Time secondClock
+    ]
+]
+
+Character extend [
+    to: aCharacter [
+	^self codePoint
+	    to: aCharacter codePoint
+	    collect: [ :i | Character codePoint: i ]
+    ]
+	
+    asUnicode [
+	<category: '*Seaside-Squeak-Core'>
+	^self codePoint
+    ]
+]
+
+Integer extend [
+    atRandom [
+	<category: '*Seaside-Squeak-Core'>
+	^Random between: 1 and: self size
+    ]
+
+    printStringBase: anInteger [
+	<category: '*Seaside-Squeak-Core'>
+	^self printString: anInteger
+    ]
+
+    asTwoCharacterString [
+	<category: '*Seaside-Squeak-Core'>
+	(self between: 0 and: 9)
+	    ifTrue: [ ^String with: $0 with: (Character digitValue: self) ].
+	(self between: -9 and: 99) ifTrue: [ ^self printString ].
+	^self printString copyFrom: 1 to: 2.
+    ]
+]
+
+Symbol extend [
+    asMutator [
+         ^(self copyWith: $:) asSymbol
+    ]
+
+    capitalized [
+	<category: '*Seaside-Squeak-Core'>
+	^self asString capitalized asSymbol
+    ]
+
+    isKeyword [
+	^self last = $:
+    ]
+
+    isUnary [
+	^self numArgs = 0
+    ]
+]
+
+FileStream extend [
+    Stream >> closed [
+	<category: '*Seaside-Squeak-Core'>
+	^false
+    ]
+
+    closed [
+	<category: '*Seaside-Squeak-Core'>
+	^self isOpen not
+    ]
+]
+
+Stream extend [
+    binary [
+	<category: '*Seaside-Squeak-Core'>
+    ]
+
+    asMIMEDocument [
+	<category: '*Seaside-Squeak-Core'>
+	^self asMIMEDocumentType: 'text/plain' toMimeType
+    ]
+
+    asMIMEDocumentType: mimeType [
+	<category: '*Seaside-Squeak-Core'>
+	^Seaside.MIMEDocument contentType: mimeType toString contentStream: self
+    ]
+
+    upToAndSkipThroughAll: aCollection [
+	"Needed for Seaside ports to other dialects where #upToAll: may have
+	different semantics"
+	<category: '*Seaside-Squeak-Core'>
+	^self upToAll: aCollection
+    ]
+]
+
+Number extend [
+    printStringAsCents [
+	^'$', ((self / 100) asScaledDecimal: 2) displayString
+    ]
+]
+
+Date class extend [
+    daysInMonthNumber: monthNumber forYear: yearNumber [
+	<category: '*Seaside-Squeak-Core'>
+	^self daysInMonthIndex: monthNumber forYear: yearNumber
+    ]
+
+    newDay: dayNumber monthNumber: monthNumber year: yearNumber [
+	<category: '*Seaside-Squeak-Core'>
+	^self newDay: dayNumber monthIndex: monthNumber year: yearNumber
+    ]
+]
+
+Signal extend [
+    resumeContext [
+	^resumeBlock outerContext home
     ]
 ]
 
@@ -320,40 +296,6 @@ Behavior extend [
     fullName [
 	<category: '*Seaside-Squeak-Core'>
 	^self nameIn: Smalltalk
-    ]
-]
-
-Object extend [
-    beMutable [
-	<category: '*Seaside-Squeak-Core'>
-	"a hack that allows to cache a value in a literal array"
-	self makeReadOnly: false
-    ]
-
-    className [
-	<category: '*Seaside-Squeak-Core'>
-	^self class name
-    ]
-
-    toString [
-	<category: '*Seaside-Squeak-Core'>
-	^self displayString
-    ]
-
-    printStringLimitedTo: anInteger [
-	<category: 'accessing'>
-	^(TCP.WriteBuffer on: (String new: anInteger))
-	    flushBlock: [ :coll :size | ^(coll copyFrom: 1 to: size), '...' ];
-	    print: self;
-	    contents
-    ]
-
-]
-
-ByteArray extend [
-    toString [
-	<category: '*Seaside-Squeak-Core'>
-	^self asString
     ]
 ]
 
@@ -392,11 +334,6 @@ CharacterArray extend [
 	    ifFalse: [ self subStrings: aStringOrCharacter ]
     ]
 
-    toString [
-	<category: '*Seaside-Squeak-Core'>
-	^self asString
-    ]
-
     padded: where to: size with: aCharacter [
 	<category: '*Seaside-Squeak-Core'>
 	| start result |
@@ -407,13 +344,6 @@ CharacterArray extend [
 	^result
     ]
 
-]
-
-Exception extend [
-    toString [
-	<category: '*Seaside-Squeak-Core'>
-	^self class fullName asString
-    ]
 ]
 
 
@@ -439,7 +369,81 @@ SmallInteger extend [
     ]
 ]
 
+
+Object subclass: MIMEDocument [
+    | contentStream content contentType |
+    MIMEDocument class >> contentType: mimeType content: content [
+	^self new contentType: mimeType contentStream: nil content: content
+    ]
 
+    MIMEDocument class >> contentType: mimeType contentStream: stream [
+	^self new contentType: mimeType contentStream: stream content: nil
+    ]
+
+    asMIMEDocument [
+	^self
+    ]
+
+    asMIMEDocumentType: type [
+	type toString = contentType toString ifTrue: [ ^self ].
+	^self class new
+	    contentType: type contentStream: contentStream content: content
+    ]
+
+    contentType: mimeType contentStream: stream content: anObject [
+        contentType := mimeType.
+	contentStream := stream.
+	content := anObject
+    ]
+
+    contentStream [
+	contentStream isNil ifTrue: [ ^content readStream ].
+	^contentStream
+    ]
+
+    contentType [
+	^contentType
+    ]
+
+    content [
+	contentStream isNil ifFalse: [ ^contentStream contents ].
+	^content
+    ]
+]
+
+
+
+"#toString implementations."
+
+CharacterArray extend [
+    toString [
+	<category: '*Seaside-Squeak-Core'>
+	^self asString
+    ]
+]
+
+Exception extend [
+    toString [
+	<category: '*Seaside-Squeak-Core'>
+	^self class fullName asString
+    ]
+]
+
+Object extend [
+    toString [
+	<category: '*Seaside-Squeak-Core'>
+	^self displayString
+    ]
+]
+
+ByteArray extend [
+    toString [
+	<category: '*Seaside-Squeak-Core'>
+	^self asString
+    ]
+]
+
+
 Object subclass: WAGNUSmalltalkPlatform [
     WAGNUSmalltalkPlatform class >> initialize [
 	Smalltalk at: #SeasidePlatformSupport put: self new
@@ -667,20 +671,6 @@ Object subclass: WAGNUSmalltalkPlatform [
 	stream := FileStream open: fileName mode: 'w'.
 	[ stream nextPutAll: aStringOrByteArray ]
 		ensure: [ stream close ]
-    ]
-]
-
-Object extend [
-   restoreFromSnapshot: anObject [
-        <category: '*Seaside-Core'>
-	self basicSize = anObject basicSize
-	    ifFalse: [ self become: (self class basicNew: anObject basicSize) ].
-	self class instSize = anObject class instSize
-	    ifFalse: [ self halt ].
-        1 to: self class instSize do: [ :i |
-	    self instVarAt: i put: (anObject instVarAt: i) ].
-        1 to: self basicSize do: [ :i |
-	    self basicAt: i put: (anObject basicAt: i) ]
     ]
 ]
 
