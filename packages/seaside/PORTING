@@ -96,6 +96,10 @@ for i in *.st Seaside-Tests-Functional.st; do
        (``@arg1 parentContext)' \
     -r'(Dictionary withAll: ``@arg2 )->
        (Dictionary from: ``@arg2)' \
+    -r'(``@obj raiseSignal)->
+       (``@obj signal)' \
+    -r'(``@obj raiseSignal: ``@arg2 )->
+       (``@obj signal: ``@arg2)' \
     -r'(``@obj allSubInstancesDo: ``@arg2 )->
        (``@obj allSubinstancesDo: ``@arg2)' \
     -r'((Character value: ``@arg2 ) toString)->

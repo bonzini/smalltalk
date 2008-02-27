@@ -134,7 +134,7 @@ Do not use WADynamicVariable directly, instead create a subclass for each variab
 
     WADynamicVariable class >> value [
 	<category: 'evaluating'>
-	^self raiseSignal
+	^self signal
     ]
 
     defaultAction [
@@ -373,7 +373,7 @@ Object extend [
 
     deprecatedApi: aString [
 	<category: '*Seaside-Core'>
-	WADeprecatedApi raiseSignal: aString
+	WADeprecatedApi signal: aString
     ]
 
     encodeOn: aDocument [
@@ -413,7 +413,7 @@ Object extend [
 
     validationError: message [
 	<category: '*Seaside-Core'>
-	^WAValidationNotification raiseSignal: message
+	^WAValidationNotification signal: message
     ]
 
 ]
@@ -3785,7 +3785,7 @@ WACallback subclass: WAActionCallback [
 
     signalRenderNotification [
 	<category: 'evaluation'>
-	WARenderNotification raiseSignal
+	WARenderNotification signal
     ]
 ]
 
@@ -10044,7 +10044,7 @@ A component is visible if
 	^AnswerContinuation currentDo: 
 		[:cc | 
 		self show: aComponent onAnswer: cc.
-		WARenderNotification raiseSignal]
+		WARenderNotification signal]
     ]
 
     children [
@@ -15552,7 +15552,7 @@ Smalltalk garbageCollect'>
 		ifTrue: [lastContinuation states restore].
 	self 
 	    respond: [:url | self application redirectHandler redirectPageExpiredTo: url].
-	WAPageExpired raiseSignal
+	WAPageExpired signal
     ]
 
     pageIntentionallyLeftBlank [
@@ -15708,12 +15708,12 @@ Smalltalk garbageCollect'>
 	    do: 
 		[:e | 
 		self errorHandler handleError: e.
-		WAPageExpired raiseSignal]] 
+		WAPageExpired signal]] 
 		on: Warning
 		do: 
 		    [:w | 
 		    self errorHandler handleWarning: w.
-		    WAPageExpired raiseSignal]
+		    WAPageExpired signal]
     ]
 
     withEscapeContinuation: aBlock [
@@ -16570,7 +16570,7 @@ WASessionContinuation subclass: WARenderContinuation [
     componentsNotFound: aCollection [
 	<category: 'private'>
 	WAComponentsNotFoundError 
-	    raiseSignal: 'Components not found while processing callbacks: ' 
+	    signal: 'Components not found while processing callbacks: ' 
 		    , aCollection toString
     ]
 

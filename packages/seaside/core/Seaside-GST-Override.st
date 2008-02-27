@@ -34,11 +34,11 @@ WAResponse extend [
 Object extend [
     validationError: message [
         <category: '*Seaside-Core'>
-        ^Seaside.WAValidationNotification raiseSignal: message
+        ^Seaside.WAValidationNotification signal: message
     ]
 
     deprecatedApi: aString [
 	<category: '*Seaside-Core'>
-	Seaside.WADeprecatedApi raiseSignal: aString
+	Seaside.WADeprecatedApi signal: aString
     ]
 ]
