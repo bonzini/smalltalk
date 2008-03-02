@@ -214,7 +214,7 @@ WADecoration subclass: WAToolDecoration [
 
     toggleHalos [
 	<category: 'plugin-halos'>
-	WAHalo initialize.
+	WAHalo initializeClass.
 	showHalos contents: showHalos contents not
     ]
 

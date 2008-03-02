@@ -5450,6 +5450,11 @@ Subclasses must implement the following messages:
 	^self inheritedValueAndSourceAt: aSymbol do: [:value :source | value]
     ]
 
+    name [
+	<category: 'accessing'>
+	^self class name
+    ]
+
     potentialAncestors [
 	<category: 'ancestry'>
 	^self allPotentialAncestors 
@@ -13481,9 +13486,10 @@ Instance Variables:
 		[semaphore := SeasidePlatformSupport semaphoreClass new.
 		process := 
 			[[value := aBlock on: Error do: anErrorBlock] ensure: [semaphore signal]] 
-				fork.
-		semaphore wait].
-	process := nil.
+				newProcess.
+		process resume.
+		semaphore wait.
+		process := nil].
 	^value
     ]
 
