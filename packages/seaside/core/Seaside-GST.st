@@ -231,7 +231,7 @@ Stream extend [
 
     asMIMEDocumentType: mimeType [
 	<category: '*Seaside-Squeak-Core'>
-	^Seaside.MIMEDocument contentType: mimeType toString contentStream: self
+	^Seaside.WAMimeDocument contentType: mimeType toString contentStream: self
     ]
 
     upToAndSkipThroughAll: aCollection [
@@ -348,13 +348,13 @@ SmallInteger extend [
 ]
 
 
-Object subclass: MIMEDocument [
+Object subclass: WAMimeDocument [
     | contentStream content contentType |
-    MIMEDocument class >> contentType: mimeType content: content [
+    WAMimeDocument class >> contentType: mimeType content: content [
 	^self new contentType: mimeType contentStream: nil content: content
     ]
 
-    MIMEDocument class >> contentType: mimeType contentStream: stream [
+    WAMimeDocument class >> contentType: mimeType contentStream: stream [
 	^self new contentType: mimeType contentStream: stream content: nil
     ]
 
@@ -565,7 +565,7 @@ Object subclass: WAGNUSmalltalkPlatform [
     ]
 
     mimeDocumentClass [
-	^ MIMEDocument
+	^ WAMimeDocument
     ]
 
     mimeDocumentOfType: type from: aFilename [
