@@ -92,10 +92,18 @@ for i in *.st Seaside-Tests-Functional.st; do
        (Time hours: ``@arg1 minutes: ``@arg2 seconds: ``@arg3)' \
     -r'(Date year: ``@arg1 month: ``@arg2 day: ``@arg3)->
        (Date newDay: ``@arg3 monthNumber: ``@arg2 year: ``@arg1)' \
-    -r'(``@arg1 sender)->
-       (``@arg1 parentContext)' \
+    -r'(``@obj sender)->
+       (``@obj parentContext)' \
     -r'(Dictionary withAll: ``@arg2 )->
        (Dictionary from: ``@arg2)' \
+    -r'(Time totalSeconds)->
+       (Time secondClock)' \
+    -r'(``@obj beginsWith: ``@arg2 )->
+       (``@obj startsWith: ``@arg2)' \
+    -r'(``@obj asUnicode)->
+       (``@obj codePoint)' \
+    -r'(``@obj trimBlanks)->
+       (``@obj trimSeparators)' \
     -r'(``@obj raiseSignal)->
        (``@obj signal)' \
     -r'(``@obj raiseSignal: ``@arg2 )->

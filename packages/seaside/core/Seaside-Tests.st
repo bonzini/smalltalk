@@ -2951,7 +2951,7 @@ TestCase subclass: WAPlatformTest [
 	 ^self asInteger"
 
 	<category: 'testing'>
-	self assert: $S asUnicode = 83
+	self assert: $S codePoint = 83
     ]
 
     testCharacterTo [
@@ -3041,8 +3041,8 @@ TestCase subclass: WAPlatformTest [
 
     testIncludesSubString [
 	<category: 'testing'>
-	self assert: ('britney.sex.tape.mkv' beginsWith: 'britney').
-	self deny: ('britney.sex.tape.mkv' beginsWith: 'sex')
+	self assert: ('britney.sex.tape.mkv' startsWith: 'britney').
+	self deny: ('britney.sex.tape.mkv' startsWith: 'sex')
     ]
 
     testIsKeyword [
@@ -3189,13 +3189,13 @@ TestCase subclass: WAPlatformTest [
 
 	<category: 'testing'>
 	| seconds |
-	seconds := Time totalSeconds.
+	seconds := Time secondClock.
 	self assert: seconds isInteger
     ]
 
     testTrimBlanks [
 	<category: 'testing'>
-	self assert: '	abc ' trimBlanks = 'abc'
+	self assert: '	abc ' trimSeparators = 'abc'
     ]
 
     testVersionString [

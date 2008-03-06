@@ -1363,7 +1363,7 @@ WAFunctionalTest subclass: WAHtmlTest [
     allSelectors [
 	<category: 'accessing'>
 	^(self class selectors asSortedCollection 
-	    select: [:s | s beginsWith: 'render'])
+	    select: [:s | s startsWith: 'render'])
 	    remove: #renderContentOn:;
 	    yourself
     ]

@@ -181,14 +181,14 @@ If you want to see these examples
 	^(WAComponent allSubclasses select: 
 		[:each | 
 		each class selectors 
-		    anySatisfy: [:sel | sel beginsWith: self selectorPrefix]]) 
+		    anySatisfy: [:sel | sel startsWith: self selectorPrefix]]) 
 	    asSortedCollection: [:a :b | a name < b name]
     ]
 
     allSelectors [
 	<category: 'helper'>
 	^(class class selectors 
-	    select: [:each | each beginsWith: self selectorPrefix]) asSortedCollection
+	    select: [:each | each startsWith: self selectorPrefix]) asSortedCollection
     ]
 
     children [

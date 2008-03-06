@@ -7061,7 +7061,7 @@ User agents that don''t support style sheets, or don''t support the specific sty
 	<category: 'media'>
 	| media |
 	media := (((attributes at: 'media' ifAbsent: ['']) findTokens: $,) 
-		    collect: [:each | each trimBlanks]) asSet.
+		    collect: [:each | each trimSeparators]) asSet.
 	media add: aString.
 	self 
 	    media: (String streamContents: 
@@ -9489,8 +9489,8 @@ sub
 	parameters := WASmallDictionary new.
 	parts do: 
 		[:each | 
-		parameters at: (each copyUpTo: $=) trimBlanks
-		    put: (each copyAfter: $=) trimBlanks].
+		parameters at: (each copyUpTo: $=) trimSeparators
+		    put: (each copyAfter: $=) trimSeparators].
 	^self 
 	    main: main
 	    sub: sub
@@ -9541,16 +9541,16 @@ sub
 	"tests if the receiver is a non-standard mime type that is not registered with IANA"
 
 	<category: 'testing'>
-	^(self main beginsWith: 'x-') or: 
-		[(self main beginsWith: 'X-') 
-		    or: [(self sub beginsWith: 'x-') or: [self sub beginsWith: 'X-']]]
+	^(self main startsWith: 'x-') or: 
+		[(self main startsWith: 'X-') 
+		    or: [(self sub startsWith: 'x-') or: [self sub startsWith: 'X-']]]
     ]
 
     isVendorSpecific [
 	"tests if the receiver is a vendor specific mimetype"
 
 	<category: 'testing'>
-	^self sub beginsWith: 'vnd.'
+	^self sub startsWith: 'vnd.'
     ]
 
     main [
@@ -13533,11 +13533,11 @@ value
 			| value quality |
 			(each includes: $;) 
 			    ifTrue: 
-				[value := self valueClass fromString: (each copyUpTo: $;) trimBlanks.
+				[value := self valueClass fromString: (each copyUpTo: $;) trimSeparators.
 				quality := FloatD 
 					    readFrom: ((each copyAfter: $;) copyAfter: $=) readStream]
 			    ifFalse: 
-				[value := self valueClass fromString: each trimBlanks.
+				[value := self valueClass fromString: each trimSeparators.
 				quality := FloatD infinity].
 			stream nextPut: (self value: value quality: quality)]]
     ]
@@ -14672,7 +14672,7 @@ Instance Variables:
 	<category: 'processing'>
 	| fullUrl relativeUrl handlerName |
 	fullUrl := aRequest url.
-	(aString isEmpty or: [fullUrl beginsWith: aString]) 
+	(aString isEmpty or: [fullUrl startsWith: aString]) 
 	    ifTrue: 
 		[relativeUrl := fullUrl allButFirst: aString size.
 		handlerName := (relativeUrl notEmpty and: [relativeUrl first = $/]) 
@@ -15290,7 +15290,7 @@ Instance Variables:
 
     handleRequest: aRequest [
 	<category: 'processing'>
-	lastAccess := Time totalSeconds.
+	lastAccess := Time secondClock.
 	^self incomingRequest: aRequest
     ]
 
@@ -15312,12 +15312,12 @@ Instance Variables:
 
     lastAccess [
 	<category: 'accessing'>
-	^lastAccess ifNil: [lastAccess := Time totalSeconds]
+	^lastAccess ifNil: [lastAccess := Time secondClock]
     ]
 
     secondsSinceLastAccess [
 	<category: 'accessing'>
-	^Time totalSeconds - self lastAccess
+	^Time secondClock - self lastAccess
     ]
 
     timeoutSeconds [

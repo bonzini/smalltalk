@@ -160,23 +160,11 @@ Object extend [
     ]
 ]
 
-Time extend [
-    Time class >> totalSeconds [
-	<category: '*Seaside-Squeak-Core'>
-	^Time secondClock
-    ]
-]
-
 Character extend [
     to: aCharacter [
 	^self codePoint
 	    to: aCharacter codePoint
 	    collect: [ :i | Character codePoint: i ]
-    ]
-	
-    asUnicode [
-	<category: '*Seaside-Squeak-Core'>
-	^self codePoint
     ]
 ]
 
@@ -308,11 +296,6 @@ CharacterArray extend [
 	^s
     ]
 
-    beginsWith: aString [
-	<category: '*Seaside-Squeak-Core'>
-	^self startsWith: aString
-    ]
-
     caseInsensitiveLessOrEqual: aString [
 	<category: '*Seaside-Squeak-Core'>
 	^self asLowercase < aString asLowercase
@@ -321,11 +304,6 @@ CharacterArray extend [
     includesSubString: aString [
 	<category: '*Seaside-Squeak-Core'>
 	^(self indexOfSubCollection: aString ifAbsent: [0]) > 0
-    ]
-
-    trimBlanks [
-	<category: '*Seaside-Squeak-Core'>
-	^self trimSeparators
     ]
 
     findTokens: aStringOrCharacter [
