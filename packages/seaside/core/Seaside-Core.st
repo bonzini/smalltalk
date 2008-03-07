@@ -7066,7 +7066,7 @@ User agents that don''t support style sheets, or don''t support the specific sty
 	self 
 	    media: (String streamContents: 
 			[:stream | 
-			media do: [:each | stream nextPutAll: each]
+			media asSortedCollection do: [:each | stream nextPutAll: each]
 			    separatedBy: [stream nextPutAll: ', ']])
     ]
 
