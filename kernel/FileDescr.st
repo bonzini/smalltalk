@@ -131,7 +131,7 @@ do arbitrary processing on the files.'>
 	((fileName indexOfSubCollection: '://') > 0 
 	    and: [fileMode = FileStream read]) 
 		ifTrue: [^NetClients.URIResolver openStreamOn: fileName ifFail: aBlock ].
-	^(VFS.VFSHandler for: fileName) 
+	^(VFS.VFSHandler for: fileName asString) 
 	    open: self
 	    mode: fileMode
 	    ifFail: aBlock
@@ -148,7 +148,7 @@ do arbitrary processing on the files.'>
 	<category: 'instance creation'>
 	^(self basicNew)
 	    fileOp: 16
-		with: baseName
+		with: baseName asString
 		ifFail: [SystemExceptions.FileError signal: 'could not open temporary file'];
 	    initialize;
 	    yourself

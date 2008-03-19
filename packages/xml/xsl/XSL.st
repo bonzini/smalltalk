@@ -599,7 +599,7 @@ E. Acknowledgements (Non-Normative)
 
     RuleDatabase class >> examplesDirectory [
 	<category: 'examples'>
-	^Directory append: 'xml' to: Directory image
+	^Directory image / 'xml'
     ]
 
     RuleDatabase class >> store: document on: filename [

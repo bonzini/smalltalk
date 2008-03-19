@@ -309,9 +309,9 @@ Command subclass: PkgDist [
 	packages filesDo: [ :each |
 	    | destName autoconfName srcdir |
 	    destName := File stripPathFrom: each.
-	    srcdir := Directory append: (File pathFor: each) to: self srcdir.
+	    srcdir := srcdir / (File pathFor: each).
 	    autoconfName := destName, '.in'.
-	    ((Directory name: srcdir) includes: autoconfName)
+	    (srcdir includes: autoconfName)
 		ifFalse: [
 		    self distribute: (File name: each)
 			as: destName
@@ -340,11 +340,10 @@ Command subclass: PkgDist [
 	dirs := dirs asSet asOrderedCollection.
 
 	aPackage relativeDirectory isNil ifFalse: [
-	    dirs := dirs collect: [ :dir |
-		Directory append: dir to: aPackage relativeDirectory ] ].
+	    dirs := dirs collect: [ :dir | aPackage relativeDirectory / dir ] ].
 
         dirs do: [ :dir || destName |
-	    (self installDir directoryAt: dir) emitMkdir ].
+	    (self installDir directoryAt: dir name) emitMkdir ].
 
         files do: [ :file || srcFile destName |
 	    srcFile := File name: (aPackage fullPathOf: file).
@@ -417,7 +416,7 @@ Command subclass: PkgInstall [
 
     tmpDir [
 	tmpDir isNil ifTrue: [
-            tmpDir := Directory createTemporary: Directory temporary, '/gstar-'.
+            tmpDir := Directory createTemporary: Directory temporary / 'gstar-'.
             ('mkdir %1' % { tmpDir }) displayNl ].
 	^tmpDir
     ]
@@ -516,11 +515,11 @@ Command subclass: PkgPrepare [
 	    ^super addAllFiles: { srcFile } ].
 
 	srcFile isNil ifTrue: [
-	    f := Directory append: aCollection first to: self srcdir.
+	    f := self srcdir / aCollection first.
             (File exists: f)
 	        ifTrue: [ srcFile := (Directory name: self srcdir) pathTo: f ].
 
-	    f := Directory append: aCollection first, '.in' to: self srcdir.
+	    f := f, '.in'.
             (File exists: f)
 	        ifTrue: [ srcFile := (Directory name: self srcdir) pathTo: f ]
 	].
