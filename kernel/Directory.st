@@ -186,7 +186,7 @@ virtual one).'>
 
 	<category: 'file operations'>
 	| name |
-	name := prefix , 'XXXXXX'.
+	name := prefix asString , 'XXXXXX'.
 	self primCreateTemporary: name.
 	self checkError.
 	^Directory name: name
@@ -203,7 +203,7 @@ virtual one).'>
 
 	<category: 'file operations'>
 	| parent handler |
-	parent := File pathFor: dirName ifNone: [Directory working].
+	parent := File pathFor: dirName asString ifNone: [Directory working].
 	handler := VFS.VFSHandler for: parent.
 	handler createDir: (File stripPathFrom: dirName).
 	^Directory name: dirName
@@ -214,7 +214,7 @@ virtual one).'>
 
 	<category: 'accessing'>
 	| destFullName |
-	destFullName := File fullNameFor: destName.
+	destFullName := File fullNameFor: destName asString.
 	vfsHandler realFileName = destFullName ifTrue: [^'.'].
 	^File computePathFrom: vfsHandler realFileName , '/somefile'
 	    to: destFullName
@@ -226,6 +226,13 @@ virtual one).'>
 
 	<category: 'accessing'>
 	^File on: (vfsHandler at: aName)
+    ]
+
+    / aName [
+	"Answer a File or Directory object as appropriate for a file named
+	 'aName' in the directory represented by the receiver."
+
+	^self at: aName
     ]
 
     at: aName [
@@ -288,9 +295,25 @@ virtual one).'>
 			    ifFalse: [f allFilesMatching: aPattern do: aBlock]]]
     ]
 
-    contents [
-	"Answer an Array with the names of the files in the directory
+    files [
+	"Answer an Array with File objects for the contents of the directory
 	 represented by the receiver."
+
+	<category: 'enumerating'>
+	^self select: [ :each | each isFile ]
+    ]
+
+    directories [
+	"Answer an Array with Directory objects for the subdirectories
+	 of the directory represented by the receiver."
+
+	<category: 'enumerating'>
+	^self select: [ :each | each isDirectory ]
+    ]
+
+    entries [
+	"Answer an Array with File or Directory objects for the contents
+	 of the directory represented by the receiver."
 
 	<category: 'enumerating'>
 	| ws |
@@ -299,12 +322,71 @@ virtual one).'>
 	^ws contents
     ]
 
-    do: aBlock [
-	"Evaluate aBlock once for each file in the directory represented by the
-	 receiver, passing its name. aBlock should not return."
+    contents [
+	"Answer an Array with the names of the files in the directory
+	 represented by the receiver."
 
 	<category: 'enumerating'>
-	vfsHandler do: aBlock
+	| ws |
+	ws := WriteStream on: (Array new: 50).
+	self namesDo: [:each | ws nextPut: each].
+	^ws contents
+    ]
+
+    do: aBlock [
+	"Evaluate aBlock once for each file in the directory represented by the
+	 receiver, passing its name."
+
+	<category: 'enumerating'>
+	self namesDo: [ :name |
+	    aBlock value: (self at: name) ]
+    ]
+
+    namesDo: aBlock [
+	"Evaluate aBlock once for each file in the directory represented by the
+	 receiver, passing its name."
+
+	<category: 'enumerating'>
+	vfsHandler do: [ :name | aBlock value: name ]
+    ]
+
+    filesMatching: aPattern [
+	"Evaluate aBlock once for each file in the directory represented by the
+	 receiver, passing a File or Directory object to aBlock. Returns the
+	 *names* of the files for which aBlock returns true."
+
+	<category: 'enumerating'>
+	| ws |
+	ws := WriteStream on: (Array new: 50).
+	self namesDo: [ :name |
+	    (aPattern match: name) ifTrue: [ ws nextPut: (self at: name) ] ].
+	^ws contents
+    ]
+
+    reject: aBlock [
+	"Evaluate aBlock once for each file in the directory represented by the
+	 receiver, passing a File or Directory object to aBlock. Returns the
+	 *names* of the files for which aBlock returns true."
+
+	<category: 'enumerating'>
+	| ws |
+	ws := WriteStream on: (Array new: 50).
+	self do: [ :each |
+	    (aBlock value: each) ifFalse: [ ws nextPut: each ] ].
+	^ws contents
+    ]
+
+    select: aBlock [
+	"Evaluate aBlock once for each file in the directory represented by the
+	 receiver, passing a File or Directory object to aBlock. Returns the
+	 *names* of the files for which aBlock returns true."
+
+	<category: 'enumerating'>
+	| ws |
+	ws := WriteStream on: (Array new: 50).
+	self do: [ :each |
+	    (aBlock value: each) ifTrue: [ ws nextPut: each ] ].
+	^ws contents
     ]
 
     filesMatching: aPattern do: block [
@@ -312,8 +394,8 @@ virtual one).'>
 	 String>>#match:) in the directory named by the receiver."
 
 	<category: 'enumerating'>
-	self 
-	    do: [:name | (aPattern match: name) ifTrue: [block value: (self at: name)]]
+	self namesDo: [:name |
+	    (aPattern match: name) ifTrue: [block value: (self at: name)]]
     ]
 
     namesMatching: aPattern do: block [
@@ -321,8 +403,16 @@ virtual one).'>
 	 String>>#match:) in the directory named by the receiver."
 
 	<category: 'enumerating'>
-	self 
+	vfsHandler 
 	    do: [:name | (aPattern match: name) ifTrue: [block value: (self nameAt: name)]]
     ]
 ]
 
+String extend [
+    / aName [
+	"Answer a File or Directory object as appropriate for a file named
+	 'aName' in the directory represented by the receiver."
+
+	^(Directory name: self) at: aName
+    ]
+]

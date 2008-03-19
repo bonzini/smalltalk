@@ -547,7 +547,7 @@ Object subclass: WAGNUSmalltalkPlatform [
 
     ensureExistenceOfFolder: aString [
 	"creates a folder named aString in the image directory"
-	(Directory append: aString to: Directory image) create
+	(Directory image / aString) create
     ]
 
     filesIn: aPathString [
@@ -645,10 +645,8 @@ Object subclass: WAGNUSmalltalkPlatform [
     write: aStringOrByteArray toFile: aFileNameString inFolder: aFolderString [
 	"writes aStringOrByteArray to a file named aFilenameString in the folder aFolderString"
 	| stream fileName |
-	fileName := Directory append: aFileNameString to: aFolderString.
-	stream := FileStream open: fileName mode: 'w'.
-	[ stream nextPutAll: aStringOrByteArray ]
-		ensure: [ stream close ]
+	aFolderString / aFileNameString withWriteStreamDo: [ :stream |
+	    stream nextPutAll: aStringOrByteArray ]
     ]
 ]
 

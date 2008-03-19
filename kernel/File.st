@@ -371,6 +371,20 @@ size and timestamps.'>
 	aStream nextPutAll: string
     ]
 
+    , aName [
+	"Answer an object of the same kind as the receiver, whose name
+	 is suffixed with aName."
+
+	^self class name: self name, aName
+    ]
+
+    asString [
+	"Answer the name of the file identified by the receiver"
+
+	<category: 'accessing'>
+	^vfsHandler fullName
+    ]
+
     name [
 	"Answer the name of the file identified by the receiver"
 
@@ -594,6 +608,11 @@ size and timestamps.'>
 	^contents
     ]
 
+    includes: aString [
+	"Return false, regular files do not include other paths."
+	^false
+    ]
+
     touch [
 	"Update the timestamp of the file corresponding to the receiver."
 
@@ -649,18 +668,18 @@ size and timestamps.'>
 	^[aBlock value: stream] ensure: [stream close]
     ]
 
-    readStream [
-	"Open a read-only FileStream on the receiver"
-
-	<category: 'file operations'>
-	^self open: FileStream read
-    ]
-
     fileIn [
 	"File in the receiver"
 
 	<category: 'file operations'>
 	self withReadStreamDo: [ :fs | fs fileIn ]
+    ]
+
+    readStream [
+	"Open a read-only FileStream on the receiver"
+
+	<category: 'file operations'>
+	^self open: FileStream read
     ]
 
     withWriteStreamDo: aBlock [
