@@ -318,7 +318,7 @@ XML.'>
 	<category: 'refreshing'>
 	| dir file allDirs |
 	file := File name: fileName.
-	dir := Directory name: file path.
+	dir := file directory.
 	allDirs := Smalltalk imageLocal 
 		    ifTrue: [{Directory image} , baseDirectories value]
 		    ifFalse: [baseDirectories value].

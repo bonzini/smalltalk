@@ -285,7 +285,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	file exists not ifTrue: [^self errorContents: 'No such file'].
 	file isReadable ifFalse: [^self errorContents: 'Cannot read'].
 	file isDirectory 
-	    ifTrue: [^self getDirectoryContentsOf: (Directory name: file name)].
+	    ifTrue: [^self getDirectoryContentsOf: (File name: file name)].
 	^(WebEntity new)
 	    url: url;
 	    canCache: false;
