@@ -35,14 +35,14 @@ Package extend [
     ]
 
     isStarPackageBody [
-	^'*.star#uzip' match: self baseDirectories first
+	^'*.star#uzip' match: self baseDirectories first name
     ]
 
     starFileName [
 	| dir |
 	self isStarPackageBody ifFalse: [ self halt ].
 	dir := self baseDirectories first.
-	^dir copyFrom: 1 to: dir size - 5 ]
+	^dir name allButLast: 5 ]
 
     runCommand: aCommand [
 	self isStarPackageBody
@@ -54,7 +54,7 @@ Package extend [
 Kernel.PackageDirectory subclass: StarPackageFile [
     refreshStarList: dir [
 	| package |
-	package := Kernel.StarPackage fileName: self fileName.
+	package := Kernel.StarPackage file: self file.
         packages at: package name put: package loadedPackage
     ]
 
@@ -66,9 +66,8 @@ Kernel.PackageDirectory subclass: PackageFile [
 
     refreshPackageList [
         | file |
-	file := FileStream open: fileName mode: FileStream read.
-	[ self parse: file ]
-	    ensure: [ file close ].
+	self file withReadStreamDo: [ :fileStream |
+	    self parse: fileStream ]
     ]
 ]
 
@@ -80,16 +79,17 @@ Kernel.PackageDirectories subclass: PackageFiles [
     ]
 
     parse: fileName [
-	| packageFile |
+	| file packageFile |
+	file := File name: fileName.
 	packageFile := ('*.star' match: fileName)
 	    ifFalse: [
 		PackageFile
-		    on: fileName
-		    baseDirectories: [ self baseDirsFor: fileName ] ]
+		    on: file
+		    baseDirectories: [ self baseDirsFor: file ] ]
 	    ifTrue: [
 		StarPackageFile
-		    on: fileName
-		    baseDirectories: [ fileName, '#uzip' ] ].
+		    on: file
+		    baseDirectories: [ {File name: fileName, '#uzip'} ] ].
 
 	packageFile refresh.
 	^packageFile
@@ -99,23 +99,23 @@ Kernel.PackageDirectories subclass: PackageFiles [
 	self add: (self parse: fileName).
     ]
 
-    baseDirsFor: fileName [
-	| file srcdirPath builddirPrefix |
-	file := File name: fileName.
+    baseDirsFor: file [
+	| srcdirFile builddirPrefix |
 	self srcdir isNil ifTrue: [ ^{ file path } ].
 
 	"See if the file is in srcdir or builddir.  In any case, we want to
 	 look for files first in the builddir, and secondarily in srcdir."
-	srcdirPath := file pathFrom: srcdir.
-	builddirPrefix := (File name: Directory working) pathFrom: srcdir.
-	^(srcdirPath startsWith: builddirPrefix, Directory pathSeparatorString)
-	    ifFalse: [
+	srcdirFile := file pathFrom: self srcdir.
+	builddirPrefix := Directory working pathFrom: self srcdir.
+	^(srcdirFile startsWith: builddirPrefix, Directory pathSeparatorString)
+	    ifFalse: [ {
 		"file is in srcdir."
-		{ File pathFor: srcdirPath. file path } ]
+		(File name: srcdirFile) parent.
+		file parent } ]
 	    ifTrue: [ {
 		"file is in builddir."
-		file path.
-		Directory append: (File pathFor: fileName) to: self srcdir } ]
+		file parent.
+		(self srcdir / (file pathFrom: Directory working)) parent } ]
     ]
 
     filesDo: aBlock [
@@ -186,7 +186,7 @@ File extend [
     emitMkdir [
 	| doThat |
 	self exists ifTrue: [ ^self ].
-	Command execute: [ self directory emitMkdir ].
+	Command execute: [ self parent emitMkdir ].
 	('mkdir %1' % { self }) displayNl.
 	Command execute: [ Directory create: self name ].
     ]
@@ -309,7 +309,7 @@ Command subclass: PkgDist [
 	packages filesDo: [ :each |
 	    | destName autoconfName srcdir |
 	    destName := File stripPathFrom: each.
-	    srcdir := srcdir / (File pathFor: each).
+	    srcdir := self srcdir / (File pathFor: each).
 	    autoconfName := destName, '.in'.
 	    (srcdir includes: autoconfName)
 		ifFalse: [
@@ -339,14 +339,14 @@ Command subclass: PkgDist [
         dirs := files collect: [ :file | File pathFor: file ].
 	dirs := dirs asSet asOrderedCollection.
 
+	baseDir := self installDir.
 	aPackage relativeDirectory isNil ifFalse: [
-	    dirs := dirs collect: [ :dir | aPackage relativeDirectory / dir ] ].
+	    baseDir := baseDir / aPackage relativeDirectory ].
 
-        dirs do: [ :dir || destName |
-	    (self installDir / dir name) emitMkdir ].
+        dirs do: [ :dir | (baseDir / dir) emitMkdir ].
 
         files do: [ :file || srcFile destName |
-	    srcFile := File name: (aPackage fullPathOf: file).
+	    srcFile := aPackage fullPathOf: file.
 	    self distribute: srcFile as: file in: aPackage relativeDirectory ]
     ]
     runOnStar: aPackage [
@@ -409,7 +409,7 @@ Command subclass: PkgInstall [
 	Smalltalk system: (pat % {
 	    gstLoad.
 	    File name: File image.
-	    Directory name: Directory kernel.
+	    Directory kernel.
 	    (self isOption: 'test') ifTrue: [ '--test' ] ifFalse: [ '' ].
 	    packageList })
     ]
@@ -439,7 +439,7 @@ Command subclass: PkgInstall [
 	            (baseDir / dir) emitMkdir ].
 
                 files do: [ :file || srcFile |
-	            srcFile := File name: (aPackage fullPathOf: file).
+	            srcFile := (aPackage fullPathOf: file).
 	            srcFile emitSymlink: (baseDir nameAt: file) ].
 
 	        (self installDir / aPackage name, '.star')
@@ -708,7 +708,7 @@ Except in uninstall and list files mode, gst-package requires write
 access to the GNU Smalltalk image directory, and merges the XML package
 files on the command line with that file.
 
-The default target directory is ', Directory image, '
+The default target directory is ', Directory image name, '
 '.
 
 [

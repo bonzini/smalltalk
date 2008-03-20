@@ -612,7 +612,7 @@ Object subclass: WAGNUSmalltalkPlatform [
 
     defaultDirectoryName [
 	<category: '*Seaside-Squeak-Core'>
-	^Directory working
+	^Directory working name
     ]
 
     platformString [
