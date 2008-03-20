@@ -555,7 +555,7 @@ Object subclass: WAGNUSmalltalkPlatform [
 	must not include file names that start with ."
 	| directory |
 	directory := Directory name: aPathString.
-	^(directory contents
+	^(directory entryNames
 		reject: [ :each | each first = $. ])
 		collect: [ :each | Directory append: each to: directory name ]
     ]
