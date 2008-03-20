@@ -229,7 +229,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	    nextPutAll: 'Up to higher level directory</a>';
 	    nl;
 	    nl.
-	aDirectory contents asSortedCollection do: 
+	aDirectory entryNames asSortedCollection do: 
 		[:name | 
 		| file isDirectory fileSize |
 		file := aDirectory at: name.

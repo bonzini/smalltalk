@@ -111,7 +111,7 @@ A DirectoryResponse formats output of the contents of a Directory object.'>
 	    nl;
 	    << '<hr>';
 	    nl.
-	(Directory name: file name) contents asSortedCollection 
+	(Directory name: file name) entryNames asSortedCollection 
 	    do: [:each | self sendFileProperties: each].
 	self << '</pre><hr><FORM ACTION="' << request uri.
 	self

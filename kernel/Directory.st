@@ -322,7 +322,7 @@ virtual one).'>
 	^ws contents
     ]
 
-    contents [
+    entryNames [
 	"Answer an Array with the names of the files in the directory
 	 represented by the receiver."
 
