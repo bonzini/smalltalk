@@ -824,7 +824,7 @@ and DirectoryResponses.'>
 
     initialize [
 	<category: 'initialize-release'>
-	initialDirectory := File name: Directory working.
+	initialDirectory := Directory working.
 	uploadAuthorizer := WebAuthorizer new.
 	name := 'File'
     ]

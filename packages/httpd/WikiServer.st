@@ -2297,7 +2297,7 @@ WebServer class extend [
     initializeImages [
 	<category: 'examples'>
 	(self at: 8080) handler addComponent: (FileWebServer named: 'images'
-		    directory: Directory systemKernel , '/../net/httpd')
+		    directory: Directory systemKernel / '../net/httpd')
     ]
 
     initializeWiki [

@@ -60,13 +60,13 @@ Commander and with GNOME VFS.'>
 
 	<category: 'registering'>
 	fileTypes := LookupTable new.
-	[self fileSystemsIn: Directory libexec , '/vfs'] on: Error
+	[self fileSystemsIn: Directory libexec / 'vfs'] on: Error
 	    do: [:ex | ex return].
-	[self fileSystemsIn: Directory userBase , '/vfs'] on: Error
+	[self fileSystemsIn: Directory userBase / 'vfs'] on: Error
 	    do: [:ex | ex return].
 	Smalltalk imageLocal 
 	    ifTrue: 
-		[[self fileSystemsIn: Directory image , '/vfs'] on: Error
+		[[self fileSystemsIn: Directory image / 'vfs'] on: Error
 		    do: [:ex | ex return]].
 	^fileTypes keys asSet
     ]

@@ -155,7 +155,7 @@ size and timestamps.'>
 	path := OrderedCollection new.
 	isAbsolute 
 	    ifFalse: 
-		[path addAll: (Directory working substrings: Directory pathSeparator)].
+		[path addAll: (Directory workingName substrings: Directory pathSeparator)].
 
 	"A Windows path may contain both / and \ separators. Clean it up
 	 to allow easy parsing"
@@ -186,8 +186,8 @@ size and timestamps.'>
 	"Answer the relative path to destName when the current
 	 directory is srcName's directory."
 	<category: 'file name management'>
-	^self computePathFrom: (File fullNameFor: srcName)
-	    to: (File fullNameFor: destName)
+	^self computePathFrom: (File fullNameFor: srcName asString)
+	    to: (File fullNameFor: destName asString)
     ]
 
     File class >> computePathFrom: srcName to: destName [
@@ -330,7 +330,7 @@ size and timestamps.'>
 	"Answer the full path to the executable being run."
 
 	<category: 'reading system defaults'>
-	^ExecutableFileName
+	^self path: ExecutableFileName
     ]
 
     File class >> image [
@@ -565,7 +565,7 @@ size and timestamps.'>
 	^File stripPathFrom: self name
     ]
 
-    directory [
+    parent [
 	"Answer the Directory object for the receiver's path"
 
 	<category: 'file name management'>
@@ -709,7 +709,7 @@ size and timestamps.'>
 	"Compute the relative path from the directory dirName to the receiver"
 
 	<category: 'file operations'>
-	^File computePathFrom: (File fullNameFor: dirName) , '/somefile'
+	^File computePathFrom: (File fullNameFor: dirName asString) , '/somefile'
 	    to: vfsHandler realFileName
     ]
 
