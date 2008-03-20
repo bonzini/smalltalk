@@ -38,7 +38,7 @@ TestCase subclass: SQLiteBaseTest [
     
     setUp [
 	| f |
-	f := File name: 'testdb'.
+	f := OldFile name: 'testdb'.
 	f exists ifTrue: [ f remove ].
         connection := DBI.Connection
                         connect: 'dbi:SQLite:dbname=testdb'
@@ -62,7 +62,7 @@ TestCase subclass: SQLiteBaseTest [
     tearDown [
 	| f |
         connection close.
-	f := File name: 'testdb'.
+	f := OldFile name: 'testdb'.
 	f exists ifTrue: [ f remove ].
     ]
     

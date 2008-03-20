@@ -147,7 +147,7 @@ test
 	    (FileDescriptor open: File image mode: FileStream write)
 		nextPutAll: tmpFile.
 	    tmpFile close.
-	    (File name: tmpFileName) remove ] ]
+	    (OldFile name: tmpFileName) remove ] ]
 
     ifFalse: [
 	snapshot ifTrue: [ ObjectMemory snapshot ] ].

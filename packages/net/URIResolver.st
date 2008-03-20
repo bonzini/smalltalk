@@ -280,12 +280,12 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	<category: 'file accessing'>
 	| file result |
 	file := url path isNil 
-		    ifTrue: [File name: '/']
-		    ifFalse: [File name: url path].
+		    ifTrue: [OldFile name: '/']
+		    ifFalse: [OldFile name: url path].
 	file exists not ifTrue: [^self errorContents: 'No such file'].
 	file isReadable ifFalse: [^self errorContents: 'Cannot read'].
 	file isDirectory 
-	    ifTrue: [^self getDirectoryContentsOf: (File name: file name)].
+	    ifTrue: [^self getDirectoryContentsOf: (OldFile name: file name)].
 	^(WebEntity new)
 	    url: url;
 	    canCache: false;
@@ -328,7 +328,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	    ifTrue: [path := '/']
 	    ifFalse: [path := url path].
 	stream := self tmpFile.
-	tmpFile := File name: stream name.
+	tmpFile := OldFile name: stream name.
 	^
 	[
 	[client 
@@ -507,7 +507,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	client reporter 
 	    statusString: 'Connect: Host contacted. Waiting for reply...'.
 	stream := self tmpFile.
-	tmpFile := File name: stream name.
+	tmpFile := OldFile name: stream name.
 	
 	[
 	[
@@ -579,7 +579,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	client reporter 
 	    statusString: 'Connect: Host contacted. Waiting for reply...'.
 	stream := self tmpFile.
-	tmpFile := File name: stream name.
+	tmpFile := OldFile name: stream name.
 	protocolError := false.
 	
 	[
@@ -653,7 +653,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	client reporter 
 	    statusString: 'Connect: Host contacted. Waiting for reply...'.
 	stream := self tmpFile.
-	tmpFile := File name: stream name.
+	tmpFile := OldFile name: stream name.
 	protocolError := false.
 	
 	[
@@ -763,7 +763,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	<category: 'news accessing'>
 	| tmpFile stream contents |
 	stream := self tmpFile.
-	tmpFile := File name: stream name.
+	tmpFile := OldFile name: stream name.
 	
 	[
 	[client articleAt: '<' , articleId , '>' into: stream.
@@ -787,7 +787,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	<category: 'news accessing'>
 	| tmpFile stream contents |
 	stream := self tmpFile.
-	tmpFile := File name: stream name.
+	tmpFile := OldFile name: stream name.
 	
 	[
 	[client 
@@ -1418,7 +1418,7 @@ MIME.MimeEntity subclass: WebEntity [
 
 	"Read it from the file"
 	type := (self fieldAt: 'content-type') type.
-	file := File name: localFileName.
+	file := OldFile name: localFileName.
 	stream := self class parser on: file readStream.
 	('message/*' match: type) 
 	    ifTrue: 
@@ -1432,7 +1432,7 @@ MIME.MimeEntity subclass: WebEntity [
 	<category: 'accessing'>
 	| body |
 	body := self body.
-	self canDelete ifTrue: [(File name: self localFileName) remove].
+	self canDelete ifTrue: [(OldFile name: self localFileName) remove].
 	^body readStream
     ]
 
@@ -1517,7 +1517,7 @@ MIME.MimeEntity subclass: WebEntity [
     contentTypeFromContents [
 	<category: 'mime types'>
 	| file stream |
-	file := File name: localFileName.
+	file := OldFile name: localFileName.
 	file exists 
 	    ifTrue: 
 		[stream := file readStream.

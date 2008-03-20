@@ -32,7 +32,7 @@
 
 
 
-Object subclass: File [
+Object subclass: OldFile [
     | vfsHandler |
     
     <category: 'Streams-Files'>
@@ -41,303 +41,20 @@ manipulate such a path by splitting it into its components.  In addition,
 I expose information about files (both real and virtual) such as their
 size and timestamps.'>
 
-    File class >> stringError: errno [
-	"Answer C strerror's result for errno."
-	<category: 'C functions'>
-	<cCall: 'strerror' returning: #string args: #(#int)>
-	
+    OldFile class >> on: aVFSHandler [
+        "Answer a new file with the given path. The handler that returns
+         the information is aVFSHandler" 
+
+        <category: 'instance creation'>
+        ^self basicNew init: aVFSHandler
     ]
 
-    File class >> errno [
-	"Answer the current value of C errno."
-	<category: 'C functions'>
-	<cCall: 'errno' returning: #long args: #()>
-	
-    ]
-
-    File class >> extensionFor: aString [
-	"Answer the extension of a file named `aString'.  Note: the extension
-	 includes an initial dot."
-
-	<category: 'file name management'>
-	| index |
-	aString isEmpty ifTrue: [^''].
-	index := aString findLast: 
-			[:each | 
-			each = Directory pathSeparator ifTrue: [^''].
-			each = $.].
-
-	"Special case foo, .foo and /bar/.foo, all of which have no extension"
-	index <= 1 ifTrue: [^''].
-	(aString at: index - 1) = Directory pathSeparator ifTrue: [^''].
-	^aString copyFrom: index to: aString size
-    ]
-
-    File class >> stripExtensionFrom: aString [
-	"Remove the extension from the name of a file called `aString', and
-	 answer the result."
-
-	<category: 'file name management'>
-	| index |
-	aString isEmpty ifTrue: [^''].
-	index := aString findLast: 
-			[:each | 
-			each = Directory pathSeparator ifTrue: [^aString].
-			each = $.].
-
-	"Special case foo, .foo and /bar/.foo, all of which have no extension"
-	index <= 1 ifTrue: [^aString].
-	(aString at: index - 1) = Directory pathSeparator ifTrue: [^aString].
-	^aString copyFrom: 1 to: index - 1
-    ]
-
-    File class >> stripPathFrom: aString [
-	"Remove the path from the name of a file called `aString', and
-	 answer the file name plus extension."
-
-	<category: 'file name management'>
-	| index |
-	aString isEmpty ifTrue: [^''].
-	index := aString findLast: [:each | each = Directory pathSeparator].
-	^aString copyFrom: index + 1 to: aString size
-    ]
-
-    File class >> pathFor: aString ifNone: aBlock [
-	"Determine the path of the name of a file called `aString', and
-	 answer the result.  With the exception of the root directory, the
-	 final slash is stripped.  If there is no path, evaluate aBlock and
-	 return the result."
-
-	<category: 'file name management'>
-	| index |
-	aString isEmpty ifTrue: [^aBlock value].
-	index := aString findLast: [:each | each = Directory pathSeparator].
-	index = 0 ifTrue: [^aBlock value].
-	index = 1 ifTrue: [^Directory pathSeparatorString].
-	^aString copyFrom: 1 to: index - 1
-    ]
-
-    File class >> pathFor: aString [
-	"Determine the path of the name of a file called `aString', and
-	 answer the result.  With the exception of the root directory, the
-	 final slash is stripped."
-
-	<category: 'file name management'>
-	^self pathFor: aString ifNone: ['']
-    ]
-
-    File class >> stripFileNameFor: aString [
-	"Determine the path of the name of a file called `aString', and
-	 answer the result as a directory name including the final slash."
-
-	<category: 'file name management'>
-	| index |
-	aString isEmpty ifTrue: [^'./'].
-	index := aString findLast: [:each | each = Directory pathSeparator].
-	index = 0 ifTrue: [^'./'].
-	index = 1 ifTrue: [^Directory pathSeparatorString].
-	^aString copyFrom: 1 to: index
-    ]
-
-    File class >> fullNameFor: aString [
-	"Answer the full path to a file called `aString', resolving the `.' and
-	 `..' directory entries, and answer the result.  `/..' is the same as '/'."
-
-	<category: 'file name management'>
-	| path canonical result isAbsolute isWindows |
-	isAbsolute := (aString at: 1) isPathSeparator.
-	isWindows := Directory pathSeparator == $\.
-	"Windows paths starting X:/ are absolute"
-	(isWindows and: 
-		[aString size >= 3 
-		    and: [(aString at: 2) = $: and: [(aString at: 3) isPathSeparator]]]) 
-	    ifTrue: [isAbsolute := true].
-	path := OrderedCollection new.
-	isAbsolute 
-	    ifFalse: 
-		[path addAll: (Directory workingName substrings: Directory pathSeparator)].
-
-	"A Windows path may contain both / and \ separators. Clean it up
-	 to allow easy parsing"
-	canonical := Directory pathSeparator = $/ 
-		    ifTrue: [aString]
-		    ifFalse: [aString copyReplacing: $/ withObject: Directory pathSeparator].
-	(canonical substrings: Directory pathSeparator) do: 
-		[:each | 
-		each = '.' 
-		    ifFalse: 
-			[each = '..' 
-			    ifTrue: [path isEmpty ifFalse: [path removeLast]]
-			    ifFalse: [path add: each]]].
-	path isEmpty ifTrue: [^Directory pathSeparatorString].
-	result := path inject: ''
-		    into: [:old :each | old , Directory pathSeparatorString , each].
-
-	"Remove initial / from /C:/"
-	^(isWindows and: 
-		[result size >= 4 and: 
-			[(result at: 1) isPathSeparator 
-			    and: [(result at: 3) = $: and: [(result at: 4) isPathSeparator]]]]) 
-	    ifTrue: [result copyFrom: 2]
-	    ifFalse: [result]
-    ]
-
-    File class >> pathFrom: srcName to: destName [
-	"Answer the relative path to destName when the current
-	 directory is srcName's directory."
-	<category: 'file name management'>
-	^self computePathFrom: (File fullNameFor: srcName asString)
-	    to: (File fullNameFor: destName asString)
-    ]
-
-    File class >> computePathFrom: srcName to: destName [
-	<category: 'private'>
-	| src dest srcCanon destCanon path |
-	"A Windows path may contain both / and \ separators. Clean it up
-	 to allow easy parsing"
-	srcCanon := Directory pathSeparator = $/ 
-		    ifTrue: [srcName]
-		    ifFalse: [srcName copyReplacing: $/ withObject: Directory pathSeparator].
-	destCanon := Directory pathSeparator = $/ 
-		    ifTrue: [destName]
-		    ifFalse: [destName copyReplacing: $/ withObject: Directory pathSeparator].
-
-	src := srcCanon subStrings: Directory pathSeparator.
-	dest := destCanon subStrings: Directory pathSeparator.
-	src := src asOrderedCollection.
-	src removeLast.
-	dest := dest asOrderedCollection.
-	dest isEmpty ifTrue: [dest addLast: ''].
-	path := (src notEmpty and: [src first ~= dest first]) 
-		    ifTrue: [OrderedCollection with: '']
-		    ifFalse: 
-			[[src isEmpty or: [dest size = 1 or: [src first ~= dest first]]] 
-			    whileFalse: 
-				[src removeFirst.
-				dest removeFirst].
-			src collect: [:each | '..']].
-	path addAllLast: dest.
-	^path fold: [:a :b | a , Directory pathSeparatorString , b]
-    ]
-
-    File class >> checkError [
-	"Return whether an error had been reported or not.
-	 If there had been one, raise an exception too"
-
-	<category: 'file operations'>
-	^self checkError: self errno
-    ]
-
-    File class >> checkError: errno [
-	"The error with the C code `errno' has been reported.
-	 If errno >= 1, raise an exception"
-
-	<category: 'file operations'>
-	| errors |
-	errno < 1 ifTrue: [^false].
-	SystemExceptions.FileError signal: (self stringError: errno).
-	^true
-    ]
-
-    File class >> touch: fileName [
-	"Update the timestamp of the file with the given path name."
-
-	<category: 'file operations'>
-	(self name: fileName) touch
-    ]
-
-    File class >> symlink: srcName as: destName [
-	"Create a symlink for the srcName file with the given path name"
-
-	<category: 'file operations'>
-	(self name: srcName) symlinkAs: destName
-    ]
-
-    File class >> symlink: destName from: srcName [
-	"Create a symlink named destName file from the given path (relative to
-	 destName)"
-
-	<category: 'file operations'>
-	(VFS.VFSHandler for: destName) symlinkFrom: srcName
-    ]
-
-    File class >> remove: fileName [
-	"Remove the file with the given path name"
-
-	<category: 'file operations'>
-	(VFS.VFSHandler for: fileName) remove
-    ]
-
-    File class >> rename: oldFileName to: newFileName [
-	"Rename the file with the given path name oldFileName to newFileName"
-
-	<category: 'file operations'>
-	(VFS.VFSHandler for: oldFileName) renameTo: newFileName
-    ]
-
-    File class >> on: aVFSHandler [
-	"Answer a new file with the given path. The handler that returns
-	 the information is aVFSHandler"
-
-	<category: 'instance creation'>
-	^self basicNew init: aVFSHandler
-    ]
-
-    File class >> name: aName [
+    OldFile class >> name: aName [
 	"Answer a new file with the given path. The path is not validated until
 	 some of the fields of the newly created objects are accessed"
 
 	<category: 'instance creation'>
 	^self on: (VFS.VFSHandler for: aName)
-    ]
-
-    File class >> exists: fileName [
-	"Answer whether a file with the given name exists"
-
-	<category: 'testing'>
-	^(self name: fileName) exists
-    ]
-
-    File class >> isReadable: fileName [
-	"Answer whether a file with the given name exists and is readable"
-
-	<category: 'testing'>
-	^(self name: fileName) isReadable
-    ]
-
-    File class >> isWriteable: fileName [
-	"Answer whether a file with the given name exists and is writeable"
-
-	<category: 'testing'>
-	^(self name: fileName) isWriteable
-    ]
-
-    File class >> isExecutable: fileName [
-	"Answer whether a file with the given name exists and can be executed"
-
-	<category: 'testing'>
-	^(self name: fileName) isExecutable
-    ]
-
-    File class >> isAccessible: fileName [
-	"Answer whether a directory with the given name exists and can be accessed"
-
-	<category: 'testing'>
-	^(self name: fileName) isAccessible
-    ]
-
-    File class >> executable [
-	"Answer the full path to the executable being run."
-
-	<category: 'reading system defaults'>
-	^self path: ExecutableFileName
-    ]
-
-    File class >> image [
-	"Answer the full path to the image being used."
-
-	<category: 'reading system defaults'>
-	^ImageFileName
     ]
 
     printOn: aStream [
@@ -930,6 +647,6 @@ String extend [
 	"Answer a File or Directory object as appropriate for a file named
 	 'aName' in the directory represented by the receiver."
 
-	^(File name: self) at: aName
+	^(OldFile name: self) at: aName
     ]
 ]

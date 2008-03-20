@@ -966,7 +966,7 @@ PackageInfo subclass: StarPackage [
 
     directory [
 	<category: 'accessing'>
-	^File name: self fileName, '#uzip'
+	^OldFile name: self fileName, '#uzip'
     ]
 
     file [

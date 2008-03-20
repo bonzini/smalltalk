@@ -32,7 +32,7 @@
 
 
 
-File subclass: Directory [
+Object subclass: Directory [
     
     <category: 'Streams-Files'>
     <comment: 'I am the counterpart of File in a tree-structured file system: I can
@@ -57,35 +57,35 @@ virtual one).'>
 	"Answer the path to the user's home directory"
 
 	<category: 'reading system defaults'>
-	^File name: (Smalltalk getenv: 'HOME')
+	^OldFile name: (Smalltalk getenv: 'HOME')
     ]
 
     Directory class >> image [
 	"Answer the path to GNU Smalltalk's image file"
 
 	<category: 'reading system defaults'>
-	^File name: ImageFilePath
+	^OldFile name: ImageFilePath
     ]
 
     Directory class >> module [
 	"Answer the path to GNU Smalltalk's dynamically loaded modules"
 
 	<category: 'reading system defaults'>
-	^File name: ModulePath
+	^OldFile name: ModulePath
     ]
 
     Directory class >> libexec [
 	"Answer the path to GNU Smalltalk's auxiliary executables"
 
 	<category: 'reading system defaults'>
-	^File name: LibexecPath
+	^OldFile name: LibexecPath
     ]
 
     Directory class >> systemKernel [
 	"Answer the path to the installed Smalltalk kernel source files."
 
 	<category: 'reading system defaults'>
-	^File name: SystemKernelPath
+	^OldFile name: SystemKernelPath
     ]
 
     Directory class >> localKernel [
@@ -101,7 +101,7 @@ virtual one).'>
 	 Smalltalk are stored."
 
 	<category: 'reading system defaults'>
-	^File name: UserFileBasePath
+	^OldFile name: UserFileBasePath
     ]
 
     Directory class >> temporary [
@@ -110,13 +110,13 @@ virtual one).'>
 
 	<category: 'reading system defaults'>
 	| d |
-	(d := Smalltalk getenv: 'TMPDIR') isNil ifFalse: [^File name: d].
-	(d := Smalltalk getenv: 'TEMP') isNil ifFalse: [^File name: d].
+	(d := Smalltalk getenv: 'TMPDIR') isNil ifFalse: [^OldFile name: d].
+	(d := Smalltalk getenv: 'TEMP') isNil ifFalse: [^OldFile name: d].
 	(d := self home) isNil 
 	    ifFalse: 
 		[d := d / 'tmp'.
-		d isDirectory ifTrue: [^File name: d]].
-	^File name: '/tmp'
+		d isDirectory ifTrue: [^OldFile name: d]].
+	^OldFile name: '/tmp'
     ]
 
     Directory class >> kernel [
@@ -125,8 +125,8 @@ virtual one).'>
 
 	<category: 'reading system defaults'>
 	^KernelFilePath isNil
-	    ifTrue: [ File name: SystemKernelPath ]
-	    ifFalse: [ File name: KernelFilePath ]
+	    ifTrue: [ OldFile name: SystemKernelPath ]
+	    ifFalse: [ OldFile name: KernelFilePath ]
     ]
 
     Directory class >> append: fileName to: directory [
@@ -169,7 +169,7 @@ virtual one).'>
     Directory class >> working [
 	"Answer the current working directory, not following symlinks."
 	<category: 'file operations'>
-	^File name: Directory workingName
+	^OldFile name: Directory workingName
     ]
 
     Directory class >> workingName [
@@ -184,7 +184,7 @@ virtual one).'>
 
 	<category: 'file operations'>
 	self primWorking: dirName asString.
-	self checkError
+	File checkError
     ]
 
     Directory class >> createTemporary: prefix [
@@ -194,8 +194,8 @@ virtual one).'>
 	| name |
 	name := prefix asString , 'XXXXXX'.
 	self primCreateTemporary: name.
-	self checkError.
-	^File name: name
+	File checkError.
+	^OldFile name: name
     ]
 
     Directory class >> allFilesMatching: aPattern do: aBlock [
@@ -212,7 +212,7 @@ virtual one).'>
 	parent := File pathFor: dirName asString ifNone: ['.'].
 	handler := VFS.VFSHandler for: parent.
 	handler createDir: (File stripPathFrom: dirName).
-	^File name: dirName
+	^OldFile name: dirName
     ]
 
 ]

@@ -2275,7 +2275,7 @@ WikiPersistanceManager subclass: FlatFileWiki [
 
     directory: aFilename [
 	<category: 'accessing'>
-	directory := File name: aFilename
+	directory := OldFile name: aFilename
     ]
 
     addPage: aPage [

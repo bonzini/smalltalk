@@ -111,7 +111,7 @@ A DirectoryResponse formats output of the contents of a Directory object.'>
 	    nl;
 	    << '<hr>';
 	    nl.
-	(File name: file name) entryNames asSortedCollection 
+	(OldFile name: file name) entryNames asSortedCollection 
 	    do: [:each | self sendFileProperties: each].
 	self << '</pre><hr><FORM ACTION="' << request uri.
 	self
@@ -131,7 +131,7 @@ A DirectoryResponse formats output of the contents of a Directory object.'>
 	| isDirectory choppedName name fullName subDirFile parent slash |
 	each = '.' ifTrue: [^self].
 	fullName := Directory append: each to: file name.
-	subDirFile := File name: fullName.
+	subDirFile := OldFile name: fullName.
 	subDirFile isReadable ifFalse: [^self].
 	isDirectory := subDirFile isDirectory.
 	choppedName := isDirectory 
@@ -775,7 +775,7 @@ and DirectoryResponses.'>
 	self indexFileNames do: 
 		[:each | 
 		| indexFile |
-		indexFile := File name: (Directory append: each to: aDirectory name).
+		indexFile := OldFile name: (Directory append: each to: aDirectory name).
 		indexFile isReadable 
 		    ifTrue: [^self fileResponse: indexFile request: aRequest]].
 	^nil
@@ -814,7 +814,7 @@ and DirectoryResponses.'>
 
     directory: aDirectory [
 	<category: 'accessing'>
-	initialDirectory := File name: aDirectory
+	initialDirectory := OldFile name: aDirectory
     ]
 
     indexFileNames [

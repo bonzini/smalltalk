@@ -150,7 +150,7 @@ available in the PATH of the remote machine.
 				% {package storeString. (arg copyAfter: $:) storeString } ] ].
 
     opt = 'file' ifTrue: [
-	commands add: (File name: arg) ].
+	commands add: (OldFile name: arg) ].
 
     opt = 'package' ifTrue: [
 	commands add: 'PackageLoader fileInPackage: %1' % {arg storeString} ].

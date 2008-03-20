@@ -2603,7 +2603,7 @@ consultFile: fileName
     | aFileStream |
     (fileName respondsTo: #asString)
 	ifFalse: [^false].
-    (File name: fileName asString) exists
+    (OldFile name: fileName asString) exists
 	ifTrue: 
 	    [textCollector show: '<consult from ' , fileName asString , '>\' withCRs.
 	    aFileStream := FileStream open: fileName asString mode: FileStream read.
