@@ -107,7 +107,7 @@ Kernel.PackageDirectories subclass: PackageFiles [
 	"See if the file is in srcdir or builddir.  In any case, we want to
 	 look for files first in the builddir, and secondarily in srcdir."
 	srcdirPath := file pathFrom: srcdir.
-	builddirPrefix := (Directory name: Directory working) pathFrom: srcdir.
+	builddirPrefix := (File name: Directory working) pathFrom: srcdir.
 	^(srcdirPath startsWith: builddirPrefix, Directory pathSeparatorString)
 	    ifFalse: [
 		"file is in srcdir."
@@ -182,7 +182,7 @@ File extend [
     ]
 ]
 
-Directory extend [
+File extend [
     emitMkdir [
 	| doThat |
 	self exists ifTrue: [ ^self ].
@@ -230,7 +230,7 @@ Object subclass: Command [
 
     validateDestDir: destdir installDir: instDir [ 
 	instDir isNil ifTrue: [ ^self ].
-	((Directory name: instDir) name ~= instDir
+	((File name: instDir) name ~= instDir
 	    and: [ destdir notEmpty ]) ifTrue: [
 		self error: '--destdir used with relative target directory' ]
     ]
@@ -238,7 +238,7 @@ Object subclass: Command [
     destDir: destdir installDir: instDir [
 	self validateDestDir: destdir installDir: instDir.
 	installDir :=
-	    Directory name:
+	    File name:
 	        destdir, (instDir ifNil: [ self defaultInstallDir ])
     ]
 
@@ -272,7 +272,7 @@ Object subclass: Command [
 	source := self isOption: 'load'.
 	test := self isOption: 'test'.
 	base := self installDir.
-	vpathBase := Directory name: self srcdir.
+	vpathBase := File name: self srcdir.
 
         listFiles do: [ :each || package files |
 	    package := self packages at: each.
@@ -323,7 +323,7 @@ Command subclass: PkgDist [
     distribute: srcFile as: file in: dir [
 	| destName baseDir |
 	baseDir := self installDir.
-	dir isNil ifFalse: [ baseDir := baseDir directoryAt: dir ].
+	dir isNil ifFalse: [ baseDir := baseDir / dir ].
 	destName := baseDir nameAt: file.
 	(self isOption: 'copy')
 	    ifTrue: [ srcFile emitInstall: destName ]
@@ -343,7 +343,7 @@ Command subclass: PkgDist [
 	    dirs := dirs collect: [ :dir | aPackage relativeDirectory / dir ] ].
 
         dirs do: [ :dir || destName |
-	    (self installDir directoryAt: dir name) emitMkdir ].
+	    (self installDir / dir name) emitMkdir ].
 
         files do: [ :file || srcFile destName |
 	    srcFile := File name: (aPackage fullPathOf: file).
@@ -399,7 +399,7 @@ Command subclass: PkgInstall [
 		gstLoad := gstPackage.
 		pat := '%1 gst-load -I %2 --kernel-directory %3 %4 %5' ]
 	    ifFalse: [
-		gstLoad := gstPackage directory fileAt: 'gst-load'.
+		gstLoad := gstPackage directory / 'gst-load'.
 		pat := '%1 -I %2 --kernel-directory %3 %4 %5' ].
 
 	packageList := ''.
@@ -423,35 +423,35 @@ Command subclass: PkgInstall [
 
     runOnPackage: aPackage [
 	| pkg destFile dirs files baseDir |
-	baseDir := self tmpDir directoryAt: aPackage name.
+	baseDir := self tmpDir / aPackage name.
 	pkg := aPackage copy.
 	pkg relativeDirectory: nil.
 
 	baseDir emitMkdir.
 	Command
 	    execute: [
-	        (baseDir fileAt: 'package.xml') withWriteStreamDo: [ :s |
+	        (baseDir / 'package.xml') withWriteStreamDo: [ :s |
 	            pkg printOn: s ].
 
 	        files := pkg allFiles.
                 dirs := files collect: [ :file | File pathFor: file ].
 	        dirs asSet asSortedCollection do: [ :dir |
-	            (baseDir directoryAt: dir) emitMkdir ].
+	            (baseDir / dir) emitMkdir ].
 
                 files do: [ :file || srcFile |
 	            srcFile := File name: (aPackage fullPathOf: file).
 	            srcFile emitSymlink: (baseDir nameAt: file) ].
 
-	        (self installDir fileAt: aPackage name, '.star')
+	        (self installDir / aPackage name, '.star')
 		    emitZipDir: baseDir
 	    ]
 	    ensure: [
 	        "Clean up our mess."
-	        (baseDir fileAt: 'package.xml') remove.
+	        (baseDir / 'package.xml') remove.
                 files do: [ :file |
-	            (baseDir fileAt: file) remove ].
+	            (baseDir / file) remove ].
 	        dirs asSet asSortedCollection do: [ :dir |
-	            (baseDir directoryAt: dir) remove ]
+	            (baseDir / dir) remove ]
 	    ].
     ]
 
@@ -472,10 +472,10 @@ Command subclass: PkgUninstall [
 	| baseDir |
 	baseDir := self installDir.
 	aPackage relativeDirectory isNil ifFalse: [
-	    baseDir := baseDir directoryAt: aPackage relativeDirectory ].
+	    baseDir := baseDir / aPackage relativeDirectory ].
 
 	aPackage allFiles do: [ :file |
-	    (baseDir fileAt: file) emitRemove ]
+	    (baseDir / file) emitRemove ]
     ]
 
     runOnStar: aPackage [ ]
@@ -517,11 +517,11 @@ Command subclass: PkgPrepare [
 	srcFile isNil ifTrue: [
 	    f := self srcdir / aCollection first.
             (File exists: f)
-	        ifTrue: [ srcFile := (Directory name: self srcdir) pathTo: f ].
+	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ].
 
 	    f := f, '.in'.
             (File exists: f)
-	        ifTrue: [ srcFile := (Directory name: self srcdir) pathTo: f ]
+	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ]
 	].
 
 	super addAllFiles: aCollection.
@@ -529,7 +529,7 @@ Command subclass: PkgPrepare [
 
     run [
         | base configureAC makefileAM gstIN |
-	base := Directory name: self srcdir.
+	base := File name: self srcdir.
 	configureAC := base at: 'configure.ac'.
 	makefileAM := base at: 'Makefile.am'.
 	gstIN := base at: 'gst.in'.
@@ -591,14 +591,14 @@ AC_OUTPUT
 
     writeConfigureEntry: each to: ws [
 	| pkgName buildPath srcPath pkgSrcDir relPkgSrcDir generated |
-	buildPath := (Directory name: Directory working) pathTo: each.
-	srcPath := (Directory name: self srcdir) pathTo: each.
+	buildPath := Directory working pathTo: each.
+	srcPath := (File name: self srcdir) pathTo: each.
 
 	pkgSrcDir := srcPath size < buildPath size
 	    ifTrue: [ File pathFor: srcPath ifNone: [ self srcdir ] ]
 	    ifFalse: [ Directory append: (File pathFor: buildPath) to: self srcdir ].
 
-	relPkgSrcDir := (Directory name: self srcdir) pathTo: pkgSrcDir.
+	relPkgSrcDir := (File name: self srcdir) pathTo: pkgSrcDir.
 
 	('*.in' match: each)
 	    ifTrue: [
@@ -620,7 +620,7 @@ AC_OUTPUT
 
 	generated ifTrue: [
 	    ws nextPutAll: (', , , [%1]' % {
-		(Directory name: relPkgSrcDir) pathTo: srcPath }) ].
+		(File name: relPkgSrcDir) pathTo: srcPath }) ].
 
 	ws nextPutAll: ')'; nl.
     ]

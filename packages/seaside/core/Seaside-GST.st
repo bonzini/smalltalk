@@ -554,7 +554,7 @@ Object subclass: WAGNUSmalltalkPlatform [
 	"Return a collection of absolute paths for all the files (no directories) in the directory given by aPathString
 	must not include file names that start with ."
 	| directory |
-	directory := Directory name: aPathString.
+	directory := File name: aPathString.
 	^(directory entryNames
 		reject: [ :each | each first = $. ])
 		collect: [ :each | Directory append: each to: directory name ]

@@ -111,7 +111,7 @@ A DirectoryResponse formats output of the contents of a Directory object.'>
 	    nl;
 	    << '<hr>';
 	    nl.
-	(Directory name: file name) entryNames asSortedCollection 
+	(File name: file name) entryNames asSortedCollection 
 	    do: [:each | self sendFileProperties: each].
 	self << '</pre><hr><FORM ACTION="' << request uri.
 	self
@@ -814,7 +814,7 @@ and DirectoryResponses.'>
 
     directory: aDirectory [
 	<category: 'accessing'>
-	initialDirectory := Directory name: aDirectory
+	initialDirectory := File name: aDirectory
     ]
 
     indexFileNames [
@@ -824,7 +824,7 @@ and DirectoryResponses.'>
 
     initialize [
 	<category: 'initialize-release'>
-	initialDirectory := Directory name: Directory working.
+	initialDirectory := File name: Directory working.
 	uploadAuthorizer := WebAuthorizer new.
 	name := 'File'
     ]
