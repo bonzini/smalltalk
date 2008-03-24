@@ -1775,56 +1775,7 @@ files from a ZIP archive.'>
 			data at: 1 put: (cd next: fnsize).
 			cd skip: extra + comment.
 			data at: 4 put: (attr bitAnd: 16) = 16.
-			method = 0 
-			    ifTrue: 
-				[data at: 5
-				    put: ((StoredZipMember new)
-					    name: (data at: 1);
-					    parent: self;
-					    offset: ofs;
-					    yourself)].
 			gen yield: data]]
-    ]
-]
-
-]
-
-
-
-Namespace current: Kernel [
-
-VFS.VFS.ArchiveMemberHandler subclass: StoredZipMember [
-    | offset |
-    
-    <category: 'Streams-Files'>
-    <comment: 'ArchiveMemberHandler is the handler
-class for stored ZIP archive members, which are optimized.'>
-
-    offset [
-	<category: 'accessing'>
-	^offset
-    ]
-
-    offset: anInteger [
-	<category: 'accessing'>
-	offset := anInteger
-    ]
-
-    open: class mode: mode ifFail: aBlock [
-	<category: 'opening'>
-	| file |
-	mode = FileStream read ifFalse: [^self notYetImplemented].
-	file := self parent 
-		    open: class
-		    mode: mode
-		    ifFail: [^aBlock value].
-	file skip: self offset + 26.
-	file skip: file nextUshort + file nextUshort.
-	file setName: self fullName.
-	^LimitedStream 
-	    on: file
-	    from: file position
-	    to: file position + self size - 1
     ]
 ]
 
