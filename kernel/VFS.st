@@ -1638,21 +1638,6 @@ ArchiveMemberHandler subclass: TmpFileArchiveMemberHandler [
 
 Namespace current: Kernel [
 
-Object subclass: Stat [
-    
-    | stMode stSize stAtime stMtime stCtime |
-    stMode [ ^stMode ]
-    stSize [ ^stSize ]
-    stAtime [ ^stAtime ]
-    stMtime [ ^stMtime ]
-    stCtime [ ^stCtime ]
-]
-
-]
-
-
-Namespace current: Kernel [
-
 VFS.VFS.ArchiveFileHandler subclass: ZipFileHandler [
     
     <category: 'Streams-Files'>

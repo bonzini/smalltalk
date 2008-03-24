@@ -32,8 +32,8 @@
 
 
 
-Object subclass: File [
-    | vfsHandler |
+Object subclass: FilePath [
+    | path |
     
     <category: 'Streams-Files'>
     <comment: 'I expose the syntax of file names, including paths.  I know how to
@@ -41,21 +41,30 @@ manipulate such a path by splitting it into its components.  In addition,
 I expose information about files (both real and virtual) such as their
 size and timestamps.'>
 
-    File class >> stringError: errno [
-	"Answer C strerror's result for errno."
-	<category: 'C functions'>
-	<cCall: 'strerror' returning: #string args: #(#int)>
-	
+    FilePath class >> append: fileName to: directory [
+	"Answer the name of a file named `fileName' which resides in a directory
+	 named `directory'."
+
+	<category: 'file name management'>
+	directory isEmpty ifTrue: [^fileName].
+	fileName isEmpty ifTrue: [^directory].
+	Directory pathSeparator == $\ 
+	    ifFalse: [(fileName at: 1) isPathSeparator ifTrue: [^fileName]]
+	    ifTrue: 
+		[(fileName at: 1) isPathSeparator 
+		    ifTrue: 
+			[^(directory size >= 2 and: [(directory at: 2) = $:]) 
+			    ifTrue: ['%1:%2' % 
+					{directory first.
+					fileName}]
+			    ifFalse: [fileName]].
+		(fileName size >= 2 and: [(fileName at: 2) = $:]) ifTrue: [^fileName]].
+	^(directory at: directory size) isPathSeparator 
+	    ifTrue: [directory , fileName]
+	    ifFalse: [directory , Directory pathSeparatorString , fileName]
     ]
 
-    File class >> errno [
-	"Answer the current value of C errno."
-	<category: 'C functions'>
-	<cCall: 'errno' returning: #long args: #()>
-	
-    ]
-
-    File class >> extensionFor: aString [
+    FilePath class >> extensionFor: aString [
 	"Answer the extension of a file named `aString'.  Note: the extension
 	 includes an initial dot."
 
@@ -73,7 +82,7 @@ size and timestamps.'>
 	^aString copyFrom: index to: aString size
     ]
 
-    File class >> stripExtensionFrom: aString [
+    FilePath class >> stripExtensionFrom: aString [
 	"Remove the extension from the name of a file called `aString', and
 	 answer the result."
 
@@ -91,7 +100,7 @@ size and timestamps.'>
 	^aString copyFrom: 1 to: index - 1
     ]
 
-    File class >> stripPathFrom: aString [
+    FilePath class >> stripPathFrom: aString [
 	"Remove the path from the name of a file called `aString', and
 	 answer the file name plus extension."
 
@@ -102,7 +111,7 @@ size and timestamps.'>
 	^aString copyFrom: index + 1 to: aString size
     ]
 
-    File class >> pathFor: aString ifNone: aBlock [
+    FilePath class >> pathFor: aString ifNone: aBlock [
 	"Determine the path of the name of a file called `aString', and
 	 answer the result.  With the exception of the root directory, the
 	 final slash is stripped.  If there is no path, evaluate aBlock and
@@ -117,7 +126,7 @@ size and timestamps.'>
 	^aString copyFrom: 1 to: index - 1
     ]
 
-    File class >> pathFor: aString [
+    FilePath class >> pathFor: aString [
 	"Determine the path of the name of a file called `aString', and
 	 answer the result.  With the exception of the root directory, the
 	 final slash is stripped."
@@ -126,7 +135,7 @@ size and timestamps.'>
 	^self pathFor: aString ifNone: ['']
     ]
 
-    File class >> stripFileNameFor: aString [
+    FilePath class >> stripFileNameFor: aString [
 	"Determine the path of the name of a file called `aString', and
 	 answer the result as a directory name including the final slash."
 
@@ -139,21 +148,26 @@ size and timestamps.'>
 	^aString copyFrom: 1 to: index
     ]
 
-    File class >> fullNameFor: aString [
+    FilePath class >> isAbsolute: aString [
+        "Answer whether aString is an absolute ptah."
+
+	(aString at: 1) isPathSeparator ifTrue: [ ^true ].
+	Directory pathSeparator == $\ ifFalse: [ ^false ].
+	"Windows paths starting X:/ are absolute"
+	^aString size >= 3 and: [
+		 (aString at: 2) = $: and: [(aString at: 3) isPathSeparator]]
+    ]
+
+    FilePath class >> fullNameFor: aString [
 	"Answer the full path to a file called `aString', resolving the `.' and
 	 `..' directory entries, and answer the result.  `/..' is the same as '/'."
 
 	<category: 'file name management'>
-	| path canonical result isAbsolute isWindows |
-	isAbsolute := (aString at: 1) isPathSeparator.
+	| path canonical result isWindows |
 	isWindows := Directory pathSeparator == $\.
 	"Windows paths starting X:/ are absolute"
-	(isWindows and: 
-		[aString size >= 3 
-		    and: [(aString at: 2) = $: and: [(aString at: 3) isPathSeparator]]]) 
-	    ifTrue: [isAbsolute := true].
 	path := OrderedCollection new.
-	isAbsolute 
+	(self isAbsolute: aString)
 	    ifFalse: 
 		[path addAll: (Directory workingName substrings: Directory pathSeparator)].
 
@@ -182,7 +196,7 @@ size and timestamps.'>
 	    ifFalse: [result]
     ]
 
-    File class >> pathFrom: srcName to: destName [
+    FilePath class >> pathFrom: srcName to: destName [
 	"Answer the relative path to destName when the current
 	 directory is srcName's directory."
 	<category: 'file name management'>
@@ -190,7 +204,7 @@ size and timestamps.'>
 	    to: (File fullNameFor: destName asString)
     ]
 
-    File class >> computePathFrom: srcName to: destName [
+    FilePath class >> computePathFrom: srcName to: destName [
 	<category: 'private'>
 	| src dest srcCanon destCanon path |
 	"A Windows path may contain both / and \ separators. Clean it up
@@ -220,124 +234,30 @@ size and timestamps.'>
 	^path fold: [:a :b | a , Directory pathSeparatorString , b]
     ]
 
-    File class >> checkError [
-	"Return whether an error had been reported or not.
-	 If there had been one, raise an exception too"
+    asFile [
+	"Answer the receiver."
 
-	<category: 'file operations'>
-	^self checkError: self errno
+	<category: 'converting'>
+	^self
     ]
 
-    File class >> checkError: errno [
-	"The error with the C code `errno' has been reported.
-	 If errno >= 1, raise an exception"
+    displayOn: aStream [
+	"Print a representation of the receiver on aStream."
 
-	<category: 'file operations'>
-	| errors |
-	errno < 1 ifTrue: [^false].
-	SystemExceptions.FileError signal: (self stringError: errno).
-	^true
-    ]
-
-    File class >> touch: fileName [
-	"Update the timestamp of the file with the given path name."
-
-	<category: 'file operations'>
-	(self name: fileName) touch
-    ]
-
-    File class >> symlink: srcName as: destName [
-	"Create a symlink for the srcName file with the given path name"
-
-	<category: 'file operations'>
-	(self name: srcName) symlinkAs: destName
-    ]
-
-    File class >> symlink: destName from: srcName [
-	"Create a symlink named destName file from the given path (relative to
-	 destName)"
-
-	<category: 'file operations'>
-	(VFS.VFSHandler for: destName) symlinkFrom: srcName
-    ]
-
-    File class >> remove: fileName [
-	"Remove the file with the given path name"
-
-	<category: 'file operations'>
-	(VFS.VFSHandler for: fileName) remove
-    ]
-
-    File class >> rename: oldFileName to: newFileName [
-	"Rename the file with the given path name oldFileName to newFileName"
-
-	<category: 'file operations'>
-	(VFS.VFSHandler for: oldFileName) renameTo: newFileName
-    ]
-
-    File class >> on: aVFSHandler [
-	"Answer a new file with the given path. The handler that returns
-	 the information is aVFSHandler"
-
-	<category: 'instance creation'>
-	^self basicNew init: aVFSHandler
-    ]
-
-    File class >> name: aName [
-	"Answer a new file with the given path. The path is not validated until
-	 some of the fields of the newly created objects are accessed"
-
-	<category: 'instance creation'>
-	^self on: (VFS.VFSHandler for: aName)
-    ]
-
-    File class >> exists: fileName [
-	"Answer whether a file with the given name exists"
-
-	<category: 'testing'>
-	^(self name: fileName) exists
-    ]
-
-    File class >> isReadable: fileName [
-	"Answer whether a file with the given name exists and is readable"
-
-	<category: 'testing'>
-	^(self name: fileName) isReadable
-    ]
-
-    File class >> isWriteable: fileName [
-	"Answer whether a file with the given name exists and is writeable"
-
-	<category: 'testing'>
-	^(self name: fileName) isWriteable
-    ]
-
-    File class >> isExecutable: fileName [
-	"Answer whether a file with the given name exists and can be executed"
-
-	<category: 'testing'>
-	^(self name: fileName) isExecutable
-    ]
-
-    File class >> isAccessible: fileName [
-	"Answer whether a directory with the given name exists and can be accessed"
-
-	<category: 'testing'>
-	^(self name: fileName) isAccessible
-    ]
-
-    File class >> executable [
-	"Answer the full path to the executable being run."
-
-	<category: 'reading system defaults'>
-	^self path: ExecutableFileName
-    ]
-
-    File class >> image [
-	"Answer the full path to the image being used."
-
-	<category: 'reading system defaults'>
-	^ImageFileName
+	<category: 'printing'>
+	| name string |
+	name := self asString.
+	(name anySatisfy: [:each | '"(){}[]$\<>#'' `' includes: each]) 
+	    ifFalse: 
+		[aStream nextPutAll: name.
+		^self].
+	string := Directory pathSeparator = $/ 
+		    ifTrue: ['''%1''' % {name copyReplaceAll: '''' with: '''\'''''}]
+		    ifFalse: [
+			{'"'.
+			name.
+			'"'} join].
+	aStream nextPutAll: string
     ]
 
     printOn: aStream [
@@ -352,58 +272,25 @@ size and timestamps.'>
 	    nextPut: $>
     ]
 
-    displayOn: aStream [
-	"Print a representation of the receiver on aStream."
-
-	<category: 'printing'>
-	| name string |
-	name := self name.
-	(name anySatisfy: [:each | '"(){}[]$\<>#'' `' includes: each]) 
-	    ifFalse: 
-		[aStream nextPutAll: name.
-		^self].
-	string := Directory pathSeparator = $/ 
-		    ifTrue: ['''%1''' % {name copyReplaceAll: '''' with: '''\'''''}]
-		    ifFalse: [
-			{'"'.
-			name.
-			'"'} join].
-	aStream nextPutAll: string
-    ]
-
     , aName [
 	"Answer an object of the same kind as the receiver, whose name
 	 is suffixed with aName."
 
-	^self class name: self name, aName
-    ]
-
-    asString [
-	"Answer the name of the file identified by the receiver"
-
-	<category: 'accessing'>
-	^vfsHandler fullName
-    ]
-
-    name [
-	"Answer the name of the file identified by the receiver"
-
-	<category: 'accessing'>
-	^vfsHandler fullName
+	^self class path: self name, aName
     ]
 
     mode [
 	"Answer the permission bits for the file identified by the receiver"
 
 	<category: 'accessing'>
-	^vfsHandler mode
+	self subclassResponsibility
     ]
 
     size [
 	"Answer the size of the file identified by the receiver"
 
 	<category: 'accessing'>
-	^vfsHandler size
+	self subclassResponsibility
     ]
 
     mode: anInteger [
@@ -411,7 +298,7 @@ size and timestamps.'>
 	 anInteger."
 
 	<category: 'accessing'>
-	vfsHandler mode: anInteger
+	self subclassResponsibility
     ]
 
     lastAccessTime: aDateTime [
@@ -419,7 +306,7 @@ size and timestamps.'>
 	 to be aDateTime."
 
 	<category: 'accessing'>
-	vfsHandler lastAccessTime: aDateTime lastModifyTime: self lastModifyTime
+	self subclassResponsibility
     ]
 
     lastAccessTime: accessDateTime lastModifyTime: modifyDateTime [
@@ -427,14 +314,14 @@ size and timestamps.'>
 	 accessDateTime and modifyDateTime."
 
 	<category: 'accessing'>
-	vfsHandler lastAccessTime: accessDateTime lastModifyTime: modifyDateTime
+	self subclassResponsibility
     ]
 
     lastAccessTime [
 	"Answer the last access time of the file identified by the receiver"
 
 	<category: 'accessing'>
-	^vfsHandler lastAccessTime
+	self subclassResponsibility
     ]
 
     lastChangeTime [
@@ -444,7 +331,7 @@ size and timestamps.'>
 	 file creation time."
 
 	<category: 'accessing'>
-	^vfsHandler lastChangeTime
+	self subclassResponsibility
     ]
 
     creationTime [
@@ -454,7 +341,7 @@ size and timestamps.'>
 	 like)."
 
 	<category: 'accessing'>
-	^vfsHandler creationTime
+	self subclassResponsibility
     ]
 
     lastModifyTime: aDateTime [
@@ -462,7 +349,7 @@ size and timestamps.'>
 	 receiver, to be aDateTime."
 
 	<category: 'accessing'>
-	vfsHandler lastAccessTime: self lastAccessTime lastModifyTime: aDateTime
+	self subclassResponsibility
     ]
 
     lastModifyTime [
@@ -470,21 +357,20 @@ size and timestamps.'>
 	 (the `last modify time' has to do with the actual file contents)."
 
 	<category: 'accessing'>
-	^vfsHandler lastModifyTime
+	self subclassResponsibility
     ]
 
     refresh [
 	"Refresh the statistics for the receiver"
 
 	<category: 'accessing'>
-	vfsHandler refresh
     ]
 
     exists [
 	"Answer whether a file with the name contained in the receiver does exist."
 
 	<category: 'testing'>
-	^vfsHandler exists
+	self subclassResponsibility
     ]
 
     isSymbolicLink [
@@ -492,7 +378,7 @@ size and timestamps.'>
 	 and does not identify a directory."
 
 	<category: 'testing'>
-	^vfsHandler exists and: [vfsHandler isSymbolicLink]
+	self subclassResponsibility
     ]
 
     isFile [
@@ -500,16 +386,21 @@ size and timestamps.'>
 	 and does not identify a directory."
 
 	<category: 'testing'>
-	^vfsHandler exists and: [vfsHandler isDirectory not]
+	^self exists and: [ self isDirectory not ]
     ]
 
-    isDirectory [
-	"Answer whether a file with the name contained in the receiver does exist
-	 and identifies a directory."
+    isRelative [
+	"Answer whether the receiver identifies a relative path."
 
 	<category: 'testing'>
-	| dir errno |
-	^vfsHandler exists and: [vfsHandler isDirectory]
+	^self isAbsolute not
+    ]
+
+    isAbsolute [
+	"Answer whether the receiver identifies an absolute path."
+
+	<category: 'testing'>
+	self subclassResponsibility
     ]
 
     isReadable [
@@ -517,7 +408,7 @@ size and timestamps.'>
 	 and is readable"
 
 	<category: 'testing'>
-	^vfsHandler exists and: [vfsHandler isReadable]
+	self subclassResponsibility
     ]
 
     isWriteable [
@@ -525,7 +416,7 @@ size and timestamps.'>
 	 and is writeable"
 
 	<category: 'testing'>
-	^self exists and: [vfsHandler isWriteable]
+	self subclassResponsibility
     ]
 
     isExecutable [
@@ -533,7 +424,7 @@ size and timestamps.'>
 	 and is executable"
 
 	<category: 'testing'>
-	^self isFile and: [vfsHandler isExecutable]
+	self subclassResponsibility
     ]
 
     isAccessible [
@@ -541,7 +432,7 @@ size and timestamps.'>
 	 exist and can be accessed"
 
 	<category: 'testing'>
-	^self isDirectory and: [vfsHandler isAccessible]
+	self subclassResponsibility
     ]
 
     extension [
@@ -569,7 +460,7 @@ size and timestamps.'>
 	"Answer the Directory object for the receiver's path"
 
 	<category: 'file name management'>
-	^self class name: (File pathFor: self name)
+	^self class path: (File pathFor: self name ifNone: [ '.' ])
     ]
 
     path [
@@ -587,13 +478,14 @@ size and timestamps.'>
 	^File stripFileNameFor: self name
     ]
 
-    fullName [
+    full [
 	"Answer the full name of the receiver, resolving the `.' and
 	 `..' directory entries, and answer the result.  Answer nil if the
 	 name is invalid (such as '/usr/../../badname')"
 
 	<category: 'file name management'>
-	^File fullNameFor: self name
+	self isAbsolute ifTrue: [ ^self ].
+	^self class path: (File fullNameFor: self name)
     ]
 
     contents [
@@ -625,7 +517,7 @@ size and timestamps.'>
 	 class constant methods)"
 
 	<category: 'file operations'>
-	^vfsHandler open: mode
+	^self open: mode
 	    ifFail: [SystemExceptions.FileError signal: 'could not open ' , self name]
     ]
 
@@ -634,7 +526,7 @@ size and timestamps.'>
 	 class constant methods)"
 
 	<category: 'file operations'>
-	^vfsHandler openDescriptor: mode
+	^self openDescriptor: mode
 	    ifFail: [SystemExceptions.FileError signal: 'could not open ' , self name]
     ]
 
@@ -643,7 +535,7 @@ size and timestamps.'>
 	 class constant methods). Upon failure, evaluate aBlock."
 
 	<category: 'file operations'>
-	^vfsHandler open: mode ifFail: aBlock
+    	^self open: FileStream mode: mode ifFail: aBlock
     ]
 
     openDescriptor: mode ifFail: aBlock [
@@ -651,7 +543,15 @@ size and timestamps.'>
 	 class constant methods). Upon failure, evaluate aBlock."
 
 	<category: 'file operations'>
-	^vfsHandler openDescriptor: mode ifFail: aBlock
+    	^self open: FileDescriptor mode: mode ifFail: aBlock
+    ]
+
+    open: class mode: mode ifFail: aBlock [
+	"Open the receiver in the given mode (as answered by FileStream's
+	 class constant methods)"
+
+	<category: 'file operations'>
+	self subclassResponsibility
     ]
 
     withReadStreamDo: aBlock [
@@ -698,19 +598,14 @@ size and timestamps.'>
 	 relative path is computed automatically."
 
 	<category: 'file operations'>
-	| dest relPath |
-	dest := VFS.VFSHandler for: destName.
-	relPath := File computePathFrom: dest realFileName
-		    to: vfsHandler realFileName.
-	dest symlinkFrom: relPath
+	self subclassResponsibility
     ]
 
     pathFrom: dirName [
 	"Compute the relative path from the directory dirName to the receiver"
 
 	<category: 'file operations'>
-	^File computePathFrom: (File fullNameFor: dirName asString) , '/somefile'
-	    to: vfsHandler realFileName
+	self subclassResponsibility
     ]
 
     symlinkFrom: srcName [
@@ -718,39 +613,28 @@ size and timestamps.'>
 	 path of the receiver)."
 
 	<category: 'file operations'>
-	vfsHandler symlinkFrom: srcName
+	self subclassResponsibility
     ]
 
     remove [
 	"Remove the file identified by the receiver"
 
 	<category: 'file operations'>
-	^vfsHandler remove
+	self subclassResponsibility
     ]
 
     renameTo: newName [
 	"Rename the file identified by the receiver to newName"
 
 	<category: 'file operations'>
-	vfsHandler renameTo: newName
-    ]
-
-    init: aVFSHandler [
-	"Private - Initialize the receiver's instance variables"
-
-	<category: 'private'>
-	vfsHandler := aVFSHandler
+	self subclassResponsibility
     ]
 
     pathTo: destName [
 	"Compute the relative path from the receiver to destName."
 
 	<category: 'accessing'>
-	| destFullName |
-	destFullName := File fullNameFor: destName asString.
-	vfsHandler realFileName = destFullName ifTrue: [^'.'].
-	^File computePathFrom: vfsHandler realFileName , '/somefile'
-	    to: destFullName
+	self subclassResponsibility
     ]
 
     / aName [
@@ -765,9 +649,7 @@ size and timestamps.'>
 	 'aName' in the directory represented by the receiver."
 
 	<category: 'accessing'>
-	| f |
-	f := vfsHandler at: aName.
-	^self class on: f
+	self subclassResponsibility
     ]
 
     includes: aName [
@@ -775,23 +657,7 @@ size and timestamps.'>
          by the receiver."
 
         <category: 'accessing'>
-        ^(vfsHandler at: aName) exists
-    ]
-
-    fullNameAt: aName [
-	"Answer a String containing the full path to a file named `aName' which
-	 resides in the directory represented by the receiver."
-
-	<category: 'accessing'>
-	^Directory append: aName to: self fullName
-    ]
-
-    nameAt: aName [
-	"Answer a String containing the path to a file named `aName' which
-	 resides in the directory represented by the receiver."
-
-	<category: 'accessing'>
-	^Directory append: aName to: self name
+        ^(self at: aName) exists
     ]
 
     allFilesMatching: aPattern do: aBlock [
@@ -800,7 +666,7 @@ size and timestamps.'>
 	 descend into directories."
 
 	<category: 'enumerating'>
-	self do: 
+	self namesDo: 
 		[:name | 
 		| f |
 		f := self at: name.
@@ -816,7 +682,7 @@ size and timestamps.'>
 	 represented by the receiver."
 
 	<category: 'enumerating'>
-	^self select: [ :each | each isFile ]
+	^self reject: [ :each | each isDirectory ]
     ]
 
     directories [
@@ -863,7 +729,7 @@ size and timestamps.'>
 	 receiver, passing its name."
 
 	<category: 'enumerating'>
-	vfsHandler do: [ :name | aBlock value: name ]
+	self subclassResponsibility
     ]
 
     filesMatching: aPattern [
@@ -914,22 +780,624 @@ size and timestamps.'>
 	    (aPattern match: name) ifTrue: [block value: (self at: name)]]
     ]
 
+    nameAt: aString [
+        "Answer a FilePath for a file named `aName' residing in the directory
+         represented by the receiver."
+
+        <category: 'directory operations'>
+        ^aString
+    ]
+
     namesMatching: aPattern do: block [
 	"Evaluate block on the file names that match aPattern (according to
 	 String>>#match:) in the directory named by the receiver."
 
 	<category: 'enumerating'>
-	vfsHandler 
-	    do: [:name | (aPattern match: name) ifTrue: [block value: (self nameAt: name)]]
+	self namesDo: [:name |
+	     (aPattern match: name) ifTrue: [block value: (self nameAt: name)]]
     ]
 ]
 
+FilePath subclass: File [
+    | path stat isSymbolicLink |
+    
+    <category: 'Streams-Files'>
+    <comment: 'I enable access to the properties of files that are on disk.'>
 
-String extend [
-    / aName [
+    Epoch := nil.
+
+    File class >> initialize [
+        "Initialize the receiver's class variables"
+
+        <category: 'initialization'>
+        Epoch := DateTime
+                    year: 2000
+                    day: 1
+                    hour: 0
+                    minute: 0
+                    second: 0
+    ]
+
+    File class >> stringError: errno [
+	"Answer C strerror's result for errno."
+	<category: 'C functions'>
+	<cCall: 'strerror' returning: #string args: #(#int)>
+	
+    ]
+
+    File class >> errno [
+	"Answer the current value of C errno."
+	<category: 'C functions'>
+	<cCall: 'errno' returning: #long args: #()>
+	
+    ]
+
+    File class >> checkError [
+	"Return whether an error had been reported or not.
+	 If there had been one, raise an exception too"
+
+	<category: 'file operations'>
+	^self checkError: self errno
+    ]
+
+    File class >> checkError: errno [
+	"The error with the C code `errno' has been reported.
+	 If errno >= 1, raise an exception"
+
+	<category: 'file operations'>
+	| errors |
+	errno < 1 ifTrue: [^false].
+	SystemExceptions.FileError signal: (self stringError: errno).
+	^true
+    ]
+
+    File class >> path: aString [
+	"Answer a new file with the given path.  The path is not validated until
+	 some of the fields of the newly created objects are accessed"
+
+	<category: 'instance creation'>
+	^self basicNew init: aString
+    ]
+
+    File class >> name: aName [
+	"Answer a new file with the given path.  The path is turned into
+	 an absolute path."
+
+	<category: 'instance creation'>
+	^self path: (self fullNameFor: aName)
+    ]
+
+    File class >> touch: fileName [
+	"Update the timestamp of the file with the given path name."
+
+	<category: 'file operations'>
+	(self path: fileName) touch
+    ]
+
+    File class >> symlink: srcName as: destName [
+	"Create a symlink for the srcName file with the given path name"
+
+	<category: 'file operations'>
+	(self path: srcName) symlinkAs: destName
+    ]
+
+    File class >> symlink: destName from: srcName [
+	"Create a symlink named destName file from the given path (relative to
+	 destName)"
+
+	<category: 'file operations'>
+	(self path: destName) symlinkFrom: srcName
+    ]
+
+    File class >> remove: fileName [
+	"Remove the file with the given path name"
+
+	<category: 'file operations'>
+	(self path: fileName) remove
+    ]
+
+    File class >> rename: oldFileName to: newFileName [
+	"Rename the file with the given path name oldFileName to newFileName"
+
+	<category: 'file operations'>
+	(self path: oldFileName) renameTo: newFileName
+    ]
+
+    File class >> exists: fileName [
+	"Answer whether a file with the given name exists"
+
+	<category: 'testing'>
+	^(self path: fileName) exists
+    ]
+
+    File class >> isReadable: fileName [
+	"Answer whether a file with the given name exists and is readable"
+
+	<category: 'testing'>
+	^(self path: fileName) isReadable
+    ]
+
+    File class >> isWriteable: fileName [
+	"Answer whether a file with the given name exists and is writeable"
+
+	<category: 'testing'>
+	^(self path: fileName) isWriteable
+    ]
+
+    File class >> isExecutable: fileName [
+	"Answer whether a file with the given name exists and can be executed"
+
+	<category: 'testing'>
+	^(self path: fileName) isExecutable
+    ]
+
+    File class >> isAccessible: fileName [
+	"Answer whether a directory with the given name exists and can be accessed"
+
+	<category: 'testing'>
+	^(self path: fileName) isAccessible
+    ]
+
+    File class >> executable [
+	"Answer the full path to the executable being run."
+
+	<category: 'reading system defaults'>
+	^self path: ExecutableFileName
+    ]
+
+    File class >> image [
+	"Answer the full path to the image being used."
+
+	<category: 'reading system defaults'>
+	^self path: ImageFileName
+    ]
+
+    lstatOn: fileName into: statStruct [
+	<category: 'private-C call-outs'>
+	<cCall: 'lstat_obj' returning: #int args: #(#string #smalltalk)>
+	
+    ]
+
+    statOn: fileName into: statStruct [
+	<category: 'private-C call-outs'>
+	<cCall: 'stat_obj' returning: #int args: #(#string #smalltalk)>
+	
+    ]
+
+    openDir: dirName [
+	<category: 'private-C call-outs'>
+	<cCall: 'opendir' returning: #cObject args: #(#string)>
+	
+    ]
+
+    closeDir: dirObject [
+	<category: 'private-C call-outs'>
+	<cCall: 'closedir' returning: #int args: #(#cObject)>
+	
+    ]
+
+    primChmod: name mode: mode [
+	<category: 'private-C call-outs'>
+	<cCall: 'chmod' returning: #int args: #(#string #int)>
+	
+    ]
+
+    primIsReadable: name [
+	<category: 'private-C call-outs'>
+	<cCall: 'fileIsReadable' returning: #boolean args: #(#string)>
+	
+    ]
+
+    primIsWriteable: name [
+	<category: 'private-C call-outs'>
+	<cCall: 'fileIsWriteable' returning: #boolean args: #(#string)>
+	
+    ]
+
+    primIsExecutable: name [
+	<category: 'private-C call-outs'>
+	<cCall: 'fileIsExecutable' returning: #boolean args: #(#string)>
+	
+    ]
+
+    primSymlink: srcName as: destName [
+	<category: 'private-C call-outs'>
+	<cCall: 'symlink' returning: #void args: #(#string #string)>
+	
+    ]
+
+    primUnlink: fileName [
+	<category: 'private-C call-outs'>
+	<cCall: 'unlink' returning: #void args: #(#string)>
+	
+    ]
+
+    primRename: oldFileName to: newFileName [
+	<category: 'private-C call-outs'>
+	<cCall: 'rename' returning: #void args: #(#string #string)>
+	
+    ]
+
+    primRemoveDir: fileName [
+	<category: 'private-C call-outs'>
+	<cCall: 'rmdir' returning: #void args: #(#string)>
+	
+    ]
+
+    primCreateDir: dirName mode: mode [
+	<category: 'private-C call-outs'>
+	<cCall: 'mkdir' returning: #void args: #(#string #int)>
+	
+    ]
+
+    extractDirentName: dirent [
+	<category: 'private-C call-outs'>
+	<cCall: 'extractDirentName' returning: #string args: #(#cObject)>
+	
+    ]
+
+    readDir: dirObject [
+	<category: 'private-C call-outs'>
+	<cCall: 'readdir' returning: #cObject args: #(#cObject)>
+	
+    ]
+
+    rewindDir: dirObject [
+	<category: 'private-C call-outs'>
+	<cCall: 'rewinddir' returning: #void args: #(#cObject)>
+	
+    ]
+
+    , aName [
+	"Answer an object of the same kind as the receiver, whose name
+	 is suffixed with aName."
+
+	^self class path: self name, aName
+    ]
+
+    asString [
+	"Answer the name of the file identified by the receiver"
+
+	<category: 'accessing'>
+	^path
+    ]
+
+    name [
+	"Answer the name of the file identified by the receiver"
+
+	<category: 'accessing'>
+	^File fullNameFor: self asString
+    ]
+
+    size [
+	"Answer the size of the file identified by the receiver"
+
+	<category: 'accessing'>
+	^self stat stSize
+    ]
+
+    mode [
+	"Answer the permission bits for the file identified by the receiver"
+
+	<category: 'accessing'>
+	^self stat stMode bitAnd: 4095
+    ]
+
+    mode: anInteger [
+	"Set the permission bits for the file identified by the receiver to be
+	 anInteger."
+
+	<category: 'accessing'>
+	self primChmod: self asString mode: (anInteger bitAnd: 4095).
+	File checkError
+    ]
+
+    isDirectory [
+	"Answer whether the file is a directory."
+
+	<category: 'accessing'>
+	self exists ifFalse: [ ^false ].
+	^(self stat stMode bitAnd: 61440) = 16384
+    ]
+
+    isSymbolicLink [
+	"Answer whether the file is a symbolic link."
+
+	<category: 'accessing'>
+	isSymbolicLink isNil ifTrue: [self refresh].
+	^isSymbolicLink
+    ]
+
+    lastAccessTime [
+	"Answer the last access time of the file identified by the receiver"
+
+	<category: 'accessing'>
+	^self getDateAndTime: self stat stAtime
+    ]
+
+    lastChangeTime [
+	"Answer the last change time of the file identified by the receiver
+	 (the `last change time' has to do with permissions, ownership and the
+	 like). On some operating systems, this could actually be the
+	 file creation time."
+
+	<category: 'accessing'>
+	^self getDateAndTime: self stat stCtime
+    ]
+
+    creationTime [
+	"Answer the creation time of the file identified by the receiver.
+	 On some operating systems, this could actually be the last change time
+	 (the `last change time' has to do with permissions, ownership and the
+	 like)."
+
+	<category: 'accessing'>
+	^self getDateAndTime: self stat stCtime
+    ]
+
+    lastModifyTime [
+	"Answer the last modify time of the file identified by the receiver
+	 (the `last modify time' has to do with the actual file contents)."
+
+	<category: 'accessing'>
+	^self getDateAndTime: self stat stMtime
+    ]
+
+    refresh [
+	"Refresh the statistics for the receiver"
+
+	<category: 'accessing'>
+	stat isNil ifTrue: [stat := Kernel.Stat new].
+	self lstatOn: self asString into: stat.
+	File checkError.
+	isSymbolicLink := (stat stMode bitAnd: 61440) = 40960.	"S_IFLNK"
+	isSymbolicLink 
+	    ifTrue: 
+		[self statOn: self asString into: stat.
+		File errno]
+    ]
+
+    exists [
+	"Answer whether a file with the name contained in the receiver does exist."
+
+	<category: 'testing'>
+	stat isNil ifTrue: [stat := Kernel.Stat new].
+	self lstatOn: self asString into: stat.
+	File errno == 0 ifFalse: [^false].
+	isSymbolicLink := (stat stMode bitAnd: 61440) = 40960.	"S_IFLNK"
+	isSymbolicLink ifTrue: [self statOn: self asString into: stat].
+	^true
+    ]
+
+    isReadable [
+	"Answer whether a file with the name contained in the receiver does exist
+	 and is readable"
+
+	<category: 'testing'>
+	^self primIsReadable: self asString
+    ]
+
+    isWriteable [
+	"Answer whether a file with the name contained in the receiver does exist
+	 and is writeable"
+
+	<category: 'testing'>
+	^self primIsWriteable: self asString
+    ]
+
+    isAccessible [
+	"Answer whether a directory with the name contained in the receiver
+	 does exist and is accessible"
+
+	<category: 'testing'>
+	^self isDirectory and: [self primIsExecutable: self asString]
+    ]
+
+    isExecutable [
+	"Answer whether a file with the name contained in the receiver does exist
+	 and is executable"
+
+	<category: 'testing'>
+	^self isFile and: [self primIsExecutable: self asString]
+    ]
+
+    isAbsolute [
+	"Answer whether the receiver identifies an absolute path."
+
+	<category: 'testing'>
+	^File isAbsolute: self asString
+    ]
+    
+    lastAccessTime: accessDateTime lastModifyTime: modifyDateTime [
+	"Set the receiver's timestamps to be accessDateTime and modifyDateTime."
+
+	<category: 'file operations'>
+	self class 
+	    setTimeFor: self asString
+	    atime: (self secondsFromDateTime: accessDateTime)
+	    mtime: (self secondsFromDateTime: modifyDateTime).
+	File checkError
+    ]
+
+    open: class mode: mode ifFail: aBlock [
+	"Open the receiver in the given mode (as answered by FileStream's
+	 class constant methods)"
+
+	<category: 'file operations'>
+	^class 
+	    fopen: self asString
+	    mode: mode
+	    ifFail: aBlock
+    ]
+
+    remove [
+	"Remove the file with the given path name"
+
+	<category: 'file operations'>
+	self isDirectory 
+	    ifTrue: [self primRemoveDir: self asString]
+	    ifFalse: [self primUnlink: self asString].
+	File checkError
+    ]
+
+    symlinkFrom: srcName [
+	"Create the receiver as a symlink from path destName"
+
+	<category: 'file operations'>
+	self primSymlink: srcName as: self asString.
+	File checkError
+    ]
+
+    renameTo: newFileName [
+	"Rename the file with the given path name to newFileName"
+
+	<category: 'file operations'>
+	self primRename: self asString to: newFileName.
+	File checkError
+    ]
+
+    secondsFromDateTime: aDateTime [
+	"Private - Convert a time expressed in seconds from 1/1/2000 to
+	 an array of two Smalltalk Date and Time objects"
+
+	<category: 'private'>
+	^aDateTime asSeconds - Epoch asSeconds 
+	    - (aDateTime offset asSeconds - Epoch offset asSeconds)
+    ]
+
+    getDateAndTime: time [
+	"Private - Convert a time expressed in seconds from 1/1/2000 to
+	 a Smalltalk DateTime object."
+
+	<category: 'private'>
+	^Epoch + (Duration seconds: time) 
+	    offset: (Duration seconds: Time timezoneBias)
+    ]
+
+    stat [
+	"Private - Answer the receiver's statistics' C struct"
+
+	<category: 'private'>
+	stat isNil ifTrue: [self refresh].
+	^stat
+    ]
+
+    createDirectory [
+	"Create the receiver as a directory."
+
+	<category: 'directory operations'>
+	self primCreateDir: self asString mode: 511.
+	File checkError
+    ]
+
+    createDirectories [
+	"Create the receiver as a directory, together with all its parents."
+
+	<category: 'directory operations'>
+	| parent |
+	parent := self parent.
+	parent exists ifFalse: [ parent createDirectories ].
+	self createDirectory
+    ]
+
+    namesDo: aBlock [
+	"Evaluate aBlock once for each file in the directory represented by the
+	 receiver, passing its name. aBlock should not return."
+
+	<category: 'directory operations'>
+	| dir entry |
+	dir := self openDir: self asString.
+	File checkError.
+	
+	[[entry := self readDir: dir.
+	    File checkError.
+	    entry notNil] 
+		whileTrue: [aBlock value: (self extractDirentName: entry)]]
+		    ensure: [self closeDir: dir]
+    ]
+
+    symlinkAs: destName [
+	"Create destName as a symbolic link of the receiver.  The appropriate
+	 relative path is computed automatically."
+
+	<category: 'file operations'>
+	| relPath |
+	relPath := File pathFrom: destName to: self asString.
+	(self class path: destName) symlinkFrom: relPath
+    ]
+
+    pathFrom: dir [
+	"Compute the relative path from the directory dirName to the receiver"
+
+	<category: 'file operations'>
+	^File pathFrom: (dir / 'somefile') asString to: self asString.
+    ]
+
+    pathTo: destName [
+	"Compute the relative path from the receiver to destName."
+
+	<category: 'accessing'>
+	^File pathFrom: (self / 'somefile') asString to: destName asString.
+    ]
+
+    at: aString [
 	"Answer a File or Directory object as appropriate for a file named
 	 'aName' in the directory represented by the receiver."
 
-	^(File name: self) at: aName
+	<category: 'accessing'>
+	^self class path: (self nameAt: aString asString)
     ]
+
+    nameAt: aString [
+	"Answer a File or Directory object as appropriate for a file named
+	 'aName' in the directory represented by the receiver."
+
+	<category: 'accessing'>
+	^Directory append: aString to: self asString
+    ]
+
+    init: aString [
+	"Private - Initialize the receiver's instance variables"
+
+	<category: 'private'>
+	path := aString
+    ]
+]
+
+
+Namespace current: Kernel [
+
+Object subclass: Stat [
+    
+    | stMode stSize stAtime stMtime stCtime |
+    stMode [ ^stMode ]
+    stSize [ ^stSize ]
+    stAtime [ ^stAtime ]
+    stMtime [ ^stMtime ]
+    stCtime [ ^stCtime ]
+]
+
+]
+
+
+
+String extend [
+    / aName [
+	"Answer a File object as appropriate for a file named
+	 'aName' in the directory represented by the receiver."
+
+	<category: 'filesystem'>
+	^(File path: self) at: aName
+    ]
+
+    asFile [
+	"Answer a File object for the file whose name is in the receiver."
+
+	<category: 'filesystem'>
+	^(File path: self)
+    ]
+]
+
+Eval [
+    File initialize
 ]
