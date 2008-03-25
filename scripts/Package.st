@@ -35,14 +35,14 @@ Package extend [
     ]
 
     isStarPackageBody [
-	^'*.star#uzip' match: self baseDirectories first name
+	^self baseDirectories first isKindOf: VFS.ArchiveFile
     ]
 
     starFileName [
 	| dir |
 	self isStarPackageBody ifFalse: [ self halt ].
-	dir := self baseDirectories first.
-	^dir name allButLast: 5 ]
+	^self baseDirectories first asString
+    ]
 
     runCommand: aCommand [
 	self isStarPackageBody
@@ -80,7 +80,7 @@ Kernel.PackageDirectories subclass: PackageFiles [
 
     parse: fileName [
 	| file packageFile |
-	file := OldFile name: fileName.
+	file := File name: fileName.
 	packageFile := ('*.star' match: fileName)
 	    ifFalse: [
 		PackageFile
@@ -89,7 +89,7 @@ Kernel.PackageDirectories subclass: PackageFiles [
 	    ifTrue: [
 		StarPackageFile
 		    on: file
-		    baseDirectories: [ {OldFile name: fileName, '#uzip'} ] ].
+		    baseDirectories: [ {(File name: fileName) zip} ] ].
 
 	packageFile refresh.
 	^packageFile
@@ -110,7 +110,7 @@ Kernel.PackageDirectories subclass: PackageFiles [
 	^(srcdirFile startsWith: builddirPrefix, Directory pathSeparatorString)
 	    ifFalse: [ {
 		"file is in srcdir."
-		(OldFile name: srcdirFile) parent.
+		(File name: srcdirFile) parent.
 		file parent } ]
 	    ifTrue: [ {
 		"file is in builddir."
@@ -131,7 +131,7 @@ Kernel.PackageDirectories subclass: PackageFiles [
     ]
 ]
 
-OldFile extend [
+File extend [
     emitZipDir: dir [
 	| saveDir |
 	self emitRemove.
@@ -155,7 +155,7 @@ OldFile extend [
 	| destFile |
 	('%1 -f %2 %3' % { Command symLink. self. dest }) displayNl.
 	Command execute: [
-	    destFile := OldFile name: dest.
+	    destFile := File name: dest.
 	    destFile exists ifTrue: [ destFile remove ].
 	    self symlinkAs: dest ].
     ]
@@ -163,7 +163,7 @@ OldFile extend [
     emitInstall: dest [
 	| destFile srcStream destStream mode |
 	mode := self isExecutable ifTrue: [ 8r755 ] ifFalse: [ 8r644 ].
-	destFile := OldFile name: dest.
+	destFile := File name: dest.
 	('%1 -m %2 %3 %4' % {
 	    Command install. self. mode printString: 8. destFile })
 		displayNl.
@@ -180,9 +180,7 @@ OldFile extend [
 		destFile mode: mode
 	    ].
     ]
-]
 
-OldFile extend [
     emitMkdir [
 	| doThat |
 	self exists ifTrue: [ ^self ].
@@ -230,7 +228,7 @@ Object subclass: Command [
 
     validateDestDir: destdir installDir: instDir [ 
 	instDir isNil ifTrue: [ ^self ].
-	((OldFile name: instDir) name ~= instDir
+	((File name: instDir) name ~= instDir
 	    and: [ destdir notEmpty ]) ifTrue: [
 		self error: '--destdir used with relative target directory' ]
     ]
@@ -238,8 +236,7 @@ Object subclass: Command [
     destDir: destdir installDir: instDir [
 	self validateDestDir: destdir installDir: instDir.
 	installDir :=
-	    OldFile name:
-	        destdir, (instDir ifNil: [ self defaultInstallDir ])
+	    File name: destdir, (instDir ifNil: [ self defaultInstallDir ])
     ]
 
     defaultInstallDir [ ^Directory image ]
@@ -272,7 +269,7 @@ Object subclass: Command [
 	source := self isOption: 'load'.
 	test := self isOption: 'test'.
 	base := self installDir.
-	vpathBase := OldFile name: self srcdir.
+	vpathBase := File name: self srcdir.
 
         listFiles do: [ :each || package files |
 	    package := self packages at: each.
@@ -313,7 +310,7 @@ Command subclass: PkgDist [
 	    autoconfName := destName, '.in'.
 	    (srcdir includes: autoconfName)
 		ifFalse: [
-		    self distribute: (OldFile name: each)
+		    self distribute: (File name: each)
 			as: destName
 			in: nil ] ]
     ]
@@ -393,7 +390,7 @@ Command subclass: PkgInstall [
     loadPackages [
 	"Call gst-load, needed because we added our code to the image."
 	| gstPackage execDir gstLoad pat packageList |
-	gstPackage := OldFile name: File executable.
+	gstPackage := File name: File executable.
 	gstPackage stripPath = 'gst-tool'
 	    ifTrue: [
 		gstLoad := gstPackage.
@@ -408,7 +405,7 @@ Command subclass: PkgInstall [
 
 	Smalltalk system: (pat % {
 	    gstLoad.
-	    OldFile name: File image.
+	    File name: File image.
 	    Directory kernel.
 	    (self isOption: 'test') ifTrue: [ '--test' ] ifFalse: [ '' ].
 	    packageList })
@@ -458,14 +455,14 @@ Command subclass: PkgInstall [
     runOnStar: aPackage [
 	| destFile |
 	destFile := self installDir nameAt: aPackage name, '.star'.
-	(OldFile name: aPackage starFileName) emitInstall: destFile.
+	(File name: aPackage starFileName) emitInstall: destFile.
     ]
 ]
 
 Command subclass: PkgUninstall [
     run [
         super run.
-        packages filesDo: [ :each | (OldFile name: each) emitRemove ]
+        packages filesDo: [ :each | (File name: each) emitRemove ]
     ]
 
     runOnPackage: aPackage [
@@ -517,11 +514,11 @@ Command subclass: PkgPrepare [
 	srcFile isNil ifTrue: [
 	    f := self srcdir / aCollection first.
             (File exists: f)
-	        ifTrue: [ srcFile := (OldFile name: self srcdir) pathTo: f ].
+	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ].
 
 	    f := f, '.in'.
             (File exists: f)
-	        ifTrue: [ srcFile := (OldFile name: self srcdir) pathTo: f ]
+	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ]
 	].
 
 	super addAllFiles: aCollection.
@@ -529,7 +526,7 @@ Command subclass: PkgPrepare [
 
     run [
         | base configureAC makefileAM gstIN |
-	base := OldFile name: self srcdir.
+	base := File name: self srcdir.
 	configureAC := base at: 'configure.ac'.
 	makefileAM := base at: 'Makefile.am'.
 	gstIN := base at: 'gst.in'.
@@ -592,13 +589,13 @@ AC_OUTPUT
     writeConfigureEntry: each to: ws [
 	| pkgName buildPath srcPath pkgSrcDir relPkgSrcDir generated |
 	buildPath := Directory working pathTo: each.
-	srcPath := (OldFile name: self srcdir) pathTo: each.
+	srcPath := (File name: self srcdir) pathTo: each.
 
 	pkgSrcDir := srcPath size < buildPath size
 	    ifTrue: [ File pathFor: srcPath ifNone: [ self srcdir ] ]
 	    ifFalse: [ Directory append: (File pathFor: buildPath) to: self srcdir ].
 
-	relPkgSrcDir := (OldFile name: self srcdir) pathTo: pkgSrcDir.
+	relPkgSrcDir := (File name: self srcdir) pathTo: pkgSrcDir.
 
 	('*.in' match: each)
 	    ifTrue: [
@@ -606,9 +603,9 @@ AC_OUTPUT
 		buildPath := buildPath allButLast: 3.
 		generated := true ]
 	    ifFalse: [
-		generated := (OldFile name: srcPath, '.in') exists ].
+		generated := (File name: srcPath, '.in') exists ].
 
-	(OldFile name: each) withReadStreamDo: [ :rs |
+	(File name: each) withReadStreamDo: [ :rs |
 	    | pkg |
 	    [ pkg := Package parse: rs ]
 	        on: Kernel.PackageNotAvailable
@@ -620,7 +617,7 @@ AC_OUTPUT
 
 	generated ifTrue: [
 	    ws nextPutAll: (', , , [%1]' % {
-		(OldFile name: relPkgSrcDir) pathTo: srcPath }) ].
+		(File name: relPkgSrcDir) pathTo: srcPath }) ].
 
 	ws nextPutAll: ')'; nl.
     ]
@@ -783,4 +780,4 @@ The default target directory is ', Directory image name, '
     do: [ :ex |
 	('gst-package: ', ex messageText, '
 ') displayOn: stderr.
-	"ex pass." ObjectMemory quit: 1 ].
+	ex pass. ObjectMemory quit: 1 ].

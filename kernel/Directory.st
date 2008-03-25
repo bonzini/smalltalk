@@ -57,35 +57,35 @@ virtual one).'>
 	"Answer the path to the user's home directory"
 
 	<category: 'reading system defaults'>
-	^OldFile name: (Smalltalk getenv: 'HOME')
+	^File name: (Smalltalk getenv: 'HOME')
     ]
 
     Directory class >> image [
 	"Answer the path to GNU Smalltalk's image file"
 
 	<category: 'reading system defaults'>
-	^OldFile name: ImageFilePath
+	^File name: ImageFilePath
     ]
 
     Directory class >> module [
 	"Answer the path to GNU Smalltalk's dynamically loaded modules"
 
 	<category: 'reading system defaults'>
-	^OldFile name: ModulePath
+	^File name: ModulePath
     ]
 
     Directory class >> libexec [
 	"Answer the path to GNU Smalltalk's auxiliary executables"
 
 	<category: 'reading system defaults'>
-	^OldFile name: LibexecPath
+	^File name: LibexecPath
     ]
 
     Directory class >> systemKernel [
 	"Answer the path to the installed Smalltalk kernel source files."
 
 	<category: 'reading system defaults'>
-	^OldFile name: SystemKernelPath
+	^File name: SystemKernelPath
     ]
 
     Directory class >> localKernel [
@@ -101,7 +101,7 @@ virtual one).'>
 	 Smalltalk are stored."
 
 	<category: 'reading system defaults'>
-	^OldFile name: UserFileBasePath
+	^File name: UserFileBasePath
     ]
 
     Directory class >> temporary [
@@ -110,13 +110,13 @@ virtual one).'>
 
 	<category: 'reading system defaults'>
 	| d |
-	(d := Smalltalk getenv: 'TMPDIR') isNil ifFalse: [^OldFile name: d].
-	(d := Smalltalk getenv: 'TEMP') isNil ifFalse: [^OldFile name: d].
+	(d := Smalltalk getenv: 'TMPDIR') isNil ifFalse: [^File name: d].
+	(d := Smalltalk getenv: 'TEMP') isNil ifFalse: [^File name: d].
 	(d := self home) isNil 
 	    ifFalse: 
 		[d := d / 'tmp'.
-		d isDirectory ifTrue: [^OldFile name: d]].
-	^OldFile name: '/tmp'
+		d isDirectory ifTrue: [^File name: d]].
+	^File name: '/tmp'
     ]
 
     Directory class >> kernel [
@@ -125,8 +125,8 @@ virtual one).'>
 
 	<category: 'reading system defaults'>
 	^KernelFilePath isNil
-	    ifTrue: [ OldFile name: SystemKernelPath ]
-	    ifFalse: [ OldFile name: KernelFilePath ]
+	    ifTrue: [ File name: SystemKernelPath ]
+	    ifFalse: [ File name: KernelFilePath ]
     ]
 
     Directory class >> append: fileName to: directory [
@@ -169,7 +169,7 @@ virtual one).'>
     Directory class >> working [
 	"Answer the current working directory, not following symlinks."
 	<category: 'file operations'>
-	^OldFile name: Directory workingName
+	^File name: Directory workingName
     ]
 
     Directory class >> workingName [
@@ -195,7 +195,7 @@ virtual one).'>
 	name := prefix asString , 'XXXXXX'.
 	self primCreateTemporary: name.
 	File checkError.
-	^OldFile name: name
+	^File name: name
     ]
 
     Directory class >> allFilesMatching: aPattern do: aBlock [
@@ -212,7 +212,7 @@ virtual one).'>
 	parent := File pathFor: dirName asString ifNone: ['.'].
 	handler := VFS.VFSHandler for: parent.
 	handler createDir: (File stripPathFrom: dirName).
-	^OldFile name: dirName
+	^File name: dirName
     ]
 
 ]

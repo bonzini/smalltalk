@@ -966,7 +966,7 @@ PackageInfo subclass: StarPackage [
 
     directory [
 	<category: 'accessing'>
-	^OldFile name: self fileName, '#uzip'
+	^(File name: self fileName) zip
     ]
 
     file [
@@ -993,7 +993,7 @@ PackageInfo subclass: StarPackage [
 	<category: 'accessing'>
 	| file package |
 	loadedPackage isNil ifFalse: [^loadedPackage].
-	package := self file , '#uzip/package.xml'
+	package := self file zip / 'package.xml'
 		withReadStreamDo: [ :fileStream | Package parse: fileStream].
 	package isNil 
 	    ifTrue: [^self error: 'invalid disabled-package tag inside a star file'].

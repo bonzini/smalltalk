@@ -641,12 +641,3 @@ size and timestamps.'>
     ]
 ]
 
-
-String extend [
-    / aName [
-	"Answer a File or Directory object as appropriate for a file named
-	 'aName' in the directory represented by the receiver."
-
-	^(OldFile name: self) at: aName
-    ]
-]
