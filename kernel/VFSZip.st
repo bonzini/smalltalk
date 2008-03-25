@@ -752,7 +752,7 @@ ArchiveMember subclass: TmpFileArchiveMember [
 	self file isNil ifTrue: [^aBlock value].
 	fileStream := file open: class mode: mode ifFail: [^aBlock value].
 	mode == FileStream read ifFalse: [fileStream addDependent: self].
-	fileStream setName: self asString.
+	fileStream setFile: self.
 	^fileStream
     ]
 
@@ -932,7 +932,7 @@ class for stored ZIP archive members, which are optimized.'>
 		    ifFail: [^aBlock value].
 	fileStream skip: self offset + 26.
 	fileStream skip: fileStream nextUshort + fileStream nextUshort.
-	fileStream setName: self asString.
+	fileStream setFile: self.
 	^LimitedStream 
 	    on: fileStream
 	    from: fileStream position
@@ -1065,6 +1065,28 @@ Stream subclass: LimitedStream [
 	<category: 'accessing'>
 	offset := anInteger
     ]
+
+    fileIn [
+        "File in the contents of the receiver.
+         During a file in operation, global variables (starting with an
+         uppercase letter) that are not declared don't yield an `unknown
+         variable' error. Instead, they are defined as nil in the `Undeclared'
+         dictionary (a global variable residing in Smalltalk).
+         As soon as you add the variable to a namespace (for example by creating
+         a class) the Association will be removed from Undeclared and reused
+         in the namespace, so that the old references will automagically point
+         to the new value."
+
+        <category: 'built ins'>
+        | pos |
+        stream isPipe ifTrue: [ ^super fileIn ].
+        ^self
+            fileInLine: 1
+            file: stream file full
+            fileName: stream name
+            at: self position
+    ]
+
 ]
 
 ]
