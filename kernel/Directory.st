@@ -32,7 +32,7 @@
 
 
 
-File subclass: Directory [
+Object subclass: Directory [
     
     <category: 'Streams-Files'>
     <comment: 'I am the counterpart of File in a tree-structured file system: I can
@@ -184,7 +184,7 @@ virtual one).'>
 
 	<category: 'file operations'>
 	self primWorking: dirName asString.
-	self checkError
+	File checkError
     ]
 
     Directory class >> createTemporary: prefix [
@@ -194,7 +194,7 @@ virtual one).'>
 	| name |
 	name := prefix asString , 'XXXXXX'.
 	self primCreateTemporary: name.
-	self checkError.
+	File checkError.
 	^File name: name
     ]
 
@@ -208,11 +208,7 @@ virtual one).'>
 	"Create a directory named dirName and answer it."
 
 	<category: 'file operations'>
-	| parent handler |
-	parent := File pathFor: dirName asString ifNone: ['.'].
-	handler := VFS.VFSHandler for: parent.
-	handler createDir: (File stripPathFrom: dirName).
-	^File name: dirName
+	^(File name: dirName) createDirectory
     ]
 
 ]

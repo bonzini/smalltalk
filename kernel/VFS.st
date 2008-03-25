@@ -1636,22 +1636,6 @@ ArchiveMemberHandler subclass: TmpFileArchiveMemberHandler [
 
 
 
-Namespace current: Kernel [
-
-Object subclass: Stat [
-    
-    | stMode stSize stAtime stMtime stCtime |
-    stMode [ ^stMode ]
-    stSize [ ^stSize ]
-    stAtime [ ^stAtime ]
-    stMtime [ ^stMtime ]
-    stCtime [ ^stCtime ]
-]
-
-]
-
-
-
 Eval [
     VFS.RealFileHandler initialize.
     VFS.DecodedFileHandler initialize.
