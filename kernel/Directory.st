@@ -208,11 +208,7 @@ virtual one).'>
 	"Create a directory named dirName and answer it."
 
 	<category: 'file operations'>
-	| parent handler |
-	parent := File pathFor: dirName asString ifNone: ['.'].
-	handler := VFS.VFSHandler for: parent.
-	handler createDir: (File stripPathFrom: dirName).
-	^File name: dirName
+	^(File name: dirName) createDirectory
     ]
 
 ]

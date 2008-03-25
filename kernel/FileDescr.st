@@ -131,8 +131,8 @@ do arbitrary processing on the files.'>
 	((fileName indexOfSubCollection: '://') > 0 
 	    and: [fileMode = FileStream read]) 
 		ifTrue: [^NetClients.URIResolver openStreamOn: fileName ifFail: aBlock ].
-	^(VFS.VFSHandler for: fileName asString) 
-	    open: self
+	^self
+	    fopen: fileName
 	    mode: fileMode
 	    ifFail: aBlock
     ]
