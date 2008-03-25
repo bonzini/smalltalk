@@ -35,14 +35,14 @@ Package extend [
     ]
 
     isStarPackageBody [
-	^'*.star#uzip' match: self baseDirectories first name
+	^self baseDirectories first isKindOf: VFS.ArchiveFile
     ]
 
     starFileName [
 	| dir |
 	self isStarPackageBody ifFalse: [ self halt ].
-	dir := self baseDirectories first.
-	^dir name allButLast: 5 ]
+	^self baseDirectories first asString
+    ]
 
     runCommand: aCommand [
 	self isStarPackageBody
@@ -89,7 +89,7 @@ Kernel.PackageDirectories subclass: PackageFiles [
 	    ifTrue: [
 		StarPackageFile
 		    on: file
-		    baseDirectories: [ {File name: fileName, '#uzip'} ] ].
+		    baseDirectories: [ {(File name: fileName) zip} ] ].
 
 	packageFile refresh.
 	^packageFile
@@ -180,9 +180,7 @@ File extend [
 		destFile mode: mode
 	    ].
     ]
-]
 
-File extend [
     emitMkdir [
 	| doThat |
 	self exists ifTrue: [ ^self ].
@@ -238,8 +236,7 @@ Object subclass: Command [
     destDir: destdir installDir: instDir [
 	self validateDestDir: destdir installDir: instDir.
 	installDir :=
-	    File name:
-	        destdir, (instDir ifNil: [ self defaultInstallDir ])
+	    File name: destdir, (instDir ifNil: [ self defaultInstallDir ])
     ]
 
     defaultInstallDir [ ^Directory image ]
@@ -596,7 +593,7 @@ AC_OUTPUT
 
 	pkgSrcDir := srcPath size < buildPath size
 	    ifTrue: [ File pathFor: srcPath ifNone: [ self srcdir ] ]
-	    ifFalse: [ Directory append: (File pathFor: buildPath) to: self srcdir ].
+	    ifFalse: [ File append: (File pathFor: buildPath) to: self srcdir ].
 
 	relPkgSrcDir := (File name: self srcdir) pathTo: pkgSrcDir.
 
@@ -783,4 +780,4 @@ The default target directory is ', Directory image name, '
     do: [ :ex |
 	('gst-package: ', ex messageText, '
 ') displayOn: stderr.
-	"ex pass." ObjectMemory quit: 1 ].
+	ex pass. ObjectMemory quit: 1 ].

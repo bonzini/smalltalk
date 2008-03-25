@@ -555,13 +555,13 @@ Object subclass: WAGNUSmalltalkPlatform [
 	must not include file names that start with ."
 	| directory |
 	directory := File name: aPathString.
-	^(directory entryNames
+	^(directory files
 		reject: [ :each | each first = $. ])
-		collect: [ :each | Directory append: each to: directory name ]
+		collect: [ :each | each asString ]
     ]
 
     localNameOf: aFilename [
-	^(File name: aFilename) name
+	^File fullNameFor: aFilename
     ]
 
     mimeDocumentClass [

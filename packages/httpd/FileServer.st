@@ -128,10 +128,9 @@ A DirectoryResponse formats output of the contents of a Directory object.'>
 
     sendFileProperties: each [
 	<category: 'response'>
-	| isDirectory choppedName name fullName subDirFile parent slash |
+	| isDirectory choppedName name subDirFile parent slash |
 	each = '.' ifTrue: [^self].
-	fullName := Directory append: each to: file name.
-	subDirFile := File name: fullName.
+	subDirFile := file / each.
 	subDirFile isReadable ifFalse: [^self].
 	isDirectory := subDirFile isDirectory.
 	choppedName := isDirectory 
@@ -775,7 +774,7 @@ and DirectoryResponses.'>
 	self indexFileNames do: 
 		[:each | 
 		| indexFile |
-		indexFile := File name: (Directory append: each to: aDirectory name).
+		indexFile := aDirectory / each.
 		indexFile isReadable 
 		    ifTrue: [^self fileResponse: indexFile request: aRequest]].
 	^nil

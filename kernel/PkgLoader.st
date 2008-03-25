@@ -819,13 +819,13 @@ XML.'>
     allFiles: prefix [
 	<category: 'private - subpackages'>
 	prefix isNil ifTrue: [^self allFiles].
-	^self allFiles collect: [:each | Directory append: each to: prefix]
+	^self allFiles collect: [:each | File append: each to: prefix]
     ]
 
     allDistFiles: prefix [
 	<category: 'private - subpackages'>
 	prefix isNil ifTrue: [^self allDistFiles].
-	^self allDistFiles collect: [:each | Directory append: each to: prefix]
+	^self allDistFiles collect: [:each | File append: each to: prefix]
     ]
 ]
 
@@ -966,7 +966,7 @@ PackageInfo subclass: StarPackage [
 
     directory [
 	<category: 'accessing'>
-	^File name: self fileName, '#uzip'
+	^(File name: self fileName) zip
     ]
 
     file [
@@ -993,7 +993,7 @@ PackageInfo subclass: StarPackage [
 	<category: 'accessing'>
 	| file package |
 	loadedPackage isNil ifFalse: [^loadedPackage].
-	package := self file , '#uzip/package.xml'
+	package := self file zip / 'package.xml'
 		withReadStreamDo: [ :fileStream | Package parse: fileStream].
 	package isNil 
 	    ifTrue: [^self error: 'invalid disabled-package tag inside a star file'].
@@ -1413,12 +1413,12 @@ that package.
     ]
 
     baseDirectories [
-	"Answer the namespace in which the package is loaded."
+	"Answer the directories in which package files are sought."
 
 	<category: 'accessing'>
 	^super baseDirectories ifNil: 
 		[owner baseDirectories 
-		    collect: [:each | Directory append: owner relativeDirectory to: each]]
+		    collect: [:each | each / owner relativeDirectory]]
     ]
 ]
 
