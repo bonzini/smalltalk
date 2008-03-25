@@ -123,14 +123,17 @@ Smalltalk-80 kernel; I am specific to the GNU Smalltalk implementation.'>
 	"Answer the File object for the file containing the segment"
 
 	<category: 'basic'>
-	^Directory kernel / file
+	| f |
+	f := file asFile.
+	f isRelative ifTrue: [ f := Directory kernel / file ].
+	^f
     ]
 
     fileName [
 	"Answer the name of the file containing the segment"
 
 	<category: 'basic'>
-	^self file name
+	^file asString
     ]
 
     filePos [

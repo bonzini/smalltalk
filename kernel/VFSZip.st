@@ -200,7 +200,7 @@ class for stored ZIP archive members, which are optimized.'>
 		    ifFail: [^aBlock value].
 	file skip: self offset + 26.
 	file skip: file nextUshort + file nextUshort.
-	file setName: self fullName.
+	file setFile: (File on: self).
 	^LimitedStream 
 	    on: file
 	    from: file position
@@ -334,6 +334,28 @@ Stream subclass: LimitedStream [
 	<category: 'accessing'>
 	offset := anInteger
     ]
+
+    fileIn [
+        "File in the contents of the receiver.
+         During a file in operation, global variables (starting with an
+         uppercase letter) that are not declared don't yield an `unknown
+         variable' error. Instead, they are defined as nil in the `Undeclared'
+         dictionary (a global variable residing in Smalltalk).
+         As soon as you add the variable to a namespace (for example by creating
+         a class) the Association will be removed from Undeclared and reused
+         in the namespace, so that the old references will automagically point
+         to the new value."
+
+        <category: 'built ins'>
+        | pos |
+        stream isPipe ifTrue: [ ^super fileIn ].
+        ^self
+            fileInLine: 1
+            file: stream file full
+            fileName: stream name
+            at: self position
+    ]
+
 ]
 
 ]

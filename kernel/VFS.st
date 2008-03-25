@@ -1616,7 +1616,7 @@ ArchiveMemberHandler subclass: TmpFileArchiveMemberHandler [
 		    mode: mode
 		    ifFail: [^aBlock value].
 	mode == FileStream read ifFalse: [fileStream addDependent: self].
-	fileStream setName: self fullName.
+	fileStream setFile: (File on: self).
 	^fileStream
     ]
 
