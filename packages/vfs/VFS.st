@@ -218,8 +218,8 @@ FilePath extend [
 	"Return a FilePath for the receiver, interpreted as an archive file
 	 of the given kind."
 	<category: 'factory'>
-	^(Kernel.ExternalArchiveFile on: self)
-	    command: (Kernel.ExternalArchiveFile commandFor: kind);
+	^(VFS.ExternalArchiveFile on: self)
+	    command: (VFS.ExternalArchiveFile commandFor: kind);
 	    yourself
     ]
 

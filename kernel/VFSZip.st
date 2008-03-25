@@ -29,7 +29,7 @@
 |
  ======================================================================"
 
-Namespace current: Kernel [
+Namespace current: VFS [
 
 FilePath subclass: FileWrapper [
     | file |
@@ -179,7 +179,7 @@ virtual files that refer to a real file on disk.'>
 ]
 
 
-Namespace current: Kernel [
+Namespace current: VFS [
 
 FileWrapper subclass: ArchiveFile [
     | tmpFiles topLevelFiles allFiles extractedFiles |
@@ -446,7 +446,7 @@ on them, to extract them to a real file, and so on.'>
 
 
 
-Namespace current: Kernel [
+Namespace current: VFS [
 
 FilePath subclass: ArchiveMember [
     | archive name mode size stCtime stMtime stAtime |
@@ -724,7 +724,7 @@ extracting files from an archive.'>
 
 
 
-Namespace current: Kernel [
+Namespace current: VFS [
 
 ArchiveMember subclass: TmpFileArchiveMember [
     | file |
@@ -776,7 +776,7 @@ ArchiveMember subclass: TmpFileArchiveMember [
 ]
 
 
-Namespace current: Kernel [
+Namespace current: VFS [
 
 ArchiveFile subclass: ZipFile [
     
@@ -901,7 +901,7 @@ files from a ZIP archive.'>
 
 
 
-Namespace current: Kernel [
+Namespace current: VFS [
 
 TmpFileArchiveMember subclass: StoredZipMember [
     | offset |
@@ -1095,6 +1095,6 @@ Stream subclass: LimitedStream [
 FilePath extend [
     zip [
         <category: 'virtual filesystems'>
-        ^Kernel.ZipFile on: self
+        ^VFS.ZipFile on: self
     ]
 ]

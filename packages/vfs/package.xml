@@ -1,6 +1,6 @@
 <package>
   <name>VFSAddOns</name>
-  <namespace>Kernel</namespace>
+  <namespace>VFS</namespace>
 
   <filein>VFS.st</filein>
   <file>VFS.st</file>
