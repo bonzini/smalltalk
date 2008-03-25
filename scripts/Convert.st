@@ -522,6 +522,6 @@ Options:
 		"TODO: don't do this on non-regular files.  It will make
 		 /dev/null disappear if you run gst-convert as root (which
 		 you shouldn't)."
-		[ (OldFile name: outFile name) remove ] on: Error do: [ :ex | ] ].
+		[ (File name: outFile name) remove ] on: Error do: [ :ex | ] ].
 	    "ex pass." ObjectMemory quit: 1 ].
 ]

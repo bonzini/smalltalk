@@ -525,7 +525,7 @@ Object subclass: WAGNUSmalltalkPlatform [
 
     contentsOfFile: aString binary: aBoolean [
 	| data |
-	data := (OldFile name: aString) contents.
+	data := (File name: aString) contents.
 	aBoolean ifTrue: [ data := data asByteArray ].
 	^data
     ]
@@ -554,14 +554,14 @@ Object subclass: WAGNUSmalltalkPlatform [
 	"Return a collection of absolute paths for all the files (no directories) in the directory given by aPathString
 	must not include file names that start with ."
 	| directory |
-	directory := OldFile name: aPathString.
-	^(directory entryNames
+	directory := File name: aPathString.
+	^(directory files
 		reject: [ :each | each first = $. ])
-		collect: [ :each | Directory append: each to: directory name ]
+		collect: [ :each | each asString ]
     ]
 
     localNameOf: aFilename [
-	^(OldFile name: aFilename) name
+	^File fullNameFor: aFilename
     ]
 
     mimeDocumentClass [
@@ -576,7 +576,7 @@ Object subclass: WAGNUSmalltalkPlatform [
 	| content mimeType |
 	mimeType := type ifNil: [
 		self mimeDocumentClass guessTypeFromExtension: (File extensionFor: aFilename) ].
-	content := (OldFile name: aFilename) contents.
+	content := (File name: aFilename) contents.
 	^self mimeDocumentClass
 		contentType: mimeType
 		content: content

@@ -819,13 +819,13 @@ XML.'>
     allFiles: prefix [
 	<category: 'private - subpackages'>
 	prefix isNil ifTrue: [^self allFiles].
-	^self allFiles collect: [:each | Directory append: each to: prefix]
+	^self allFiles collect: [:each | File append: each to: prefix]
     ]
 
     allDistFiles: prefix [
 	<category: 'private - subpackages'>
 	prefix isNil ifTrue: [^self allDistFiles].
-	^self allDistFiles collect: [:each | Directory append: each to: prefix]
+	^self allDistFiles collect: [:each | File append: each to: prefix]
     ]
 ]
 
@@ -1413,12 +1413,12 @@ that package.
     ]
 
     baseDirectories [
-	"Answer the namespace in which the package is loaded."
+	"Answer the directories in which package files are sought."
 
 	<category: 'accessing'>
 	^super baseDirectories ifNil: 
 		[owner baseDirectories 
-		    collect: [:each | Directory append: owner relativeDirectory to: each]]
+		    collect: [:each | each / owner relativeDirectory]]
     ]
 ]
 

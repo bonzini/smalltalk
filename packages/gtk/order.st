@@ -119,7 +119,7 @@ Object subclass: IncludesScanner [
 	| f name |
 	(aFile at: 1) == $/ 
 	    ifTrue: 
-		[f := OldFile name: aFile.
+		[f := File name: aFile.
 		f isReadable ifTrue: [^f]]
 	    ifFalse: 
 		[paths do: 

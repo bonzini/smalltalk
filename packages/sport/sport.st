@@ -723,7 +723,7 @@ Object subclass: SpFileStream [
 
 	<category: 'initialize-release'>
 	filename := aString.
-	underlyingStream := (OldFile name: aString) readStream.
+	underlyingStream := (File path: aString) readStream.
 	^self
     ]
 
@@ -778,8 +778,7 @@ Object subclass: SpFileStream [
 
 	<category: 'initialize-release'>
 	filename := aString.
-	underlyingStream := (OldFile name: aString) writeStream.
-	underlyingStream lineEndTransparent.
+	underlyingStream := (File path: aString) writeStream.
 	^self
     ]
 
@@ -849,14 +848,14 @@ Object subclass: SpFilename [
 
 	<category: 'accessing'>
 	| entry |
-	entry := OldFile name: self asString.
+	entry := File name: self asString.
 	^SpTimestamp fromSeconds: entry creationTime
     ]
 
     delete [
 	<category: 'services'>
 	| entry |
-	entry := OldFile name: self asString.
+	entry := File name: self asString.
 	entry remove
     ]
 
@@ -877,7 +876,7 @@ Object subclass: SpFilename [
 	 I return true if the file or direcotory I represent actually exists"
 
 	<category: 'testing'>
-	^(OldFile name: self asString) exists
+	^(File name: self asString) exists
     ]
 
     extension [
@@ -914,17 +913,17 @@ Object subclass: SpFilename [
 
     contentsOfEntireFile [
 	<category: 'testing'>
-	^(OldFile name: self asString) contents
+	^(File name: self asString) contents
     ]
 
     fileSize [
 	<category: 'testing'>
-	^(OldFile name: self asString) size
+	^(File name: self asString) size
     ]
 
     isDirectory [
 	<category: 'testing'>
-	^(OldFile name: self asString) isDirectory
+	^(File name: self asString) isDirectory
     ]
 
     isRelative [
@@ -946,7 +945,7 @@ Object subclass: SpFilename [
 
 	<category: 'accessing'>
 	| entry |
-	entry := OldFile name: self asString.
+	entry := File name: self asString.
 	^SpTimestamp fromSeconds: entry lastModifyTime
     ]
 

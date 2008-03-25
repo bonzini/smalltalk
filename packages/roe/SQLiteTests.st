@@ -68,6 +68,6 @@ RATestSemantics subclass: RATestSQLiteSemantics [
 	<category: 'private'>
 	self connection do: 'rollback'.
 	self connection close.
-	(OldFile name: connection database) remove
+	(File name: connection database) remove
     ]
 ]

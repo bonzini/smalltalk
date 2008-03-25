@@ -593,7 +593,7 @@ AC_OUTPUT
 
 	pkgSrcDir := srcPath size < buildPath size
 	    ifTrue: [ File pathFor: srcPath ifNone: [ self srcdir ] ]
-	    ifFalse: [ Directory append: (File pathFor: buildPath) to: self srcdir ].
+	    ifFalse: [ File append: (File pathFor: buildPath) to: self srcdir ].
 
 	relPkgSrcDir := (File name: self srcdir) pathTo: pkgSrcDir.
 
