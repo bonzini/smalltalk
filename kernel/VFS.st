@@ -61,6 +61,20 @@ virtual files that refer to a real file on disk.'>
 	^self new file: file
     ]
 
+    = aFile [
+	"Answer whether the receiver represents the same file as the receiver."
+
+	<category: 'basic'>
+	^self class == aFile class and: [ self file = aFile file ]
+    ]
+
+    hash [
+	"Answer a hash value for the receiver."
+
+	<category: 'basic'>
+	^self file hash
+    ]
+
     asString [
 	"Answer the container file containing me."
 	<category: 'accessing'>
@@ -455,6 +469,21 @@ FilePath subclass: ArchiveMember [
     <comment: 'TmpFileArchiveMember is a handler
 class for members of archive files that creates temporary files when
 extracting files from an archive.'>
+
+    = aFile [
+	"Answer whether the receiver represents the same file as the receiver."
+
+	<category: 'basic'>
+	^self class == aFile class and: [ self archive = aFile archive
+	    and: [ self name = aFile name ] ]
+    ]
+
+    hash [
+	"Answer a hash value for the receiver."
+
+	<category: 'basic'>
+	^self archive hash bitXor: self name hash
+    ]
 
     archive: anArchiveFile [
 	"Set the archive of which the receiver is a member."

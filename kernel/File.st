@@ -186,6 +186,20 @@ FilePath subclass: File [
 	^self path: ImageFileName
     ]
 
+    = aFile [
+	"Answer whether the receiver represents the same file as the receiver."
+
+	<category: 'basic'>
+	^self class == aFile class and: [ self asString = aFile asString ]
+    ]
+
+    hash [
+	"Answer a hash value for the receiver."
+
+	<category: 'basic'>
+	^self asString hash
+    ]
+
     lstatOn: fileName into: statStruct [
 	<category: 'private-C call-outs'>
 	<cCall: 'lstat_obj' returning: #int args: #(#string #smalltalk)>
