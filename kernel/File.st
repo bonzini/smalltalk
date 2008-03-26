@@ -588,20 +588,22 @@ FilePath subclass: File [
 	^File pathFrom: (self / 'somefile') asString to: destName asString.
     ]
 
+    full [
+	"Answer the full name of the receiver, resolving the `.' and
+	 `..' directory entries, and answer the result.  Answer nil if the
+	 name is invalid (such as '/usr/../../badname')"
+
+	<category: 'file name management'>
+	self isAbsolute ifTrue: [ ^self ].
+	^self class path: (File fullNameFor: self name)
+    ]
+
     at: aString [
 	"Answer a File or Directory object as appropriate for a file named
 	 'aName' in the directory represented by the receiver."
 
 	<category: 'accessing'>
 	^self class path: (self nameAt: aString asString)
-    ]
-
-    nameAt: aString [
-	"Answer a File or Directory object as appropriate for a file named
-	 'aName' in the directory represented by the receiver."
-
-	<category: 'accessing'>
-	^Directory append: aString to: self asString
     ]
 
     init: aString [

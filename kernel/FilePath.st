@@ -271,13 +271,6 @@ size and timestamps.'>
 	    nextPut: $>
     ]
 
-    , aName [
-	"Answer an object of the same kind as the receiver, whose name
-	 is suffixed with aName."
-
-	^self class path: self name, aName
-    ]
-
     mode [
 	"Answer the permission bits for the file identified by the receiver"
 
@@ -483,8 +476,7 @@ size and timestamps.'>
 	 name is invalid (such as '/usr/../../badname')"
 
 	<category: 'file name management'>
-	self isAbsolute ifTrue: [ ^self ].
-	^self class path: (File fullNameFor: self name)
+	self subclassResponsibility
     ]
 
     contents [
@@ -779,12 +771,12 @@ size and timestamps.'>
 	    (aPattern match: name) ifTrue: [block value: (self at: name)]]
     ]
 
-    nameAt: aString [
-        "Answer a FilePath for a file named `aName' residing in the directory
-         represented by the receiver."
+    nameAt: aName [
+	"Answer a FilePath for a file named `aName' residing in the directory
+	 represented by the receiver."
 
-        <category: 'directory operations'>
-        ^aString
+	<category: 'directory operations'>
+	^File append: aName to: self asString
     ]
 
     namesMatching: aPattern do: block [

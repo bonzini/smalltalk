@@ -251,6 +251,14 @@ on them, to extract them to a real file, and so on.'>
 		    archive: self]
     ]
 
+    nameAt: aString [
+        "Answer a FilePath for a file named `aName' residing in the directory
+         represented by the receiver."
+
+        <category: 'directory operations'>
+        ^aString
+    ]
+
     namesDo: aBlock [
 	"Evaluate aBlock once for each file in the directory represented by the
 	 receiver, passing its name."
@@ -730,14 +738,21 @@ extracting files from an archive.'>
 	 represented by the receiver."
 
 	<category: 'directory operations'>
-	^self archive at: (Directory append: aName to: self name)
+	^self archive at: (File append: aName to: self name)
+    ]
+
+    , aName [
+	"Answer an object of the same kind as the receiver, whose name
+	 is suffixed with aName."
+
+	^self archive at: (self name, aName)
     ]
 
     createDirectory: dirName [
 	"Create a subdirectory of the receiver, naming it dirName."
 
 	<category: 'directory operations'>
-	self archive createDirectory: (Directory append: dirName to: self name)
+	self archive createDirectory: (File append: dirName to: self name)
     ]
 
     namesDo: aBlock [
