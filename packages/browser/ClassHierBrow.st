@@ -600,7 +600,6 @@ GuiData subclass: ClassHierarchyBrowser [
 
 		fileoutDir := Directory image name , '/'.
 		home := Directory home name.
-		home = '.' ifTrue: [home := Directory working name].
 		home isEmpty 
 		    ifFalse: 
 			[fileoutDir size < home size ifTrue: [^fileoutDir := home , '/'].

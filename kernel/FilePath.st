@@ -448,6 +448,13 @@ size and timestamps.'>
 	^File stripPathFrom: self name
     ]
 
+    directory [
+	"Answer the Directory object for the receiver's path"
+
+	<category: 'file name management'>
+	^self parent
+    ]
+
     parent [
 	"Answer the Directory object for the receiver's path"
 

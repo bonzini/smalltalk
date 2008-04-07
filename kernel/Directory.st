@@ -71,6 +71,7 @@ virtual one).'>
 	"Answer the path to GNU Smalltalk's dynamically loaded modules"
 
 	<category: 'reading system defaults'>
+	ModulePath isNil ifTrue:[ ^nil ].
 	^File name: ModulePath
     ]
 
@@ -78,6 +79,7 @@ virtual one).'>
 	"Answer the path to GNU Smalltalk's auxiliary executables"
 
 	<category: 'reading system defaults'>
+	LibexecPath isNil ifTrue:[ ^nil ].
 	^File name: LibexecPath
     ]
 
@@ -85,6 +87,7 @@ virtual one).'>
 	"Answer the path to the installed Smalltalk kernel source files."
 
 	<category: 'reading system defaults'>
+	SystemKernelPath isNil ifTrue:[ ^nil ].
 	^File name: SystemKernelPath
     ]
 

@@ -390,7 +390,7 @@ Command subclass: PkgInstall [
     loadPackages [
 	"Call gst-load, needed because we added our code to the image."
 	| gstPackage execDir gstLoad pat packageList |
-	gstPackage := File name: File executable.
+	gstPackage := File executable.
 	gstPackage stripPath = 'gst-tool'
 	    ifTrue: [
 		gstLoad := gstPackage.
@@ -405,7 +405,7 @@ Command subclass: PkgInstall [
 
 	Smalltalk system: (pat % {
 	    gstLoad.
-	    File name: File image.
+	    File image.
 	    Directory kernel.
 	    (self isOption: 'test') ifTrue: [ '--test' ] ifFalse: [ '' ].
 	    packageList })
@@ -780,4 +780,4 @@ The default target directory is ', Directory image name, '
     do: [ :ex |
 	('gst-package: ', ex messageText, '
 ') displayOn: stderr.
-	ex pass. ObjectMemory quit: 1 ].
+	"ex pass." ObjectMemory quit: 1 ].
