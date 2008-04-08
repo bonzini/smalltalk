@@ -22,7 +22,10 @@
 
   <test>
    <sunit>STInST.Tests.TestStandardRewrites</sunit>
+   <sunit>STInST.Tests.TestTwistedPools</sunit>
+   <sunit>STInST.Tests.TestClassicPools</sunit>
    <filein>RewriteTests.st</filein>
+   <filein>PoolResolutionTests.st</filein>
   </test>
 
 
