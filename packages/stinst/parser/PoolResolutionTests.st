@@ -84,7 +84,7 @@ TestCase subclass: TestTwistedPools [
     setUp [
 	foo := TwistedPools of: MyLibrary.Foo.
 	bar := TwistedPools of: MyLibrary.Bar.
-	baz := TwistedPools of: MyProject.MyLibrary.Baz.
+	baz := TwistedPools of: MyProject.MyLibWrapper.Baz.
     ]
 
     testClassPoolFirst [
@@ -118,7 +118,7 @@ TestCase subclass: TestClassicPools [
     setUp [
 	foo := ClassicPools of: MyLibrary.Foo.
 	bar := ClassicPools of: MyLibrary.Bar.
-	baz := ClassicPools of: MyProject.MyLibrary.Baz.
+	baz := ClassicPools of: MyProject.MyLibWrapper.Baz.
     ]
 
     testNamespaceFirst [
@@ -132,7 +132,7 @@ TestCase subclass: TestClassicPools [
     ]
 
     testLongNamespaceWalk [
-	self assertVariable: #Exception of: baz is: Exception
+	self assertVariable: #Exception of: baz is: #Exception
 	     description: 'namespace walked before moving to superclass'.
 	self assertVariable: #ValueAdaptor of: baz is: ValueAdaptor
 	     description: 'and again'.

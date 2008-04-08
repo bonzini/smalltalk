@@ -533,7 +533,7 @@ PoolResolution.'>
 	"Implement the twisted pool search for a real class.  See
 	 class comment."
 	<category: 'private'>
-	| withSuperspaces nextSuperspaces |
+	| withSuperspaces nextSuperspaces isCommonSpace |
 	"build with a single inheritance walk"
 	class withAllSuperclassesDo: [:class |
 	    class classPool isEmpty ifFalse: [pools add: class classPool].
@@ -542,10 +542,12 @@ PoolResolution.'>
 		  reject: [:pool | withSuperspaces identityIncludes: pool])
 		do: [:pool | pools add: pool].
 	    "only take spaces that aren't in the superclass's spaces"
-	    nextSuperspaces :=
-		class superclass environment withAllSuperspaces asSet.
-	    self addPoolsLast: withSuperspaces
-		 until: [:space | nextSuperspaces includes: space]].
+	    isCommonSpace := class superclass ifNil: [[:space | false]]
+                ifNotNil: [:superclass |
+		    nextSuperspaces :=
+			superclass environment withAllSuperspaces asSet.
+	            [:space | nextSuperspaces includes: space]].
+	    self addPoolsLast: withSuperspaces until: isCommonSpace]
     ]
 
     addPoolsLast: newPools until: invPredicate [
