@@ -29,11 +29,16 @@
 |
  ======================================================================"
 
+Eval [
+    Tests addSubspace: #MyLibrary; addSubspace: #MyProject.
+    MyProject addSubspace: #MyLibWrapper.
+]
+
 Namespace current: STInST.Tests.MyLibrary [
 
 Eval [
     MyLibrary at: #StandardOverrides put:
-        (BindingDictionary from: {#Scape -> 42});
+        (Dictionary from: {#Scape -> 42});
 	at: #ValueAdaptor put: 9994
 ]
 

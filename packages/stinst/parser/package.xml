@@ -35,6 +35,7 @@
   <file>RBParser.st</file>
   <file>RBToken.st</file>
   <file>OrderedSet.st</file>
+  <file>PoolResolutionTests.st</file>
   <file>STCompLit.st</file>
   <file>STCompiler.st</file>
   <file>STDecompiler.st</file>
