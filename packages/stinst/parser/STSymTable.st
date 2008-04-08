@@ -387,6 +387,236 @@ Object subclass: STSymbolTable [
 
 
 
+Object subclass: PoolResolution [
+    <comment: 'I resolve names into shared pool bindings on behalf of
+an STSymbolTable.  I can be configured separately for each class, for
+use compiling methods for that class.'>
+
+    PoolResolution class >> of: aBehavior [
+	| instance |
+	instance := self new.
+	instance declareEnvironment:
+	    (instance canonicalizeBehavior: aBehavior).
+	^instance
+    ]
+
+    addClassLast: aClass [
+	"As with #addPoolLast:, but for a class instead.  Also as with
+	 #addPoolLast:, it often makes sense to replace this
+	 implementation with your own."
+	| addedPool |
+	<category: 'overriding'>
+	addedPool := self addPoolLast: aClass classPool.
+	aClass sharedPools each: [:sp | self addPoolLast: sp]
+	aClass allSuperclassesDo: [:class |
+	    self addPoolLast: class classPool.
+	    class sharedPools each: [:sp | self addPoolLast: sp]]
+	^addedPool
+    ]
+
+    addPoolLast: poolDictionary [
+	"If it is sensible, add poolDictionary to the end of my pool
+	 search order, setting aside whatever standards I usually use
+	 to determine the search order.	 Answer whether the pool can
+	 now be considered to be included in my search order.
+
+	 My implementation does nothing; you must override it if you
+	 want it."
+	<category: 'overriding'>
+	^false
+    ]
+
+    declareEnvironment: aBehavior [
+	"Import aBehavior as the direct class that will contain the
+	 method I am helping to compile.  I expect to be sent before
+	 anything else in my API."
+	<category: 'initializing'>
+	^self subclassResponsibility
+    ]
+
+    canonicalizeBehavior: aBehavior [
+	"Map aBehavior to something sensible for #declareEnvironment:.
+	 By default, unmeta and then search the inheritance for a real
+	 class.  If no real class is found, answer nil."
+	| behavior |
+	behavior := aBehavior.
+	behavior isMetaclass ifTrue: [behavior := behavior instanceClass].
+	[behavior isClass] whileFalse:
+	    [behavior := behavior superclass.
+	     behavior isNil ifTrue: [^nil]].
+	^behavior
+    ]
+
+    lookupBindingOf: symbol [
+	"Answer an Association for the symbol, to be #value-d to
+	 resolve the variable at evaluation time, or nil if none can
+	 be found."
+	<category: 'accessing'>
+	^self subclassResponsibility
+    ]
+]
+
+
+
+PoolResolution subclass: ClassicPools [
+    | pools |
+    <comment: 'I provide shared pool variable resolution as it was
+before the PoolResolution hierarchy was added, and TwistedPools became
+default.'>
+
+    addPoolLast: poolDictionary [
+	"Add poolDictionary and all superspaces to the end of the
+	 search order.	Always succeed."
+	<category: 'accessing'>
+	pools addAll: poolDictionary withAllSuperspaces.
+	^true
+    ]
+
+    lookupBindingOf: symbol [
+	"Search all pools in order (see super comment)."
+	<category: 'accessing'>
+	pools do: [:pool |
+	    (pool associationAt: symbol ifAbsent: [nil])
+		ifNotNil: [:assoc | ^assoc]].
+	^nil
+    ]
+
+    declareEnvironment: aBehavior [
+	| behavior |
+	<category: 'initializing'>
+	pools := OrderedSet identityNew: 7.
+	aBehavior ifNil: [^nil].
+	behavior := aBehavior.
+	"add all namespaces, class pools, and shared pools"
+	behavior withAllSuperclassesDo: [:class |
+	    self addPoolLast: class environment.
+	    class classPool isEmpty ifFalse: [pools add: class classPool]].
+	behavior withAllSuperclassesDo: [:class |
+	    class sharedPoolDictionaries ifNotNil: [:dicts |
+		dicts do: [:sp | self addPoolLast: sp]]].
+    ]
+]
+
+
+
+PoolResolution subclass: TwistedPools [
+    | pools herePools |
+    <comment: 'I provide a "namespace is application" oriented method
+of shared pool searching, intended to be more intuitive for those who
+expect things to be found in their own namespace first.	 This is more
+fully explained by my implementation, or at GNU Smalltalk wiki page
+PoolResolution.'>
+
+    addPoolLast: poolDictionary [
+	"Add poolDictionary and all superspaces to the end of the
+	 search order.	Always succeed."
+	<category: 'accessing'>
+	herePools := nil.
+	pools addAll: poolDictionary withAllSuperspaces.
+	^true
+    ]
+
+    lookupBindingOf: symbol [
+	"Search all pools in order (see super comment)."
+	<category: 'accessing'>
+	herePools isNil ifTrue: [herePools := pools collect: [:pool |
+	    HereAssociator around: pool]].
+	herePools do: [:pool |
+	    (pool associationAt: symbol ifAbsent: [nil])
+		ifNotNil: [:assoc | ^assoc]].
+	^nil
+    ]
+
+    declareEnvironment: aBehavior [
+	<category: 'initializing'>
+	pools := OrderedSet identityNew: 7.
+	aBehavior ifNil: [^nil].
+	self addTwistedPools: aBehavior.
+    ]
+
+    addTwistedPools: class [
+	"Implement the twisted pool search for a real class.  See
+	 class comment."
+	| withSuperspaces nextSuperspaces |
+	<category: 'private'>
+	"build with a single inheritance walk"
+	class withAllSuperclassesDo: [:class |
+	    class classPool isEmpty ifFalse: [pools add: class classPool].
+	    withSuperspaces := class environment withAllSuperspaces.
+	    (self combineInheritablePools: class sharedPools
+		  reject: [:pool | withSuperspaces identityIncludes: pool])
+		do: [:pool | pools add: pool].
+	    "only take spaces that aren't in the superclass's spaces"
+	    nextSuperspaces :=
+		class superclass environment withAllSuperspaces asSet.
+	    self addPoolsLast: withSuperspaces
+		 until: [:space | nextSuperspaces includes: space]].
+    ]
+
+    addPoolsLast: newPools until: invPredicate [
+	<category: 'private'>
+	newPools do: [:pool |
+	    (invPredicate value: pool) ifTrue: [^newPools].
+	    pools add: pool].
+	^newPools
+    ]
+
+    combineInheritablePools: list reject: invPredicate [
+	"Answer the result of combining the list of pools using a
+	 topological sort, preferring dependent to prerequisite, and
+	 then left to right.  Any pool that passes invPredicate will
+	 not be answered."
+	| visitState order descend |
+	<category: 'private'>
+	visitState := IdentityDictionary new: list size.
+	order := OrderedCollection new: list size.
+	descend := [:pool | | state |
+	    state := visitState at: pool ifAbsent: [nil].
+	    #visiting == state ifTrue:
+		[SystemExceptions.InvalidValue
+		     signalOn: list
+		     reason: 'includes circular dependency'].
+	    (state isNil and: [(invPredicate value: pool) not]) ifTrue:
+		[visitState at: pool put: #visiting.
+		 "#allSuperspaces is not available on all pools"
+		 pool withAllSuperspaces allButFirst reverseDo: descend.
+		 order addFirst: pool.
+		 visitState at: pool put: #visited]].
+	list reverseDo: descend.
+	^order
+    ]
+]
+
+
+
+Object subclass: HereAssociator [
+    | namespace hasSupers |
+
+    <comment: 'I exist purely to help TwistedPools, and am not meant
+to make sense as a good independent protocol, even though I borrow
+from dictionaries.'>
+
+    HereAssociator class >> around: namespace [
+	<category: 'methods for TwistedPools'>
+	^self new init: namespace; yourself
+    ]
+
+    init: aNamespace [
+	<category: 'methods for TwistedPools'>
+	namespace := aNamespace.
+	hasSupers := aNamespace withAllSuperspaces size > 1.
+    ]
+
+    associationAt: key ifAbsent: block [
+	<category: 'methods for TwistedPools'>
+	^(hasSupers not or: [namespace definesKey: key])
+	    ifTrue: [namespace associationAt: key ifAbsent: block]
+	    ifFalse: block
+    ]
+]
+
+
+
 Eval [
     STSymbolTable initialize
 ]
