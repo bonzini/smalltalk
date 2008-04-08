@@ -401,10 +401,10 @@ use compiling methods for that class.'>
 	<category: 'overriding'>
 	| addedPool |
 	addedPool := self addPoolLast: aClass classPool.
-	aClass sharedPools each: [:sp | self addPoolLast: sp]
+	aClass sharedPoolDictionaries each: [:sp | self addPoolLast: sp].
 	aClass allSuperclassesDo: [:class |
 	    self addPoolLast: class classPool.
-	    class sharedPools each: [:sp | self addPoolLast: sp]]
+	    class sharedPoolDictionaries each: [:sp | self addPoolLast: sp]].
 	^addedPool
     ]
 
@@ -538,7 +538,7 @@ PoolResolution.'>
 	class withAllSuperclassesDo: [:class |
 	    class classPool isEmpty ifFalse: [pools add: class classPool].
 	    withSuperspaces := class environment withAllSuperspaces.
-	    (self combineInheritablePools: class sharedPools
+	    (self combineInheritablePools: class sharedPoolDictionaries
 		  reject: [:pool | withSuperspaces identityIncludes: pool])
 		do: [:pool | pools add: pool].
 	    "only take spaces that aren't in the superclass's spaces"
