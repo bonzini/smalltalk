@@ -155,7 +155,7 @@ Object subclass: STSymbolTable [
 
     addPool: poolDictionary [
 	<category: 'declaring'>
-	pools addAll: poolDictionary withAllSuperspaces
+	pools addPoolLast: poolDictionary
     ]
 
     declareEnvironment: aBehavior [
@@ -180,23 +180,7 @@ Object subclass: STSymbolTable [
 
     declareGlobals [
 	<category: 'declaring'>
-	| behavior |
-	behavior := environment.
-
-	"Find a suitable Class object from the given behavior"
-	behavior isMetaclass ifTrue: [behavior := behavior instanceClass].
-	[behavior isClass] whileFalse: 
-		[behavior := behavior superclass.
-		behavior isNil ifTrue: [^self]].
-	behavior withAllSuperclassesDo: 
-		[:class | 
-		self addPool: class environment.
-		class classPool isEmpty ifFalse: [pools add: class classPool]].
-	behavior withAllSuperclassesDo: 
-		[:class | 
-		| dicts |
-		dicts := class sharedPoolDictionaries.
-		dicts isNil ifFalse: [dicts do: [:sp | self addPool: sp]]]
+	pools := environment poolResolution of: environment.
     ]
 
     declareTemporary: tempName canStore: canStore for: stCompiler [
@@ -314,12 +298,7 @@ Object subclass: STSymbolTable [
 
     lookupPoolsFor: symbol [
 	<category: 'accessing'>
-	pools do: 
-		[:pool | 
-		| assoc |
-		assoc := pool associationAt: symbol ifAbsent: [nil].
-		assoc isNil ifFalse: [^assoc]].
-	^nil
+	^pools lookupBindingOf: symbol
     ]
 
     lookupBindingOf: symbol [
@@ -369,7 +348,6 @@ Object subclass: STSymbolTable [
 	instVars := Dictionary new: 7.
 	scopeVariables := OrderedCollection new: 5.
 	scopes := OrderedCollection new: 5.
-	pools := OrderedSet identityNew: 7.
 	tempCount := 0
     ]
 
@@ -392,7 +370,23 @@ Object subclass: PoolResolution [
 an STSymbolTable.  I can be configured separately for each class, for
 use compiling methods for that class.'>
 
+    Current := nil.
+    
+    PoolResolution class >> current [
+	"Answer the resolution class used by the default
+	 implementation of #poolResolution on classes."
+	^Current
+    ]
+    
+    PoolResolution class >> current: aPoolResolutionClass [
+	"Set the value answered by #current."
+	^Current := aPoolResolutionClass
+    ]
+
     PoolResolution class >> of: aBehavior [
+	"Build a resolution for aBehavior using #declareEnvironment:
+	 and #canonicalizeBehavior:."
+	<category: 'instance creation'>
 	| instance |
 	instance := self new.
 	instance declareEnvironment:
@@ -404,8 +398,8 @@ use compiling methods for that class.'>
 	"As with #addPoolLast:, but for a class instead.  Also as with
 	 #addPoolLast:, it often makes sense to replace this
 	 implementation with your own."
-	| addedPool |
 	<category: 'overriding'>
+	| addedPool |
 	addedPool := self addPoolLast: aClass classPool.
 	aClass sharedPools each: [:sp | self addPoolLast: sp]
 	aClass allSuperclassesDo: [:class |
@@ -438,6 +432,7 @@ use compiling methods for that class.'>
 	"Map aBehavior to something sensible for #declareEnvironment:.
 	 By default, unmeta and then search the inheritance for a real
 	 class.  If no real class is found, answer nil."
+	<category: 'overriding'>
 	| behavior |
 	behavior := aBehavior.
 	behavior isMetaclass ifTrue: [behavior := behavior instanceClass].
@@ -482,8 +477,8 @@ default.'>
     ]
 
     declareEnvironment: aBehavior [
-	| behavior |
 	<category: 'initializing'>
+	| behavior |
 	pools := OrderedSet identityNew: 7.
 	aBehavior ifNil: [^nil].
 	behavior := aBehavior.
@@ -537,8 +532,8 @@ PoolResolution.'>
     addTwistedPools: class [
 	"Implement the twisted pool search for a real class.  See
 	 class comment."
-	| withSuperspaces nextSuperspaces |
 	<category: 'private'>
+	| withSuperspaces nextSuperspaces |
 	"build with a single inheritance walk"
 	class withAllSuperclassesDo: [:class |
 	    class classPool isEmpty ifFalse: [pools add: class classPool].
@@ -566,8 +561,8 @@ PoolResolution.'>
 	 topological sort, preferring dependent to prerequisite, and
 	 then left to right.  Any pool that passes invPredicate will
 	 not be answered."
-	| visitState order descend |
 	<category: 'private'>
+	| visitState order descend |
 	visitState := IdentityDictionary new: list size.
 	order := OrderedCollection new: list size.
 	descend := [:pool | | state |
@@ -617,7 +612,28 @@ from dictionaries.'>
 
 
 
+Behavior extend [
+    poolResolution [
+	"Answer a PoolResolution class to be used for resolving pool
+	 variables while compiling methods on this class."
+	<category: 'compiling methods'>
+	^STInST.PoolResolution current
+    ]
+]
+    
+    
+Metaclass extend [
+    poolResolution [
+	"Use my instance's poolResolution."
+	<category: 'compiling methods'>
+	^self instanceClass poolResolution
+    ]
+]
+
+
+
 Eval [
-    STSymbolTable initialize
+    STSymbolTable initialize.
+    PoolResolution current: TwistedPools.
 ]
 
