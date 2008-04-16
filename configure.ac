@@ -387,6 +387,28 @@ GST_PACKAGE_ENABLE([NCurses],
   [ac_cv_lib_ncurses_initscr])
 GST_PACKAGE_ENABLE([NetClients], [net])
 GST_PACKAGE_ENABLE([DhbNumericalMethods], [numerics])
+GST_PACKAGE_ENABLE([LibSDL], [sdl/libsdl],
+  [GST_HAVE_LIB(SDL, SDL_Init)],
+  [ac_cv_lib_SDL_SDL_Init])
+GST_PACKAGE_ENABLE([LibSDL_image], [sdl/libsdl_image],
+  [GST_HAVE_LIB(SDL_image, IMG_Linked_Version)],
+  [ac_cv_lib_SDL_image_IMG_Linked_Version])
+GST_PACKAGE_ENABLE([LibSDL_console], [sdl/libsdl_console],
+  [GST_HAVE_LIB(SDL_console, CON_Events)],
+  [ac_cv_lib_SDL_console_CON_Events])
+GST_PACKAGE_ENABLE([LibSDL_gfx], [sdl/libsdl_gfx],
+  [GST_HAVE_LIB(SDL_gfx, SDL_initFramerate)],
+  [ac_cv_lib_SDL_gfx_SDL_initFramerate])
+GST_PACKAGE_ENABLE([LibSDL_mixer], [sdl/libsdl_mixer],
+  [GST_HAVE_LIB(SDL_mixer, Mix_Linked_Version)],
+  [ac_cv_lib_SDL_mixer_Mix_Linked_Version])
+GST_PACKAGE_ENABLE([LibSDL_sound], [sdl/libsdl_sound],
+  [GST_HAVE_LIB(SDL_sound, Sound_GetLinkedVersion)],
+  [ac_cv_lib_SDL_sound_Sound_GetLinkedVersion])
+GST_PACKAGE_ENABLE([LibSDL_ttf], [sdl/libsdl_ttf],
+  [GST_HAVE_LIB(SDL_ttf, TTF_Init)],
+  [ac_cv_lib_SDL_ttf_TTF_Init])
+
 GST_PACKAGE_ENABLE([Compiler], [stinst/compiler])
 GST_PACKAGE_ENABLE([Parser], [stinst/parser])
 GST_PACKAGE_ENABLE([ClassPublisher], [stinst/doc])

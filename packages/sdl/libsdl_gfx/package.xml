@@ -1,0 +1,16 @@
+<package>
+  <name>LibSDL_gfx</name>
+  <namespace>SDL</namespace>
+
+  <filein>SDL_framerate.st</filein>
+  <filein>SDL_gfxPrimitives.st</filein>
+  <filein>SDL_imageFilter.st</filein>
+  <filein>SDL_rotozoom.st</filein>
+
+  <library>libSDL_gfx</library>
+
+  <file>SDL_framerate.st</file>
+  <file>SDL_gfxPrimitives.st</file>
+  <file>SDL_imageFilter.st</file>
+  <file>SDL_rotozoom.st</file>
+</package>
