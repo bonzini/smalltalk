@@ -71,6 +71,30 @@ sdlInitEverything
 
 !Sdl class methodsFor: 'C call-outs'!
 
+sdlForkEventLoop: aBlock
+    "Execute aBlock within an SDL event loop.  Returns only when
+     #sdlStopEventLoop is called, but forks aBlock in a separate Smalltalk
+     process."
+
+    | s |
+    s := Semaphore new.
+    self sdlStartEventLoop: [
+	[aBlock ensure: [s signal]] fork].
+    s wait!
+
+sdlStartEventLoop: aBlock
+    "Execute aBlock within an SDL event loop.  Returns only #sdlStopEventLoop
+     is called, but calls aBlock."
+
+    <cCall: 'SDL_StartEventLoop' returning: #void 
+        args: #( #smalltalk )>!
+
+sdlStopEventLoop
+    "Tell SDL to stop the event loop."
+
+    <cCall: 'SDL_StopEventLoop' returning: #void 
+        args: #( )>!
+
 sdlInit: aUint
     "I Initialize SDL. My c function call prototype:
 

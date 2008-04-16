@@ -23,6 +23,7 @@
   <filein>SDL_video.st</filein>
 
   <library>libSDL</library>
+  <module>sdl</module>
 
   <file>SDL.st</file>
   <file>SDL_active.st</file>

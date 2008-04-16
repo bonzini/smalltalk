@@ -42,6 +42,13 @@ case "$host" in
   alpha*-*-*) CFLAGS="$CFLAGS -mieee" ;;
 esac
 
+# We don't require Automake 1.10, so invoke _AM_DEPENDENCIES manually.  And
+# since we actually use Objective-C only on Mac OS (for libsdl), for now we
+# get by with using gcc as an Objective-C compiler.
+AC_SUBST(OBJC, [$CC])
+AC_SUBST(OBJCFLAGS, [$CFLAGS])
+_AM_DEPENDENCIES(OBJC)
+
 AC_PROG_SED
 AC_PROG_AWK
 AC_PROG_LN_S
@@ -387,9 +394,16 @@ GST_PACKAGE_ENABLE([NCurses],
   [ac_cv_lib_ncurses_initscr])
 GST_PACKAGE_ENABLE([NetClients], [net])
 GST_PACKAGE_ENABLE([DhbNumericalMethods], [numerics])
+
 GST_PACKAGE_ENABLE([LibSDL], [sdl/libsdl],
-  [GST_HAVE_LIB(SDL, SDL_Init)],
-  [ac_cv_lib_SDL_SDL_Init])
+  [AM_PATH_SDL([], gst_cv_sdl=yes, gst_cv_sdl=no)
+  case "$SDL_LIBS" in
+    *-framework,Cocoa* | *"-framework Cocoa"*) gst_cv_sdl_uses_cocoa=yes ;;
+    *) gst_cv_sdl_uses_cocoa=no ;;
+  esac
+  AM_CONDITIONAL([HAVE_COCOA], [test $gst_cv_sdl_uses_cocoa = yes])],
+  [gst_cv_sdl],
+  [Makefile], [sdl.la])
 GST_PACKAGE_ENABLE([LibSDL_image], [sdl/libsdl_image],
   [GST_HAVE_LIB(SDL_image, IMG_Linked_Version)],
   [ac_cv_lib_SDL_image_IMG_Linked_Version])
