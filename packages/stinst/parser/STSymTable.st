@@ -453,7 +453,7 @@ use compiling methods for that class.'>
 
 
 
-PoolResolution subclass: ClassicPools [
+PoolResolution subclass: ClassicPoolResolution [
     | pools |
     <comment: 'I provide shared pool variable resolution as it was
 before the PoolResolution hierarchy was added, and TwistedPools became
@@ -494,8 +494,8 @@ default.'>
 
 
 
-PoolResolution subclass: TwistedPools [
-    | pools herePools |
+PoolResolution subclass: DefaultPoolResolution [
+    | pools |
     <comment: 'I provide a "namespace is application" oriented method
 of shared pool searching, intended to be more intuitive for those who
 expect things to be found in their own namespace first.	 This is more
@@ -506,7 +506,6 @@ PoolResolution.'>
 	"Add poolDictionary and all superspaces to the end of the
 	 search order.	Always succeed."
 	<category: 'accessing'>
-	herePools := nil.
 	pools addAll: poolDictionary withAllSuperspaces.
 	^true
     ]
@@ -514,10 +513,8 @@ PoolResolution.'>
     lookupBindingOf: symbol [
 	"Search all pools in order (see super comment)."
 	<category: 'accessing'>
-	herePools isNil ifTrue: [herePools := pools collect: [:pool |
-	    HereAssociator around: pool]].
-	herePools do: [:pool |
-	    (pool associationAt: symbol ifAbsent: [nil])
+	pools do: [:pool |
+	    (pool hereAssociationAt: symbol ifAbsent: [nil])
 		ifNotNil: [:assoc | ^assoc]].
 	^nil
     ]
@@ -526,89 +523,8 @@ PoolResolution.'>
 	<category: 'initializing'>
 	pools := OrderedSet identityNew: 7.
 	aBehavior ifNil: [^nil].
-	self addTwistedPools: aBehavior.
-    ]
-
-    addTwistedPools: class [
-	"Implement the twisted pool search for a real class.  See
-	 class comment."
-	<category: 'private'>
-	| withSuperspaces nextSuperspaces isCommonSpace |
-	"build with a single inheritance walk"
-	class withAllSuperclassesDo: [:class |
-	    class classPool isEmpty ifFalse: [pools add: class classPool].
-	    withSuperspaces := class environment withAllSuperspaces.
-	    (self combineInheritablePools: class sharedPoolDictionaries
-		  reject: [:pool | withSuperspaces identityIncludes: pool])
-		do: [:pool | pools add: pool].
-	    "only take spaces that aren't in the superclass's spaces"
-	    isCommonSpace := class superclass ifNil: [[:space | false]]
-                ifNotNil: [:superclass |
-		    nextSuperspaces :=
-			superclass environment withAllSuperspaces asSet.
-	            [:space | nextSuperspaces includes: space]].
-	    self addPoolsLast: withSuperspaces until: isCommonSpace]
-    ]
-
-    addPoolsLast: newPools until: invPredicate [
-	<category: 'private'>
-	newPools do: [:pool |
-	    (invPredicate value: pool) ifTrue: [^newPools].
-	    pools add: pool].
-	^newPools
-    ]
-
-    combineInheritablePools: list reject: invPredicate [
-	"Answer the result of combining the list of pools using a
-	 topological sort, preferring dependent to prerequisite, and
-	 then left to right.  Any pool that passes invPredicate will
-	 not be answered."
-	<category: 'private'>
-	| visitState order descend |
-	visitState := IdentityDictionary new: list size.
-	order := OrderedCollection new: list size.
-	descend := [:pool | | state |
-	    state := visitState at: pool ifAbsent: [nil].
-	    #visiting == state ifTrue:
-		[SystemExceptions.InvalidValue
-		     signalOn: list
-		     reason: 'includes circular dependency'].
-	    (state isNil and: [(invPredicate value: pool) not]) ifTrue:
-		[visitState at: pool put: #visiting.
-		 "#allSuperspaces is not available on all pools"
-		 pool withAllSuperspaces allButFirst reverseDo: descend.
-		 order addFirst: pool.
-		 visitState at: pool put: #visited]].
-	list reverseDo: descend.
-	^order
-    ]
-]
-
-
-
-Object subclass: HereAssociator [
-    | namespace hasSupers |
-
-    <comment: 'I exist purely to help TwistedPools, and am not meant
-to make sense as a good independent protocol, even though I borrow
-from dictionaries.'>
-
-    HereAssociator class >> around: namespace [
-	<category: 'methods for TwistedPools'>
-	^self new init: namespace; yourself
-    ]
-
-    init: aNamespace [
-	<category: 'methods for TwistedPools'>
-	namespace := aNamespace.
-	hasSupers := aNamespace withAllSuperspaces size > 1.
-    ]
-
-    associationAt: key ifAbsent: block [
-	<category: 'methods for TwistedPools'>
-	^(hasSupers not or: [namespace definesKey: key])
-	    ifTrue: [namespace associationAt: key ifAbsent: block]
-	    ifFalse: block
+	aBehavior allSharedPoolDictionariesDo: [ :each |
+	    each isEmpty ifFalse: [ pools add: each ] ]
     ]
 ]
 
@@ -636,6 +552,6 @@ Metaclass extend [
 
 Eval [
     STSymbolTable initialize.
-    PoolResolution current: TwistedPools.
+    PoolResolution current: DefaultPoolResolution.
 ]
 

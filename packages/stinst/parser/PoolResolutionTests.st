@@ -29,10 +29,8 @@
 |
  ======================================================================"
 
-Eval [
-    Tests addSubspace: #MyLibrary; addSubspace: #MyProject.
-    MyProject addSubspace: #MyLibWrapper.
-]
+Tests addSubspace: #MyLibrary; addSubspace: #MyProject.
+MyProject addSubspace: #MyLibWrapper.
 
 Namespace current: STInST.Tests.MyLibrary [
 
@@ -76,7 +74,7 @@ MyLibrary.Foo subclass: Baz [
 
 Namespace current: STInST.Tests [
 
-TestCase subclass: TestTwistedPools [
+TestCase subclass: TestDefaultPoolResolution [
     | foo bar baz |
 
     assertVariable: symbol of: pools is: value description: str [
@@ -87,9 +85,9 @@ TestCase subclass: TestTwistedPools [
     ]
 
     setUp [
-	foo := TwistedPools of: MyLibrary.Foo.
-	bar := TwistedPools of: MyLibrary.Bar.
-	baz := TwistedPools of: MyProject.MyLibWrapper.Baz.
+	foo := DefaultPoolResolution of: MyLibrary.Foo.
+	bar := DefaultPoolResolution of: MyLibrary.Bar.
+	baz := DefaultPoolResolution of: MyProject.MyLibWrapper.Baz.
     ]
 
     testClassPoolFirst [
@@ -110,7 +108,7 @@ TestCase subclass: TestTwistedPools [
     ]
 ]
 
-TestCase subclass: TestClassicPools [
+TestCase subclass: TestClassicPoolResolution [
     | foo bar baz |
 
     assertVariable: symbol of: pools is: value description: str [
@@ -121,9 +119,9 @@ TestCase subclass: TestClassicPools [
     ]
 
     setUp [
-	foo := ClassicPools of: MyLibrary.Foo.
-	bar := ClassicPools of: MyLibrary.Bar.
-	baz := ClassicPools of: MyProject.MyLibWrapper.Baz.
+	foo := ClassicPoolResolution of: MyLibrary.Foo.
+	bar := ClassicPoolResolution of: MyLibrary.Bar.
+	baz := ClassicPoolResolution of: MyProject.MyLibWrapper.Baz.
     ]
 
     testNamespaceFirst [
