@@ -407,12 +407,6 @@ GST_PACKAGE_ENABLE([LibSDL], [sdl/libsdl],
 GST_PACKAGE_ENABLE([LibSDL_image], [sdl/libsdl_image],
   [GST_HAVE_LIB(SDL_image, IMG_Linked_Version)],
   [ac_cv_lib_SDL_image_IMG_Linked_Version])
-GST_PACKAGE_ENABLE([LibSDL_console], [sdl/libsdl_console],
-  [GST_HAVE_LIB(SDL_console, CON_Events)],
-  [ac_cv_lib_SDL_console_CON_Events])
-GST_PACKAGE_ENABLE([LibSDL_gfx], [sdl/libsdl_gfx],
-  [GST_HAVE_LIB(SDL_gfx, SDL_initFramerate)],
-  [ac_cv_lib_SDL_gfx_SDL_initFramerate])
 GST_PACKAGE_ENABLE([LibSDL_mixer], [sdl/libsdl_mixer],
   [GST_HAVE_LIB(SDL_mixer, Mix_Linked_Version)],
   [ac_cv_lib_SDL_mixer_Mix_Linked_Version])
