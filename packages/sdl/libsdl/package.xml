@@ -22,6 +22,9 @@
   <filein>SDL_timer.st</filein>
   <filein>SDL_video.st</filein>
 
+  <filein>Display.st</filein>
+  <filein>EventSource.st</filein>
+
   <library>libSDL</library>
   <module>sdl</module>
 
@@ -44,4 +47,7 @@
   <file>SDL_thread.st</file>
   <file>SDL_timer.st</file>
   <file>SDL_video.st</file>
+
+  <file>Display.st</file>
+  <file>EventSource.st</file>
 </package>
