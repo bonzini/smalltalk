@@ -395,6 +395,10 @@ GST_PACKAGE_ENABLE([NCurses],
 GST_PACKAGE_ENABLE([NetClients], [net])
 GST_PACKAGE_ENABLE([DhbNumericalMethods], [numerics])
 
+GST_PACKAGE_ENABLE([Cairo], [cairo],
+  [GST_HAVE_LIB(cairo, cairo_save)],
+  [ac_cv_lib_cairo_cairo_save])
+
 GST_PACKAGE_ENABLE([LibSDL], [sdl/libsdl],
   [AM_PATH_SDL([], gst_cv_sdl=yes, gst_cv_sdl=no)
   case "$SDL_LIBS" in
@@ -404,6 +408,8 @@ GST_PACKAGE_ENABLE([LibSDL], [sdl/libsdl],
   AM_CONDITIONAL([HAVE_COCOA], [test $gst_cv_sdl_uses_cocoa = yes])],
   [gst_cv_sdl],
   [Makefile], [sdl.la])
+GST_PACKAGE_ENABLE([CairoSDL], [sdl/cairo],
+  [ac_cv_lib_cairo_cairo_save gst_cv_sdl])
 GST_PACKAGE_ENABLE([LibSDL_image], [sdl/libsdl_image],
   [GST_HAVE_LIB(SDL_image, IMG_Linked_Version)],
   [ac_cv_lib_SDL_image_IMG_Linked_Version])
