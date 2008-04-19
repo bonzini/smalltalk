@@ -78,6 +78,37 @@ CairoSurface subclass: CairoPngSurface [
     ]
 ].
 
+BlockClosure extend [
+    maskOn: context [
+	| pattern |
+	[
+	    Cairo.Cairo pushGroup: context.
+	    self ensure: [ pattern := Cairo.Cairo popGroup: context ].
+	    Cairo.Cairo mask: context pattern: pattern
+	] ensure: [
+	    pattern isNil ifFalse: [ Cairo.Cairo patternDestroy: pattern ].
+	].
+    ]
+
+    on: context withSourceDo: paintBlock [
+	| pattern source |
+	source := Cairo.Cairo getSource: context.
+	Cairo.Cairo patternReference: source.
+	[
+	    Cairo.Cairo pushGroup: context.
+	    self ensure: [ pattern := Cairo.Cairo popGroup: context ].
+	    Cairo.Cairo setSource: context source: pattern.
+	    paintBlock value
+	] ensure: [
+	    source isNil ifFalse: [
+		Cairo.Cairo
+		    setSource: context source: source;
+		    patternDestroy: source ].
+	    pattern isNil ifFalse: [ Cairo.Cairo patternDestroy: pattern ].
+	].
+    ]
+]
+
 Object subclass: CairoPattern [
     | pattern |
 
@@ -104,6 +135,25 @@ Object subclass: CairoPattern [
     finalize [
 	pattern ifNotNil: [ :p | Cairo patternDestroy: p ].
 	pattern := nil.
+    ]
+
+    maskOn: context [
+	Cairo.Cairo mask: context pattern: self cachedPattern
+    ]
+
+    on: context withSourceDo: paintBlock [
+	| pattern source |
+	source := Cairo getSource: context.
+	Cairo patternReference: source.
+	[
+	    Cairo setSource: context source: self cachedPattern.
+	    paintBlock value
+	] ensure: [
+	    source isNil ifFalse: [
+		Cairo
+		    setSource: context source: source;
+		    patternDestroy: source ].
+	].
     ]
 
     update: aspect [
@@ -334,22 +384,8 @@ Object subclass: CairoContext [
 	^ aBlock ensure: [ Cairo restore: context ].
     ]
 
-    withSource: aBlock do: paintBlock [
-	| pattern source |
-	source := Cairo getSource: context.
-	Cairo patternReference: source.
-	[
-	    [ Cairo pushGroup: context. aBlock value ]
-		ensure: [ pattern := Cairo popGroup: context ].
-	    Cairo setSource: context source: pattern.
-	    paintBlock value
-	] ensure: [
-	    source isNil ifFalse: [
-		Cairo
-		    setSource: context source: source;
-		    patternDestroy: source ].
-	    pattern isNil ifFalse: [ Cairo patternDestroy: pattern ].
-	].
+    withSource: aPatternOrBlock do: paintBlock [
+	aPatternOrBlock on: context withSourceDo: paintBlock
     ]
 
     source: aPattern [
@@ -482,24 +518,24 @@ Object subclass: CairoContext [
         Cairo resetClip: context.
     ]
 
-    mask: aPattern [
-        Cairo mask: context pattern: aPattern.
+    mask: aPatternOrBlock [
+        aPatternOrBlock maskOn: context
     ]
 
     paint [
         Cairo paint: context.
     ]
 
-    paintWith: aBlock [
-	self withSource: aBlock do: [ self paint ]
+    paintWith: aPatternOrBlock [
+	self withSource: aPatternOrBlock do: [ self paint ]
     ]
 
     paintWithAlpha: a [
         Cairo paintWithAlpha: context alpha: a.
     ]
 
-    paint: aBlock withAlpha: a [
-	self withSource: aBlock do: [ self paintWithAlpha: a ]
+    paint: aPatternOrBlock withAlpha: a [
+	self withSource: aPatternOrBlock do: [ self paintWithAlpha: a ]
     ]
 
     fillPreserve [
@@ -516,12 +552,12 @@ Object subclass: CairoContext [
 	self withPath: aBlock do: [ self fill ]
     ]
 
-    fill: pathBlock with: aBlock [
-	self withSource: aBlock do: [ self fill: pathBlock ]
+    fill: pathBlock with: aPatternOrBlock [
+	self withSource: aPatternOrBlock do: [ self fill: pathBlock ]
     ]
 
-    fillWith: aBlock [
-	self withSource: aBlock do: [ self fill ]
+    fillWith: aPatternOrBlock [
+	self withSource: aPatternOrBlock do: [ self fill ]
     ]
 
     strokePreserve [
@@ -538,12 +574,12 @@ Object subclass: CairoContext [
 	self withPath: aBlock do: [ self stroke ]
     ]
 
-    stroke: pathBlock with: aBlock [
-	self withSource: aBlock do: [ self stroke: pathBlock ]
+    stroke: pathBlock with: aPatternOrBlock [
+	self withSource: aPatternOrBlock do: [ self stroke: pathBlock ]
     ]
 
-    strokeWith: aBlock [
-	self withSource: aBlock do: [ self stroke ]
+    strokeWith: aPatternOrBlock [
+	self withSource: aPatternOrBlock do: [ self stroke ]
     ]
 
     identityMatrix [

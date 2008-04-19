@@ -202,10 +202,10 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	radial addStopAt: 1 color: Cairo.Color black.
 
 	context
-	    source: linear;
-	    fill: [ context rectangle: (0@0 extent: 256@256) ];
-	    source: radial;
-	    fill: [ context arc: 128@128 radius: 77 from: 0 to: Float pi * 2].
+	    fill: [ context rectangle: (0@0 extent: 256@256) ]
+		with: linear;
+	    fill: [ context arc: 128@128 radius: 77 from: 0 to: Float pi * 2]
+		with: radial.
     ]
 
     cols [
