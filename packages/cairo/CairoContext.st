@@ -163,6 +163,43 @@ Object subclass: CairoPattern [
     ]
 ].
 
+CairoPattern subclass: CairoPatternDecorator [
+    | wrappedPattern |
+    CairoPatternDecorator class >> on: aPattern [
+	^self new wrappedPattern: aPattern; yourself
+    ]
+
+    wrappedPattern [ ^wrappedPattern ]
+    wrappedPattern: aPattern [ wrappedPattern := aPattern ]
+]
+
+CairoPatternDecorator subclass: ReflectedPattern [
+    createCachedPattern [
+	| result |
+	result := self wrappedPattern createCachedPattern.
+	Cairo patternSetExtend: result extend: Cairo extendReflect.
+	^result
+    ]
+]
+
+CairoPatternDecorator subclass: RepeatedPattern [
+    createCachedPattern [
+	| result |
+	result := self wrappedPattern createCachedPattern.
+	Cairo patternSetExtend: result extend: Cairo extendRepeat.
+	^result
+    ]
+]
+
+CairoPatternDecorator subclass: PaddedPattern [
+    createCachedPattern [
+	| result |
+	result := self wrappedPattern createCachedPattern.
+	Cairo patternSetExtend: result extend: Cairo extendPad.
+	^result
+    ]
+]
+
 CairoPattern subclass: SurfacePattern [
     | surface |
 

@@ -188,6 +188,14 @@ Object subclass: Cairo [
         <cCall: 'cairo_pattern_destroy' returning: #void args: #(#cObject )>
     ]
 
+    Cairo class >> patternGetExtend: pattern [
+        <cCall: 'cairo_pattern_get_extend' returning: #int args: #(#cObject )>
+    ]
+
+    Cairo class >> patternSetExtend: pattern extend: extend [
+        <cCall: 'cairo_pattern_set_extend' returning: #void args: #(#cObject #int)>
+    ]
+
     Cairo class >> popGroup: cr [
         <cCall: 'cairo_pop_group' returning: #cObject args: #(#cObject )>
     ]
@@ -466,6 +474,26 @@ Object subclass: Cairo [
     ]
 
     Cairo class >> fontWeightNormal [
+        <category: 'loading'>
+        ^0
+    ]
+
+    Cairo class >> extendPad [
+        <category: 'loading'>
+        ^3
+    ]
+
+    Cairo class >> extendReflect [
+        <category: 'loading'>
+        ^2
+    ]
+
+    Cairo class >> extendRepeat [
+        <category: 'loading'>
+        ^1
+    ]
+
+    Cairo class >> extendNone [
         <category: 'loading'>
         ^0
     ]
