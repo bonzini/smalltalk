@@ -162,12 +162,16 @@ Object subclass: CairoPattern [
 	Cairo.Cairo mask: context pattern: self cachedPattern
     ]
 
+    setSourceOn: context [
+	Cairo setSource: context source: self cachedPattern
+    ]
+
     on: context withSourceDo: paintBlock [
 	| pattern source |
 	source := Cairo getSource: context.
 	Cairo patternReference: source.
 	[
-	    Cairo setSource: context source: self cachedPattern.
+	    self setSourceOn: context.
 	    paintBlock value
 	] ensure: [
 	    source isNil ifFalse: [
@@ -466,6 +470,8 @@ CairoPattern subclass: Color [
     ]
 
     createCachedPattern [
+	"Should never be reached."
+	self halt.
 	^ Cairo patternCreateRgba: red
 		green: green
 		blue: blue
@@ -480,6 +486,10 @@ CairoPattern subclass: Color [
 	st << $(.
 	self printOn: st.
 	st << $)
+    ]
+
+    setSourceOn: context [
+	Cairo setSourceRgba: context red: red green: green blue: blue alpha: alpha.
     ]
 ].
 

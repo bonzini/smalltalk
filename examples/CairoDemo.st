@@ -35,6 +35,7 @@ SDL.SdlEventHandler subclass: CairoDemo [
     | context |
 
     <import: SDL>
+    <import: Cairo>
 
     context [ ^context ]
 
@@ -51,10 +52,10 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	    lineWidth: 10;
 	    stroke: [ context arcNegative: 128@128 radius: 100 from: ang1 to: ang2 ];
 
-	    sourceRed: 1 green: 0.2 blue: 0.2 alpha: 1.0;
 	    paint: [
 	       context
 	       	    lineWidth: 6;
+		    sourceRed: 1 green: 0.2 blue: 0.2 alpha: 1.0;
 		    fill: [ context arc: 128@128 radius: 10 from: 0 to: Float pi * 2 ];
 		    stroke: [
 		        context
@@ -88,7 +89,6 @@ SDL.SdlEventHandler subclass: CairoDemo [
         context
 	    clip: [ context arc: 128@128 radius: 77 from: 0 to: Float pi * 2 ];
 	    fill: [ context rectangle: (0@0 extent: 256@256) ];
-	    sourceRed: 0 green: 1 blue: 0;
 	    lineWidth: 10;
 	    stroke: [
 	        context
@@ -96,6 +96,7 @@ SDL.SdlEventHandler subclass: CairoDemo [
 		    lineTo: 256@256;
 		    moveTo: 256@0;
 		    lineTo: 0@256 ]
+	        with: Color green
     ]
     
     curveRectangle [
@@ -119,9 +120,9 @@ SDL.SdlEventHandler subclass: CairoDemo [
 		    curveTo: x0@my1 via: x0@y1 via: x0@my1 ]
 	    do: [
 		context
-		    sourceRed: 0.5 green: 0.5 blue: 1; fill;
+		    fillWith: (Color r: 0.5 g: 0.5 b: 1);
 		    lineWidth: 10;
-		    sourceRed: 0.5 green: 0 blue: 0 alpha: 0.5; stroke ]
+		    strokeWith: (Color r: 0.5 g: 0 b: 0 a: 0.5) ]
     ]
     
     curveTo [
@@ -134,9 +135,9 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	    lineWidth: 10;
 	    stroke: [ context moveTo: p0; curveTo: p3 via: p1 via: p2 ];
 
-	    sourceRed: 1 green: 0.2 blue: 0.2 alpha: 0.6;
 	    lineWidth: 6;
 	    stroke: [ context moveTo: p0; lineTo: p1; moveTo: p2; lineTo: p3 ]
+	        with: (Color r: 1 g: 0.2 b: 0.2 a: 0.6)
     ]
     
     fillStroke [
@@ -192,14 +193,14 @@ SDL.SdlEventHandler subclass: CairoDemo [
 
     gradient [
         | linear radial |
-	linear := Cairo.LinearGradient from: 0@0 to: 0@256.
-	linear addStopAt: 0 color: Cairo.Color white.
-	linear addStopAt: 1 color: Cairo.Color black.
+	linear := LinearGradient from: 0@0 to: 0@256.
+	linear addStopAt: 0 color: Color white.
+	linear addStopAt: 1 color: Color black.
 	
-	radial := Cairo.RadialGradient from: 115.2@102.4 radius: 25.6
+	radial := RadialGradient from: 115.2@102.4 radius: 25.6
 	    to: 102.4@102.4 radius: 128.
-	radial addStopAt: 0 color: Cairo.Color white.
-	radial addStopAt: 1 color: Cairo.Color black.
+	radial addStopAt: 0 color: Color white.
+	radial addStopAt: 1 color: Color black.
 
 	context
 	    fill: [ context rectangle: (0@0 extent: 256@256) ]
@@ -241,17 +242,14 @@ SDL.SdlEventHandler subclass: CairoDemo [
     	SdlDisplay defaultSize: self displaySize.
         SdlEventSource instance handler: self; startEventLoop.
         Processor activeProcess terminateOnQuit.
-        context := (Cairo.CairoSdlSurface on: SdlDisplay current) context.
+        context := (CairoSdlSurface on: SdlDisplay current) context.
     	SdlDisplay current
 	    critical: [ self draw ];
 	    flip
     ]
     
     draw [
-	context
-	    sourceRed: 255 green: 255 blue: 255;
-	    paint;
-	    sourceRed: 0 green: 0 blue: 0.
+	context paintWith: Color white.
 	self samples keysAndValuesDo: [ :index :sel |
 	    self draw: sel inside: (self clippingRectangle: index) ]
     ]
