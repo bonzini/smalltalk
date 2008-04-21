@@ -638,7 +638,7 @@ the class category.'>
 		superclassSpaces remove: each ].
 
 	    "... and visit them."
-            self
+            behavior
                 allLocalSharedPoolDictionariesExcept: classSpaces
                 do: aBlock.
 
