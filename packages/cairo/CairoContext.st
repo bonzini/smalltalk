@@ -285,11 +285,11 @@ CairoPattern subclass: GradientPattern [
 	colorStops do: [ :stop |
 	    c := stop value.
 	    Cairo patternAddColorStopRgba: p
-		  offset: stop key
-		  red: c red
-		  green: c green
-		  blue: c blue
-		  alpha: c alpha ].
+		  offset: stop key asCNumber
+		  red: c red asCNumber
+		  green: c green asCNumber
+		  blue: c blue asCNumber
+		  alpha: c alpha asCNumber ].
     ]
 ].
 
@@ -327,10 +327,10 @@ GradientPattern subclass: LinearGradient [
 
     createCachedPattern [
 	| p c |
-	p := Cairo patternCreateLinear: point0 x
-		   y0: point0 y
-		   x1: point1 x
-		   y1: point1 y.
+	p := Cairo patternCreateLinear: point0 x asCNumber
+		   y0: point0 y asCNumber
+		   x1: point1 x asCNumber
+		   y1: point1 y asCNumber.
 	self initializeCachedPattern: p.
 	^ p
     ]
@@ -383,12 +383,12 @@ GradientPattern subclass: RadialGradient [
 
     createCachedPattern [
 	| p c |
-	p := Cairo patternCreateRadial: point0 x
-		   cy0: point0 y
-		   radius0: r0
-		   cx1: point1 x
-		   cy1: point1 y
-		   radius1: r1.
+	p := Cairo patternCreateRadial: point0 x asCNumber
+		   cy0: point0 y asCNumber
+		   radius0: r0 asCNumber
+		   cx1: point1 x asCNumber
+		   cy1: point1 y asCNumber
+		   radius1: r1 asCNumber.
 	self initializeCachedPattern: p.
 	^ p
     ]
@@ -472,10 +472,10 @@ CairoPattern subclass: Color [
     createCachedPattern [
 	"Should never be reached."
 	self halt.
-	^ Cairo patternCreateRgba: red
-		green: green
-		blue: blue
-		alpha: alpha.
+	^ Cairo patternCreateRgba: red asCNumber
+		green: green asCNumber
+		blue: blue asCNumber
+		alpha: alpha asCNumber.
     ]
 
     printOn: st [
@@ -489,7 +489,12 @@ CairoPattern subclass: Color [
     ]
 
     setSourceOn: context [
-	Cairo setSourceRgba: context red: red green: green blue: blue alpha: alpha.
+	Cairo
+	    setSourceRgba: context
+	    red: red asCNumber
+	    green: green asCNumber
+	    blue: blue asCNumber
+	    alpha: alpha asCNumber.
     ]
 ].
 
@@ -554,11 +559,11 @@ Object subclass: CairoContext [
     ]
 
     sourceRed: r green: g blue: b [
-	Cairo setSourceRgb: context red: r green: g blue: b.
+	Cairo setSourceRgb: context red: r asCNumber green: g asCNumber blue: b asCNumber.
     ]
 
     sourceRed: r green: g blue: b alpha: a [
-	Cairo setSourceRgba: context red: r green: g blue: b alpha: a.
+	Cairo setSourceRgba: context red: r asCNumber green: g asCNumber blue: b asCNumber alpha: a asCNumber.
     ]
 
     closePath [
@@ -597,39 +602,53 @@ Object subclass: CairoContext [
     ]
 
     moveTo: aPoint [
-	Cairo moveTo: context x: aPoint x y: aPoint y.
+	Cairo moveTo: context x: aPoint x asCNumber y: aPoint y asCNumber.
     ]
 
-    moveRel: aPoint [
-	Cairo relMoveTo: context dx: aPoint x dy: aPoint y.
+    relMoveTo: aPoint [
+	Cairo relMoveTo: context dx: aPoint x asCNumber dy: aPoint y asCNumber.
     ]
 
     lineTo: aPoint [
-	Cairo lineTo: context x: aPoint x y: aPoint y.
+	Cairo lineTo: context x: aPoint x asCNumber y: aPoint y asCNumber.
     ]
 
-    lineRel: aPoint [
-	Cairo relLineTo: context dx: aPoint x dy: aPoint y.
+    relLineTo: aPoint [
+	Cairo relLineTo: context dx: aPoint x asCNumber dy: aPoint y asCNumber.
     ]
 
     curveTo: aPoint3 via: aPoint1 via: aPoint2 [
 	Cairo curveTo: context
-	      x1: aPoint1 x y1: aPoint1 y
-	      x2: aPoint2 x y2: aPoint2 y
-	      x3: aPoint3 x y3: aPoint3 y.
+	      x1: aPoint1 x asCNumber y1: aPoint1 y asCNumber
+	      x2: aPoint2 x asCNumber y2: aPoint2 y asCNumber
+	      x3: aPoint3 x asCNumber y3: aPoint3 y asCNumber.
+    ]
+
+    curveVia: aPoint1 via: aPoint2 to: aPoint3 [
+	Cairo curveTo: context
+	      x1: aPoint1 x asCNumber y1: aPoint1 y asCNumber
+	      x2: aPoint2 x asCNumber y2: aPoint2 y asCNumber
+	      x3: aPoint3 x asCNumber y3: aPoint3 y asCNumber.
     ]
 
     arc: aPoint radius: r from: angle1 to: angle2 [
-	Cairo arc: context xc: aPoint x yc: aPoint y radius: r angle1: angle1 angle2: angle2.
+	Cairo arc: context
+	      xc: aPoint x asCNumber yc: aPoint y asCNumber
+	      radius: r asCNumber
+	      angle1: angle1 asCNumber angle2: angle2 asCNumber.
     ]
 
     arcNegative: aPoint radius: r from: angle1 to: angle2 [
-	Cairo arcNegative: context xc: aPoint x yc: aPoint y radius: r
-	      angle1: angle1 angle2: angle2.
+	Cairo arcNegative: context
+	      xc: aPoint x asCNumber yc: aPoint y asCNumber
+	      radius: r asCNumber
+	      angle1: angle1 asCNumber angle2: angle2 asCNumber.
     ]
 
     rectangle: aRect [
-	Cairo rectangle: context x: aRect left y: aRect top width: aRect width height: aRect height.
+	Cairo rectangle: context
+	      x: aRect left asCNumber y: aRect top asCNumber
+	      width: aRect width asCNumber height: aRect height asCNumber.
     ]
 
     roundedRectangle: b radius: cornerRadius [
@@ -692,7 +711,7 @@ Object subclass: CairoContext [
     ]
 
     paintWithAlpha: a [
-        Cairo paintWithAlpha: context alpha: a.
+        Cairo paintWithAlpha: context alpha: a asCNumber.
     ]
 
     paint: aPatternOrBlock withAlpha: a [
@@ -748,17 +767,17 @@ Object subclass: CairoContext [
     ]
 
     translateBy: aPoint [
-	Cairo translate: context tx: aPoint x ty: aPoint y.
+	Cairo translate: context tx: aPoint x asCNumber ty: aPoint y asCNumber.
     ]
 
     scaleBy: aPoint [
 	| p |
 	p := aPoint asPoint.
-        Cairo scale: context sx: p x sy: p y.
+        Cairo scale: context sx: p x asCNumber sy: p y asCNumber.
     ]
 
     rotateBy: rads [
-        Cairo rotate: context angle: rads.
+        Cairo rotate: context angle: rads asCNumber.
     ]
 
     nullTransform [
@@ -856,7 +875,7 @@ Object subclass: CairoContext [
     ]
 
     lineWidth: w [
-	Cairo setLineWidth: context width: w.
+	Cairo setLineWidth: context width: w asCNumber.
     ]
 
     lineCap: aNumber [
@@ -872,7 +891,7 @@ Object subclass: CairoContext [
     ]
 
     miterLimit: aNumber [
-	Cairo setMiterLimit: context miterLimit: aNumber.
+	Cairo setMiterLimit: context miterLimit: aNumber asCNumber.
     ]
 
     fontSize: aNumber [

@@ -234,7 +234,7 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	rows := self rows.
 	col := (index - 1) \\ cols.
 	row := (index - 1) // cols.
-	size := SdlDisplay current extent / (cols asFloat @ rows asFloat).
+	size := SdlDisplay current extent / (cols @ rows).
 	^size * (col @ row) extent: size
     ]
 
@@ -262,7 +262,7 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	        resetClip;
 	        withPath: [ context rectangle: rect ] do: [ context clip ];
 	        translateBy: rect origin + ((rect extent - size) / 2);
-	        scaleBy: (size / 256.0).
+	        scaleBy: size / 256.
 		
 	    self perform: sel ]
     ]
