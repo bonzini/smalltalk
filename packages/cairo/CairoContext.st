@@ -110,13 +110,38 @@ BlockClosure extend [
 ]
 
 Object subclass: CairoPattern [
-    | pattern |
+    | pattern canonical |
+
+    Patterns := nil.
+    CairoPattern class >> initialize [
+	Patterns := WeakKeyDictionary new.
+	ObjectMemory addDependent: self.
+    ]
+
+    CairoPattern class >> update: aspect [
+	"Clear our cache."
+	aspect == #returnFromSnapshot ifTrue: [
+	    Patterns do: [ :each | each finalize ]].
+    ]
 
     pattern [ ^pattern ]
 
     cachedPattern [
-	pattern ifNil: [ pattern := self createCachedPattern ].
-	^ pattern
+	[canonical isNil] whileTrue: [
+	    Patterns
+		at: self
+		ifAbsentPut: [
+		    self addToBeFinalized.
+		    pattern := self createCachedPattern.
+		    canonical := self ].
+	    "Keep the canonical object alive so we don't need to
+	     reference count its pattern.  The #at:ifAbsent: call
+	     makes the code resistant to finalization races."
+	    canonical := pattern isNil
+	        ifTrue: [Patterns at: self ifAbsent: [nil]]
+		ifFalse: [self]].
+
+	^canonical pattern
     ]
 
     createCachedPattern [
@@ -124,12 +149,8 @@ Object subclass: CairoPattern [
     ]
 
     postCopy [
+	"Reference the same canonical object, but not the pattern."
 	pattern := nil.
-    ]
-
-    initialize [
-	self addToBeFinalized.
-	ObjectMemory addDependent: self.
     ]
 
     finalize [
@@ -155,18 +176,21 @@ Object subclass: CairoPattern [
 		    patternDestroy: source ].
 	].
     ]
-
-    update: aspect [
-	aspect == #returnFromSnapshot ifTrue: [
-	    "Clear our cache."
-	    pattern := nil].
-    ]
 ].
 
 CairoPattern subclass: CairoPatternDecorator [
     | wrappedPattern |
     CairoPatternDecorator class >> on: aPattern [
 	^self new wrappedPattern: aPattern; yourself
+    ]
+
+    = anObject [
+	^self class == anObject class and: [
+	    self wrappedPattern = anObject wrappedPattern ]
+    ]
+
+    hash [
+	^self class hash bitXor: self wrappedPattern hash
     ]
 
     wrappedPattern [ ^wrappedPattern ]
@@ -206,6 +230,15 @@ CairoPattern subclass: SurfacePattern [
     surface [ ^ surface ]
     surface: aCairoSurface [ surface := aCairoSurface ]
 
+    = anObject [
+	^self class == anObject class and: [
+	    self surface = anObject surface ]
+    ]
+
+    hash [
+	^self class hash bitXor: self surface hash
+    ]
+
     createCachedPattern [
 	^ Cairo patternCreateForSurface: surface rawSurface
     ]
@@ -214,9 +247,25 @@ CairoPattern subclass: SurfacePattern [
 CairoPattern subclass: GradientPattern [
     | colorStops |
 
+    GradientPattern class >> new [
+	^super new initialize
+    ]
+
+    colorStops [
+	^colorStops
+    ]
+
     initialize [
 	colorStops := OrderedCollection new.
-	^ super initialize
+    ]
+
+    = anObject [
+	^self class == anObject class and: [
+	    self colorStops = anObject colorStops ]
+    ]
+
+    hash [
+	^self class hash bitXor: self colorStops hash
     ]
 
     addStopAt: aNumber color: aColor [
@@ -245,14 +294,31 @@ GradientPattern subclass: LinearGradient [
 
     LinearGradient class >> from: point0 to: point1 [
 	^ self new
-	    initialize;
 	    from: point0 to: point1;
 	    yourself
+    ]
+
+    from [
+	^point0
+    ]
+
+    to [
+	^point1
     ]
 
     from: aPoint0 to: aPoint1 [
 	point0 := aPoint0.
 	point1 := aPoint1.
+    ]
+
+    = anObject [
+	^super = anObject and: [
+	    point0 = anObject from and: [
+	    point1 = anObject to ]]
+    ]
+
+    hash [
+	^(super hash bitXor: point0 hash) bitXor: point1 hash
     ]
 
     createCachedPattern [
@@ -271,9 +337,24 @@ GradientPattern subclass: RadialGradient [
 
     RadialGradient class >> from: point0 radius: r0 to: point1 radius: r1 [
 	^ self new
-	    initialize;
 	    from: point0 radius: r0 to: point1 radius: r1;
 	    yourself
+    ]
+
+    from [
+	^point0
+    ]
+
+    fromRadius [
+	^r0
+    ]
+
+    to [
+	^point1
+    ]
+
+    toRadius [
+	^r1
     ]
 
     from: aPoint0 radius: aR0 to: aPoint1 radius: aR1 [
@@ -281,6 +362,19 @@ GradientPattern subclass: RadialGradient [
 	r0 := aR0.
 	point1 := aPoint1.
 	r1 := aR1.
+    ]
+
+    = anObject [
+	^super = anObject and: [
+	    point0 = anObject from and: [
+	    r0 = anObject fromRadius and: [
+	    point0 = anObject to and: [
+	    r1 = anObject toRadius ]]]]
+    ]
+
+    hash [
+	^(((super hash bitXor: point0 hash) bitXor: point1 hash)
+	     bitXor: r0 hash) bitXor: r1 hash
     ]
 
     createCachedPattern [
@@ -299,30 +393,48 @@ GradientPattern subclass: RadialGradient [
 CairoPattern subclass: Color [
     | red green blue alpha |
 
+    Color >> new [
+	^self new r: 0 g: 0 b: 0 a: 1.
+    ]
+
+    Color class >> r: r g: g b: b [
+	^ self basicNew r: r g: g b: b a: 1.0.
+    ]
+
+    Color class >> r: r g: g b: b a: a [
+	^ self basicNew r: r g: g b: b a: a.
+    ]
+
+    Color class >> black [^ self r: 0 g: 0 b: 0.]
+    Color class >> white [^ self r: 1 g: 1 b: 1.]
+    Color class >> red [^ self r: 1 g: 0 b: 0.]
+    Color class >> green [^ self r: 0 g: 1 b: 0.]
+    Color class >> blue [^ self r: 0 g: 0 b: 1.]
+    Color class >> cyan [^ self r: 0 g: 1 b: 1.]
+    Color class >> magenta [^ self r: 1 g: 0 b: 1.]
+    Color class >> yellow [^ self r: 1 g: 1 b: 0.]
+
+    = anObject [
+	^self class == anObject class and: [
+	    red = anObject red and: [
+	    green = anObject green and: [
+	    blue = anObject blue and: [
+	    alpha = anObject alpha]]]]
+    ]
+
+    hash [
+	^(red * 255) truncated +
+	 ((green * 255) truncated * 256) +
+	 ((blue * 255) truncated * 65536) +
+	 ((alpha * 63) truncated * 16777216)
+    ]
+	 
     red [ ^red ]
     green [ ^green ]
     blue [ ^blue ]
     alpha [ ^alpha ]
 
-    Color class >> r: r g: g b: b [
-	^ self new pvtR: r g: g b: b a: 1.0.
-    ]
-
-    Color class >> r: r g: g b: b a: a [
-	^ self new pvtR: r g: g b: b a: a.
-    ]
-
-    Color class >> black [^ Color r: 0 g: 0 b: 0.]
-    Color class >> white [^ Color r: 1 g: 1 b: 1.]
-    Color class >> red [^ Color r: 1 g: 0 b: 0.]
-    Color class >> green [^ Color r: 0 g: 1 b: 0.]
-    Color class >> blue [^ Color r: 0 g: 0 b: 1.]
-    Color class >> cyan [^ Color r: 0 g: 1 b: 1.]
-    Color class >> magenta [^ Color r: 1 g: 0 b: 1.]
-    Color class >> yellow [^ Color r: 1 g: 1 b: 0.]
-
-    pvtR: r g: g b: b a: a [
-	self initialize.
+    r: r g: g b: b a: a [
 	red := r.
 	green := g.
 	blue := b.
@@ -361,11 +473,13 @@ CairoPattern subclass: Color [
     ]
 
     printOn: st [
-	self storeOn: st.
+	st << 'Color r: ' << red << ' g: ' << green << ' b: ' << blue << ' a: ' << alpha.
     ]
 
     storeOn: st [
-	st << 'Color r: ' << red << ' g: ' << green << ' b: ' << blue << ' a: ' << alpha.
+	st << $(.
+	self printOn: st.
+	st << $)
     ]
 ].
 
@@ -772,6 +886,7 @@ Object subclass: CairoContext [
 	] ensure: [ ext free ]
     ]
 ].
+
 CStruct subclass: #CairoTextExtents
     declaration: #(
         (#xBearing #double)
@@ -785,3 +900,6 @@ CStruct subclass: #CairoTextExtents
     category: 'CairoTextExtents Wrapper'
 !
 
+Eval [
+    CairoPattern initialize
+]
