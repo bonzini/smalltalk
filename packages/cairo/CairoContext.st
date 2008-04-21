@@ -107,6 +107,17 @@ BlockClosure extend [
 	    pattern isNil ifFalse: [ Cairo.Cairo patternDestroy: pattern ].
 	].
     ]
+
+    setSourceOn: context [
+	| pattern |
+	[
+	    Cairo.Cairo pushGroup: context.
+	    self ensure: [ pattern := Cairo.Cairo popGroup: context ].
+	    Cairo.Cairo setSource: context source: pattern.
+	] ensure: [
+	    pattern isNil ifFalse: [ Cairo.Cairo patternDestroy: pattern ].
+	].
+    ]
 ]
 
 Object subclass: CairoPattern [
@@ -554,8 +565,8 @@ Object subclass: CairoContext [
 	aPatternOrBlock on: context withSourceDo: paintBlock
     ]
 
-    source: aPattern [
-	Cairo setSource: context source: aPattern cachedPattern.
+    source: aPatternOrBlock [
+	aPatternOrBlock setSourceOn: context
     ]
 
     sourceRed: r green: g blue: b [
