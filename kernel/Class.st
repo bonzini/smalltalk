@@ -621,26 +621,27 @@ the class category.'>
          in the correct search order."
 
         | superclassSpaces |
-	"Collect those spaces that have to be skipped in the search."
-        superclassSpaces := Bag new.
-        self withAllSuperclassesDo: [:behavior |
-            behavior environment withAllSuperspacesDo: [ :each |
-                superclassSpaces add: each ]].
-
         self withAllSuperclassesDo: [:behavior || classSpaces |
 	    aBlock value: behavior classPool.
 
 	    "Extract the spaces of this class from superclassSpaces into
 	     classSpaces..."
-            classSpaces := IdentitySet new.
-	    behavior environment withAllSuperspacesDo: [ :each |
-		classSpaces add: each.
-		superclassSpaces remove: each ].
+            superclassSpaces isNil
+		ifTrue: [classSpaces := IdentitySet new.
+			 behavior environment withAllSuperspacesDo: [ :each |
+			     classSpaces add: each]]
+		ifFalse: [classSpaces := superclassSpaces].
 
 	    "... and visit them."
             behavior
                 allLocalSharedPoolDictionariesExcept: classSpaces
                 do: aBlock.
+
+	    "Collect those spaces that have to be skipped in the search."
+	    superclassSpaces := IdentitySet new.
+	    behavior superclass ifNotNil: [:superclass |
+		superclass environment withAllSuperspacesDo: [ :each |
+		    superclassSpaces add: each ]].
 
 	    "Now proceed with the `natural' (non-imported spaces)."
             behavior environment withAllSuperspacesDo: [:each |
@@ -648,16 +649,17 @@ the class category.'>
 		    ifFalse: [ aBlock value: each ]]]
     ]
 
-    allLocalSharedPoolDictionariesExcept: white do: aBlock [
+    allLocalSharedPoolDictionariesExcept: inWhite do: aBlock [
         "Answer the result of combining the list of pools imported
 	 into the receiver using a topological sort, preferring dependent
 	 to prerequisite, and then left to right.  Any pool that is
-	 already in white will not be answered.  white is modified."
+	 already in inWhite will not be answered."
         <category: 'private'>
-        | grey order descend list |
+        | white grey order descend list |
 	list := self sharedPoolDictionaries.
 	list isEmpty ifTrue: [ ^self ].
 
+	white := inWhite copy.
         grey := IdentitySet new: list size.
         order := OrderedCollection new: list size.
         descend := [:pool |
