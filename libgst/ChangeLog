@@ -1,3 +1,8 @@
+2008-04-24  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/sym.c: Implement a linearized list of pool dictionaries
+	to lookup.
+
 2008-04-10  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/dict.c: Put fundamental instance variables of Behavior

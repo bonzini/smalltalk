@@ -85,6 +85,16 @@ struct scope
   symbol_list symbols;
 };
 
+/* Represents all the pools (namespaces) which are declared in the
+   current scope.  This information is relatively complex to compute,
+   so it's kept cached.  */
+typedef struct pool_list *pool_list;
+struct pool_list
+{
+  OOP poolOOP;
+  pool_list next;
+};
+
 
 typedef struct symbol_info
 {
@@ -257,6 +267,7 @@ static symbol_list find_local_var (scope scope,
 static OOP find_class_variable (OOP varName);
 
 static scope cur_scope = NULL;
+static pool_list linearized_pools = NULL;
 
 /* This is an array of symbols which the virtual machine knows about,
    and is used to restore the global variables upon image load.  */
@@ -377,8 +388,17 @@ _gst_pop_old_scope (void)
 void
 _gst_pop_all_scopes (void)
 {
+  pool_list next;
+
   while (cur_scope)
     _gst_pop_old_scope ();
+
+  while (linearized_pools)
+    {
+      next = linearized_pools->next;
+      xfree (linearized_pools);
+      linearized_pools = next;
+    }
 }
 
 
@@ -493,37 +513,64 @@ _gst_get_class_object (OOP classOOP)
   return classOOP;
 }
 
-OOP
-find_class_variable (OOP varName)
+
+static pool_list *
+add_pool (OOP poolOOP, pool_list *p_end)
 {
-  OOP class_oop, assocOOP, poolDictionaryOOP;
-  OOP myClass;
+  pool_list entry;
+  if (IS_NIL (poolOOP))
+    return p_end;
+
+  entry = xmalloc (sizeof (struct pool_list));
+  entry->poolOOP = poolOOP;
+  entry->next = NULL;
+
+  *p_end = entry;
+  return &entry->next;
+}
+
+static pool_list *
+add_namespace (OOP poolOOP, pool_list *p_end)
+{
+  if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_class_class))
+    poolOOP = _gst_class_variable_dictionary (poolOOP);
+
+  for (;;)
+    {
+      gst_namespace pool;
+      if (!is_a_kind_of (OOP_CLASS (poolOOP), _gst_dictionary_class))
+        return p_end;
+
+      p_end = add_pool (poolOOP, p_end);
+
+      /* Try to find a super-namespace */
+      if (!is_a_kind_of (OOP_CLASS (poolOOP), _gst_abstract_namespace_class))
+        return p_end;
+
+      pool = (gst_namespace) OOP_TO_OBJ (poolOOP);
+      poolOOP = pool->superspace;
+    }
+}
+
+static void
+compute_pool_resolution_order (OOP myClass)
+{
+  OOP class_oop, poolDictionaryOOP;
   int numPools, i;
   gst_class class;
+  pool_list *p_end = &linearized_pools;
 
-  myClass = _gst_get_class_object (_gst_this_class);
-
-  /* Now search in the class pools */
+  /* First search in the class pools */
   for (class_oop = myClass; !IS_NIL (class_oop);
        class_oop = SUPERCLASS (class_oop))
-    {
-      assocOOP =
-	dictionary_association_at (_gst_class_variable_dictionary
-				   (class_oop), varName);
-
-      if (!IS_NIL (assocOOP))
-	return (assocOOP);
-    }
+    p_end = add_pool (_gst_class_variable_dictionary (class_oop), p_end);
 
   /* Now search in the `environments' */
   for (class_oop = myClass; !IS_NIL (class_oop);
        class_oop = SUPERCLASS (class_oop))
     {
       class = (gst_class) OOP_TO_OBJ (class_oop);
-      assocOOP =
-	_gst_namespace_association_at (class->environment, varName);
-      if (!IS_NIL (assocOOP))
-	return (assocOOP);
+      p_end = add_namespace (class->environment, p_end);
     }
 
   /* and in the shared pools */
@@ -535,11 +582,27 @@ find_class_variable (OOP varName)
       for (i = 0; i < numPools; i++)
 	{
 	  poolDictionaryOOP = ARRAY_AT (class->sharedPools, i + 1);
-	  assocOOP =
-	    _gst_namespace_association_at (poolDictionaryOOP, varName);
-	  if (!IS_NIL (assocOOP))
-	    return (assocOOP);
+          p_end = add_namespace (poolDictionaryOOP, p_end);
 	}
+    }
+}
+
+OOP
+find_class_variable (OOP varName)
+{
+  pool_list pool;
+  OOP assocOOP;
+
+  if (!linearized_pools)
+    compute_pool_resolution_order (_gst_get_class_object (_gst_this_class));
+
+  for (pool = linearized_pools; pool; pool = pool->next)
+    {
+      assocOOP =
+	dictionary_association_at (pool->poolOOP, varName);
+
+      if (!IS_NIL (assocOOP))
+	return (assocOOP);
     }
 
   return (_gst_nil_oop);
