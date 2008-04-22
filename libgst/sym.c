@@ -53,6 +53,7 @@
 
 
 #include "gstpriv.h"
+#include "pointer-set.h"
 
 typedef struct
 {
@@ -514,6 +515,9 @@ _gst_get_class_object (OOP classOOP)
 }
 
 
+/* Add poolOOP after the node whose next pointer is in P_END.  Return
+   the new next node (actually its next pointer).  */
+
 static pool_list *
 add_pool (OOP poolOOP, pool_list *p_end)
 {
@@ -529,8 +533,37 @@ add_pool (OOP poolOOP, pool_list *p_end)
   return &entry->next;
 }
 
+
+/* Make a pointer set with POOLOOP and all of its superspaces.  */
+
+static struct pointer_set_t *
+make_with_all_superspaces_set (OOP poolOOP)
+{
+  struct pointer_set_t *pset = pointer_set_create ();
+  if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_class_class))
+    poolOOP = _gst_class_variable_dictionary (poolOOP);
+
+  while (is_a_kind_of (OOP_CLASS (poolOOP), _gst_abstract_namespace_class))
+    {
+      gst_namespace pool;
+      pointer_set_insert (pset, poolOOP);
+      pool = (gst_namespace) OOP_TO_OBJ (poolOOP);
+      poolOOP = pool->superspace;
+    }
+
+  /* Add the last if not nil.  */
+  if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_dictionary_class))
+    pointer_set_insert (pset, poolOOP);
+  return pset;
+}
+
+
+/* Add, after the node whose next pointer is in P_END, the namespace
+   POOLOOP and all of its superspaces except those in EXCEPT.
+   The new last node is returned (actually its next pointer).  */
+
 static pool_list *
-add_namespace (OOP poolOOP, pool_list *p_end)
+add_namespace (OOP poolOOP, struct pointer_set_t *except, pool_list *p_end)
 {
   if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_class_class))
     poolOOP = _gst_class_variable_dictionary (poolOOP);
@@ -541,7 +574,8 @@ add_namespace (OOP poolOOP, pool_list *p_end)
       if (!is_a_kind_of (OOP_CLASS (poolOOP), _gst_dictionary_class))
         return p_end;
 
-      p_end = add_pool (poolOOP, p_end);
+      if (!except || !pointer_set_contains (except, poolOOP))
+        p_end = add_pool (poolOOP, p_end);
 
       /* Try to find a super-namespace */
       if (!is_a_kind_of (OOP_CLASS (poolOOP), _gst_abstract_namespace_class))
@@ -552,39 +586,125 @@ add_namespace (OOP poolOOP, pool_list *p_end)
     }
 }
 
+
+/* Add POOLOOP and all of its superspaces to the list in the
+   right order (Stephen, please help me... :-).  */
+
 static void
-compute_pool_resolution_order (OOP myClass)
+visit_pool (OOP poolOOP, struct pointer_set_t *grey,
+	    struct pointer_set_t *white,
+	    pool_list *p_head, pool_list *p_tail)
 {
-  OOP class_oop, poolDictionaryOOP;
+  pool_list entry;
+
+  if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_class_class))
+    poolOOP = _gst_class_variable_dictionary (poolOOP);
+  if (!is_a_kind_of (OOP_CLASS (poolOOP), _gst_dictionary_class))
+    return;
+
+  if (pointer_set_contains (white, poolOOP))
+    return;
+
+  if (pointer_set_contains (grey, poolOOP))
+    {
+      _gst_errorf ("circular dependency in pool dictionaries");
+      return;
+    }
+
+  /* Visit the super-namespace first, this amounts to processing the
+     hierarchy in reverse order (see Class>>#allSharedPoolDictionariesDo:). */
+  pointer_set_insert (grey, poolOOP);
+  if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_abstract_namespace_class))
+    {
+      gst_namespace pool = (gst_namespace) OOP_TO_OBJ (poolOOP);
+      if (!IS_NIL (pool->superspace))
+	visit_pool (pool->superspace, grey, white, p_head, p_tail);
+    }
+  pointer_set_insert (white, poolOOP);
+
+  /* Add an entry for this one at the beginning of the list.  We need
+     to maintain the tail too, because combine_local_pools must return
+     it.  */
+  entry = xmalloc (sizeof (struct pool_list));
+  entry->poolOOP = poolOOP;
+  entry->next = *p_head;
+  *p_head = entry;
+  if (!*p_tail)
+    *p_tail = entry;
+}
+
+/* Run visit_pool on all the shared pools, starting with WHITE as
+   the visited set so that those are not added.  The resulting
+   list is built separately, and at the end all of the namespaces
+   in the list are tacked after the node whose next pointer is
+   in P_END.  The new last node is returned (actually its next pointer).  */
+
+static pool_list *
+combine_local_pools (OOP sharedPoolsOOP, struct pointer_set_t *white, pool_list *p_end)
+{
+  struct pointer_set_t *grey = pointer_set_create ();
+  pool_list head = NULL;
+  pool_list tail = NULL;
   int numPools, i;
+
+  /* Visit right-to-left because visit_pool adds to the beginning.  */
+  numPools = NUM_OOPS (OOP_TO_OBJ (sharedPoolsOOP));
+  for (i = numPools; --i >= 0; )
+    {
+      OOP poolDictionaryOOP = ARRAY_AT (sharedPoolsOOP, i + 1);
+      visit_pool (poolDictionaryOOP, grey, white, &head, &tail);
+    }
+
+  pointer_set_destroy (grey);
+  if (head)
+    {
+      /* If anything was found, tack the list after P_END and return
+	 the new tail.  */
+      *p_end = head;
+      return &tail->next;
+    }
+  else
+    return p_end;
+}
+
+
+/* Add the list of resolved pools for CLASS_OOP.  This includes:
+   1) its class pool; 2) its shared pools as added by
+   combine_local_pools, and excluding those found from the
+   environment; 3) the environment and its superspaces,
+   excluding those reachable also from the environment of
+   the superclass.  */
+
+static pool_list *
+add_local_pool_resolution (OOP class_oop, pool_list *p_end)
+{
+  OOP environmentOOP;
   gst_class class;
-  pool_list *p_end = &linearized_pools;
+  struct pointer_set_t *pset;
 
-  /* First search in the class pools */
-  for (class_oop = myClass; !IS_NIL (class_oop);
-       class_oop = SUPERCLASS (class_oop))
-    p_end = add_pool (_gst_class_variable_dictionary (class_oop), p_end);
+  /* First search in the class pool.  */
+  p_end = add_pool (_gst_class_variable_dictionary (class_oop), p_end);
 
-  /* Now search in the `environments' */
-  for (class_oop = myClass; !IS_NIL (class_oop);
-       class_oop = SUPERCLASS (class_oop))
-    {
-      class = (gst_class) OOP_TO_OBJ (class_oop);
-      p_end = add_namespace (class->environment, p_end);
-    }
+  /* Then in all the imports not reachable from the environment.  */
+  class = (gst_class) OOP_TO_OBJ (class_oop);
+  environmentOOP = class->environment;
+  pset = make_with_all_superspaces_set (environmentOOP);
+  p_end = combine_local_pools (class->sharedPools, pset, p_end);
+  pointer_set_destroy (pset);
 
-  /* and in the shared pools */
-  for (class_oop = myClass; !IS_NIL (class_oop);
-       class_oop = SUPERCLASS (class_oop))
-    {
-      class = (gst_class) OOP_TO_OBJ (class_oop);
-      numPools = NUM_OOPS (OOP_TO_OBJ (class->sharedPools));
-      for (i = 0; i < numPools; i++)
-	{
-	  poolDictionaryOOP = ARRAY_AT (class->sharedPools, i + 1);
-          p_end = add_namespace (poolDictionaryOOP, p_end);
-	}
-    }
+  /* Then search in the `environments', except those that are already
+     reachable from the superclass. */
+  class_oop = SUPERCLASS (class_oop);
+  class = (gst_class) OOP_TO_OBJ (class_oop);
+  if (!IS_NIL (class_oop))
+    pset = make_with_all_superspaces_set (class->environment);
+  else
+    pset = NULL;
+  
+  p_end = add_namespace (environmentOOP, pset, p_end);
+  if (pset)
+    pointer_set_destroy (pset);
+  return p_end;
 }
 
 OOP
@@ -594,7 +714,15 @@ find_class_variable (OOP varName)
   OOP assocOOP;
 
   if (!linearized_pools)
-    compute_pool_resolution_order (_gst_get_class_object (_gst_this_class));
+    {
+      pool_list *p_end = &linearized_pools;
+      OOP myClass;
+
+      /* Add pools separately for each class.  */
+      for (myClass = _gst_get_class_object (_gst_this_class); !IS_NIL (myClass);
+           myClass = SUPERCLASS (myClass))
+        p_end = add_local_pool_resolution (myClass, p_end);
+    }
 
   for (pool = linearized_pools; pool; pool = pool->next)
     {

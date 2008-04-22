@@ -1,5 +1,9 @@
 2008-04-24  Paolo Bonzini  <bonzini@gnu.org>
 
+	* libgst/sym.c: Implement TwistedPools.
+
+2008-04-24  Paolo Bonzini  <bonzini@gnu.org>
+
 	* libgst/sym.c: Implement a linearized list of pool dictionaries
 	to lookup.
 
