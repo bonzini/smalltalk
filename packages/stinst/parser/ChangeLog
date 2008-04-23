@@ -1,3 +1,9 @@
+2008-04-21  Stephen Compall  <scompall@nocandysw.com>
+
+	* PoolResolutionTests.st: Test the importation of shared pools and
+	class pools from superclasses, as well as that only the direct
+	superclass's namespaces are eliminated from the namespace walk.
+
 2008-04-08  Stephen Compall  <scompall@nocandysw.com>
 
 	* STSymTable.st: Factor pool binding search into a separate class
