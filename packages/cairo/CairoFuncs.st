@@ -80,12 +80,24 @@ Object subclass: Cairo [
         <cCall: 'cairo_identity_matrix' returning: #void args: #(#cObject )>
     ]
 
+    Cairo class >> imageSurfaceCreate: format width: width height: height [
+        <cCall: 'cairo_image_surface_create' returning: #cObject args: #(#int #int #int)>
+    ]
+
     Cairo class >> imageSurfaceCreateForData: data format: format width: width height: height stride: stride [
         <cCall: 'cairo_image_surface_create_for_data' returning: #cObject args: #(#cObject #int #int #int #int )>
     ]
 
     Cairo class >> imageSurfaceCreateFromPng: filename [
         <cCall: 'cairo_image_surface_create_from_png' returning: #cObject args: #(#string )>
+    ]
+
+    Cairo class >> imageSurfaceGetHeight: filename [
+        <cCall: 'cairo_image_surface_get_height' returning: #int args: #(#cObject )>
+    ]
+
+    Cairo class >> imageSurfaceGetWidth: filename [
+        <cCall: 'cairo_image_surface_get_width' returning: #int args: #(#cObject )>
     ]
 
     Cairo class >> lineTo: cr x: x y: y [
@@ -368,6 +380,10 @@ Object subclass: Cairo [
         <cCall: 'cairo_stroke_preserve' returning: #void args: #(#cObject )>
     ]
 
+    Cairo class >> surfaceWriteToPng: surface filename: filename [
+        <cCall: 'cairo_surface_write_to_png' returning: #void args: #(#cObject #string )>
+    ]
+
     Cairo class >> surfaceDestroy: surface [
         <cCall: 'cairo_surface_destroy' returning: #void args: #(#cObject )>
     ]
@@ -494,6 +510,11 @@ Object subclass: Cairo [
     ]
 
     Cairo class >> extendNone [
+        <category: 'loading'>
+        ^0
+    ]
+
+    Cairo class >> formatArgb32 [
         <category: 'loading'>
         ^0
     ]

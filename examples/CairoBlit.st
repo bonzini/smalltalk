@@ -32,11 +32,7 @@
 PackageLoader fileInPackage: #CairoSDL.
 
 SDL.SdlEventHandler subclass: BlitDemo [
-    | context |
-
     <import: SDL>
-
-    context [ ^context ]
 
     winningDirectAccess [
         | color |
@@ -58,31 +54,30 @@ SDL.SdlEventHandler subclass: BlitDemo [
     ]
 
     blitStuff [
-        | maxw maxh x y w h startTime count |
+        | maxw maxh x y w h startTime count surface |
         startTime := Time millisecondClock.
-        context := (Cairo.CairoSdlSurface on: SdlDisplay current) context.
+        surface := Cairo.CairoSdlSurface on: SdlDisplay current.
         count := 0.
         maxw := SdlDisplay current extent x.
         maxh := SdlDisplay current extent y.
         [
-	    x := Random between: 0 and: maxw.
-	    y := Random between: 0 and: maxh.
-	    w := Random between: 0 and: maxw - x.
-	    h := Random between: 0 and: maxh - y.
-	    SdlDisplay current critical: [
-	        context
-		    sourceRed: self randomColorComponent
-		        green: self randomColorComponent
-		        blue: self randomColorComponent;
-		    fill: [ context rectangle: (x@y extent: w@h)]].
+	    surface withContextDo: [ :context |
+		100 timesRepeat: [
+		    x := Random between: 0 and: maxw.
+		    y := Random between: 0 and: maxh.
+		    w := Random between: 0 and: maxw - x.
+		    h := Random between: 0 and: maxh - y.
+		    count := count + 1.
+	            context
+		        sourceRed: self randomColorComponent
+		            green: self randomColorComponent
+		            blue: self randomColorComponent;
+		        fill: [ context rectangle: (x@y extent: w@h)]]].
 
-	    count := count + 1.
-	    (count \\ 100) = 0 ifTrue: [
-	        SdlDisplay current flip.
-	        Transcript << count << ' frames, '
+	    Transcript << count << ' frames, '
 		  << (count / ((Time millisecondClock - startTime) / 1000.0))
 		  << ' fps'; nl.
-	        Processor yield].
+	    Processor yield.
         ] repeat.
     ]
 

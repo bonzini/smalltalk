@@ -41,7 +41,7 @@ SDL.SdlEventHandler subclass: CairoDemo [
 
     samples [
         ^#(#arc #arcNegative #clip #curveRectangle #curveTo #gradient
-	   #fillStroke #fillRule)
+	   #fillStroke #fillRule #png)
     ]
 
     arcNegative [
@@ -162,6 +162,18 @@ SDL.SdlEventHandler subclass: CairoDemo [
 		    strokeWith: Color black ]
     ]
 
+    png [
+	| png scale translate |
+	(File exists: 'demo.png') ifFalse: [ ^self ].
+	png := CairoPngSurface on: 'demo.png'.
+	scale := 256.0 / (png extent x max: png extent y).
+	translate := 128@128 - (png extent / 2 * scale).
+	context
+	    translateBy: translate;
+	    scaleBy: scale;
+	    paintWith: (SurfacePattern on: png)
+    ]
+	
     fillRule [
 	| path |
 	path := [
@@ -239,13 +251,15 @@ SDL.SdlEventHandler subclass: CairoDemo [
     ]
 
     run [
+	| surface |
     	SdlDisplay defaultSize: self displaySize.
         SdlEventSource instance handler: self; startEventLoop.
         Processor activeProcess terminateOnQuit.
-        context := (CairoSdlSurface on: SdlDisplay current) context.
-    	SdlDisplay current
-	    critical: [ self draw ];
-	    flip
+        surface := CairoSdlSurface on: SdlDisplay current.
+	surface withContextDo: [ :ctx |
+	    context := ctx.
+	    self draw ].
+	(CairoPngSurface on: 'demo.png' with: surface) save
     ]
     
     draw [

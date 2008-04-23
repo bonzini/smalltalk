@@ -34,47 +34,138 @@
 Object subclass: CairoSurface [
     | surface |
 
-    rawSurface [ ^surface ]
+    cairoSurface [
+	"Return the CObject for the Cairo surface."
+
+	<category: 'C interface'>
+	surface isNil ifTrue: [ self rebuildSurface ].
+	^surface
+    ]
 
     update: aspect [
+	<category: 'private-persistence'>
 	aspect == #returnFromSnapshot ifTrue: [
 	    ^ self rebuildSurface].
     ]
 
     buildSurface [
+	"Abstract method to actually create a Cairo surface.
+	 Returns the CObject."
+
+	<category: 'C interface'>
 	self subclassResponsibility.
     ]
 
+    extent [
+	self subclassResponsibility
+    ]
+
     rebuildSurface [
+	<category: 'private-persistence'>
 	surface := self buildSurface.
 	self addToBeFinalized.
 	self changed: #returnFromSnapshot.
     ]
 
     finalize [
+	<category: 'private-finalization'>
 	surface ifNil: [ ^self ].
 	Cairo surfaceDestroy: surface.
 	surface := nil.
     ]
 
-    context [
-	^CairoContext on: self
+    withContextDo: aBlock [
+	<category: 'accessing'>
+	| context |
+	[ aBlock value: (context := CairoContext on: self) ] ensure: [ 
+	    context isNil ifFalse: [ context finalize ] ]
     ]
-].
+]
 
-CairoSurface subclass: CairoPngSurface [
-    | filename |
+CairoSurface subclass: CairoImageSurface [
+    | extent |
 
-    filename [ filename ]
-
-    filename: aString [
-	self finalize.
-	filename := aString.
-	self rebuildSurface.
+    CairoImageSurface class >> extent: aPoint [
+	^self new extent: aPoint
     ]
+
+    extent [ ^extent ]
+    extent: aPoint [ extent := aPoint ]
 
     buildSurface [
-	^ Cairo imageSurfaceCreateFromPng: filename.
+	^Cairo imageSurfaceCreate: Cairo formatArgb32 width: extent x height: extent y
+    ]
+]
+
+CairoImageSurface subclass: CairoFileSurface [
+    | filename |
+
+    CairoFileSurface class >> on: aFile with: aSurface [
+	^self new
+	    extent: aSurface extent;
+	    filename: aFile asString;
+	    paint: aSurface;
+	    yourself
+    ]
+
+    CairoFileSurface class >> on: aFile [
+	^self new filename: aFile asString
+    ]
+
+    extent [
+	extent isNil ifTrue: [
+	    self extent: ((Cairo imageSurfaceGetWidth: self cairoSurface) @
+			  (Cairo imageSurfaceGetHeight: self cairoSurface)) ].
+	^super extent
+    ]
+
+    paint: aSurface [
+	"Private - Paint the contents of the surface on this surface."
+
+	<category: 'private'>
+	super withContextDo: [ :context |
+	    context source: (SurfacePattern on: aSurface); paint ]
+    ]
+
+    filename [
+	"Answer the file from which the bits of the surface are loaded."
+
+	<category: 'accessing'>
+	^filename
+    ]
+
+    filename: aString [
+	"Answer the file to which the bits of the surface are saved."
+
+	self finalize.
+	filename := aString.
+    ]
+
+    save [
+	<category: 'file'>
+	self subclassResponbsibility
+    ]
+
+    withContextDo: aBlock [
+	<category: 'accessing'>
+	super withContextDo: aBlock.
+	self save
+    ]
+]
+
+CairoFileSurface subclass: CairoPngSurface [
+    buildSurface [
+	"Try to read the surface from the file if it exists.  Otherwise,
+	 create a blank surface whose size must have been given with
+	 the superclass constructor method, #extent:."
+
+	^(File name: filename) exists
+	    ifTrue: [ Cairo imageSurfaceCreateFromPng: filename ]
+	    ifFalse: [ super buildSurface ]
+    ]
+
+    save [
+	Cairo surfaceWriteToPng: self cairoSurface filename: filename
     ]
 ].
 
@@ -242,6 +333,10 @@ CairoPatternDecorator subclass: PaddedPattern [
 CairoPattern subclass: SurfacePattern [
     | surface |
 
+    SurfacePattern class >> on: aSurface [
+	^self new surface: aSurface; yourself
+    ]
+
     surface [ ^ surface ]
     surface: aCairoSurface [ surface := aCairoSurface ]
 
@@ -255,7 +350,7 @@ CairoPattern subclass: SurfacePattern [
     ]
 
     createCachedPattern [
-	^ Cairo patternCreateForSurface: surface rawSurface
+	^ Cairo patternCreateForSurface: surface cairoSurface
     ]
 ].
 
@@ -538,14 +633,17 @@ Object subclass: CairoContext [
 	surface := aCairoSurface.
 	depth := 0.
 	surface addDependent: self.
-	self update: #returnFromSnapshot.
+	self rebuildContext.
+    ]
+
+    rebuildContext [
+	context := Cairo create: surface cairoSurface.
+	self addToBeFinalized.
     ]
 
     update: aspect [
 	aspect == #returnFromSnapshot ifTrue: [
-	    context := Cairo create: surface rawSurface.
-	    self addToBeFinalized.
-	    ^self].
+	    ^self rebuildContext].
     ]
 
     finalize [

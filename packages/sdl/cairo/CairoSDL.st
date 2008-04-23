@@ -42,7 +42,7 @@ the surface.'>
     CairoSdlSurface class >> on: aDisplay [
 	<category: 'instance creation'>
 	"Create a surface on the given SdlDisplay."
-	^self new initialize: aDisplay
+	^self new display: aDisplay
     ]
 
     display [
@@ -51,12 +51,15 @@ the surface.'>
 	^display
     ]
 
-    initialize: aDisplay [
+    display: aDisplay [
 	<category: 'private-initialization'>
 	self finalize.
 	display := aDisplay.
 	display addDependent: self.
-	self rebuildSurface.
+    ]
+
+    extent [
+	^display extent
     ]
 
     buildSurface [
@@ -76,6 +79,12 @@ the surface.'>
 	display ifNil: [ ^self ].
 	display removeDependent: self.
 	display := nil.
+    ]
+
+    withContextDo: aBlock [
+	<category: 'accessing'>
+	display critical: [ super withContextDo: aBlock ].
+	display flip
     ]
 ].
 
