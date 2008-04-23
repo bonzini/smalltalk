@@ -401,10 +401,10 @@ use compiling methods for that class.'>
 	<category: 'overriding'>
 	| addedPool |
 	addedPool := self addPoolLast: aClass classPool.
-	aClass sharedPoolDictionaries each: [:sp | self addPoolLast: sp].
+	aClass sharedPoolDictionaries do: [:sp | self addPoolLast: sp].
 	aClass allSuperclassesDo: [:class |
 	    self addPoolLast: class classPool.
-	    class sharedPoolDictionaries each: [:sp | self addPoolLast: sp]].
+	    class sharedPoolDictionaries do: [:sp | self addPoolLast: sp]].
 	^addedPool
     ]
 
@@ -487,8 +487,7 @@ default.'>
 	    self addPoolLast: class environment.
 	    class classPool isEmpty ifFalse: [pools add: class classPool]].
 	behavior withAllSuperclassesDo: [:class |
-	    class sharedPoolDictionaries ifNotNil: [:dicts |
-		dicts do: [:sp | self addPoolLast: sp]]].
+	    class sharedPoolDictionaries do: [:sp | self addPoolLast: sp]].
     ]
 ]
 

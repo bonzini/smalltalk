@@ -1,3 +1,8 @@
+2008-04-22  Stephen Compall  <scompall@nocandysw.com>
+
+	* STSymTable.st: Send #do:, not #each:, and assume that
+	#sharedPoolDictionaries never answers nil.
+
 2008-04-21  Stephen Compall  <scompall@nocandysw.com>
 
 	* PoolResolutionTests.st: Test the importation of shared pools and
