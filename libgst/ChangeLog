@@ -1,8 +1,12 @@
-2008-04-24  Paolo Bonzini  <bonzini@gnu.org>
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/sym.c: Document TwistedPools (prose by Stephen Compall).
+
+2008-04-22  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/sym.c: Implement TwistedPools.
 
-2008-04-24  Paolo Bonzini  <bonzini@gnu.org>
+2008-04-22  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/sym.c: Implement a linearized list of pool dictionaries
 	to lookup.

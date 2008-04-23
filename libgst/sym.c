@@ -499,6 +499,103 @@ free_scope_symbols (scope scope)
       xfree (oldList);
     }
 }
+
+/* Here are some notes on the design of the shared pool resolution order,
+   codenamed "TwistedPools".
+
+   The design should maintain a sense of containment within namespaces,
+   while still allowing reference to all inherited environments, as is
+   traditionally expected.
+
+   The fundamental problem is that when a subclass is not in the same
+   namespace as the superclass, we want to give a higher priority to
+   the symbols in the namespaces imported by the subclass, than to the
+   symbols in the superclass namespaces.  As such, no simple series of
+   walks up the inheritance tree paired with pool-adds will give us a
+   good search order.  Instead, we build a complete linearization of
+   the namespaces (including the superspaces) and look up a symbol in
+   each namespace locally, without looking at the superspaces.
+
+   This is the essential variable search algorithm for TwistedPools.
+
+   1. Given a class, starting with the method-owning class:
+
+      a. Search the class pool.
+
+      b. Search this class's shared pools in topological order,
+         left-to-right, skipping any pools that are any of
+         this class's namespace or superspaces.
+
+      c. Search this class's namespace and each superspace in turn
+         before first encounter of a namespace that contains, directly or
+         indirectly, the superclass. This means that if the superclass is
+         in the same namespace or a subspace, no namespaces are searched.
+
+   2. Move to the superclass, and repeat from #1.
+
+   Combination details
+   ===================
+
+   While the add-namespaces step above could be less eager to add namespaces,
+   by allowing any superclass to stop the namespace crawl, rather than
+   just the direct superclasses, it is already less eager than the shared
+   pool manager. The topological sort is an obviously good choice, but
+   why not allow superclasses' namespaces to provide deletions as well
+   as the pool-containing class? While both alternatives have benefits,
+   an eager import of all superspaces, besides those that already contain
+   the pool-containing class, would most closely match what's expected.
+
+   An argument could also be made that by adding a namespace to shared pools,
+   you expect all superspaces to be included. However, consider the usual
+   case of namespaces in shared pools: imports. While you would want it to
+   completely load an alternate namespace hierarchy, I think you would not
+   want it to inject Smalltalk early into the variable search. Consider
+   this diagram:
+
+               Smalltalk
+                   |
+               MyCompany
+               /      \
+              /        \
+         MyProject     MyLibrary
+            /            /    \
+           /           ModA   ModB
+     MyLibModule
+
+    If you were to use ModB as a pool in a class in MyLibModule, I think
+    it is most reasonable that ModB and MyLibrary be immediately imported,
+    but MyCompany and Smalltalk wait until you reach that point in the
+    namespace walk.  In other words, pools only add that part of themselves,
+    which would not be otherwise reachable via the class environment.
+
+    (Note that, as a side effect, adding MyCompany as a pool will have
+    no effect). 
+
+    Another argument could be made to delay further the namespace walk,
+    waiting to resolve until no superclass is contained in a given namespace,
+    based on the idea of exiting a namespace hierarchy while walking
+    superclasses, then reentering it. Disregarding the unlikelihood of such
+    an organization, it probably would be less confusing to resolve the
+    hierarchy being left first, in case the interloping hierarchy introduces
+    conflicting symbols of its own.
+
+    There is no objective argument regarding the above points of
+    contention, and no formal proofs, because convenient global name
+    resolution is entirely a matter of feeling, because a formal
+    programmer could always explicitly spell out the path to every
+    variable.
+
+    What if namespace had imports of their own?
+    ===========================================
+
+    I have an idea to add shared pools to namespaces, thereby allowing users
+    to import external namespaces for every class in a namespace, rather
+    than each class. If this is integrated, it would need to twist nicely.
+
+    Here is how I think it would best work: after searching any namespace,
+    combine its shared pools using IPCA, removing all elements that are any
+    of this namespace or its superspaces, and search the combination from
+    left to right.  */
 
 
 OOP
@@ -587,8 +684,22 @@ add_namespace (OOP poolOOP, struct pointer_set_t *except, pool_list *p_end)
 }
 
 
-/* Add POOLOOP and all of its superspaces to the list in the
-   right order (Stephen, please help me... :-).  */
+/* Add POOLOOP and all of its superspaces to the list in the right order:
+
+   1. Start a new list.
+
+   2. From right to left, descend into each given pool not visited.
+
+   3. Recursively visit the superspace, then...
+
+   4. Mark this pool as visited, and add to the beginning of #1's list.
+
+   5. After all recursions exit, the list is appended at the end of the
+      linearized list of pools.
+
+   This function takes care of 3-4.  These two steps implement
+   a topological sort on the reverse of the namespace tree; it is
+   explicitly modeled after CLOS class precedence.  */
 
 static void
 visit_pool (OOP poolOOP, struct pointer_set_t *grey,
