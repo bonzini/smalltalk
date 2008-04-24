@@ -30,6 +30,50 @@
 |
  ======================================================================"
 
+CStruct subclass: CairoMatrix [
+    <declaration: #(
+      (#xx #double)
+      (#yx #double)
+      (#xy #double)
+      (#yy #double)
+      (#x0 #double)
+      (#y0 #double))>
+
+    <category: 'Cairo-C interface'>
+
+    CairoMatrix class >> new [
+	^ super new addToBeFinalized
+    ]
+
+    initIdentity [
+        Cairo matrixInitIdentity: self.
+    ]
+
+    withPoint: point do: block [
+        | ox oy |
+	ox := CDouble value: point x.
+	oy := CDouble value: point y.
+	[
+	    ^ block value:self value:ox value: oy
+	] ensure: [
+	    ox ifNotNil: [ :x | x free ].
+	    oy ifNotNil: [ :y | y free ]].
+    ]
+
+    copy [
+        | shiny |
+        shiny := CairoMatrix new.
+        Cairo matrixInit: shiny 
+	      xx: self xx value
+	      yx: self yx value
+	      xy: self xy value
+	      yy: self yy value
+	      x0: self x0 value
+	      y0: self y0 value.
+        ^ shiny
+    ]
+]
+
 
 "A note on transforms: to be compositional, the most straight-forward thing
  is to always use a transformation matrix.  However, a lot of the time, we'll

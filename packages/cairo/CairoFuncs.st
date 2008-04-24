@@ -33,8 +33,11 @@
 
 Object subclass: Cairo [
     
-    <category: ''>
-    <comment: nil>
+    <category: 'Cairo-C interface'>
+    <comment: 'This class provides the C functions used in
+calling Cairo functions.  The user should actually use higher-level
+classes such as CairoSurface, CairoPattern and (using #withContextDo:)
+CairoContext.'>
 
     Cairo class >> arc: cr xc: xc yc: yc radius: radius angle1: angle1 angle2: angle2 [
         <cCall: 'cairo_arc' returning: #void args: #(#cObject #double #double #double #double #double )>
@@ -520,15 +523,14 @@ Object subclass: Cairo [
     ]
 ]
 
-CStruct subclass: #CairoTextExtents
-    declaration: #(
+CStruct subclass: CairoTextExtents [
+    <declaration: #(
         (#xBearing #double)
         (#yBearing #double)
         (#width #double)
         (#height #double)
         (#xAdvance #double)
-        (#yAdvance #double))
-    classVariableNames: ''
-    poolDictionaries: ''
-    category: 'CairoTextExtents Wrapper'
-!
+        (#yAdvance #double)) >
+
+    <category: 'Cairo-C interface'>
+]
