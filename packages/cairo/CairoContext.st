@@ -57,6 +57,8 @@ Object subclass: CairoSurface [
     ]
 
     extent [
+	"Return the size of the surface"
+
 	self subclassResponsibility
     ]
 
@@ -75,6 +77,9 @@ Object subclass: CairoSurface [
     ]
 
     withContextDo: aBlock [
+	"Execute aBlock passing a valid Cairo context for the
+	 surface.  The context is invalidated after aBlock returns."
+
 	<category: 'accessing'>
 	| context |
 	[ aBlock value: (context := CairoContext on: self) ] ensure: [ 
@@ -86,14 +91,31 @@ CairoSurface subclass: CairoImageSurface [
     | extent |
 
     CairoImageSurface class >> extent: aPoint [
+	"Create a new surface with the given size.  Right now it is
+	 only possible to create 32-bit color surfaces.
+
+	 The surface is blanked when the Smalltalk image is restarted."
+	<category: 'instance creation'>
 	^self new extent: aPoint
     ]
 
-    extent [ ^extent ]
+    extent [
+	"Return the size of the surface"
+
+	<category: 'accessing'>
+	^extent
+    ]
+
     extent: aPoint [ extent := aPoint ]
 
-    buildSurface [
+    buildBlankSurface [
+	<category: 'C interface'>
 	^Cairo imageSurfaceCreate: Cairo formatArgb32 width: extent x height: extent y
+    ]
+
+    buildSurface [
+	<category: 'C interface'>
+	^self buildBlankSurface
     ]
 ]
 
@@ -101,18 +123,45 @@ CairoImageSurface subclass: CairoFileSurface [
     | filename |
 
     CairoFileSurface class >> on: aFile with: aSurface [
-	^self new
-	    extent: aSurface extent;
-	    filename: aFile asString;
+	"Create a new surface that will save to aFile and whose
+	 size and initial content is the same as aSurface's.
+	 The content is reset to the content of aFile when
+	 the Smalltalk image is restarted."
+
+	<category: 'instance creation'>
+	^(self extent: aSurface extent)
+	    buildBlankSurface;
 	    paint: aSurface;
+	    filename: aFile asString;
+	    yourself
+    ]
+
+    CairoFileSurface class >> on: aFile extent: aPoint [
+	"Create a new surface that will save to aFile, whose
+	 size is aPoint and whose initial content is transparent.
+	 The content is reset to the content of aFile when
+	 the Smalltalk image is restarted."
+
+	<category: 'instance creation'>
+	^(self extent: aSurface extent)
+	    buildBlankSurface;
+	    filename: aFile asString;
 	    yourself
     ]
 
     CairoFileSurface class >> on: aFile [
+	"Create a new surface that will save to aFile, whose
+	 size is aPoint and whose initial content is obtained
+	 by loading aFile.  aFile is reloaded on every Smalltalk
+	 image load."
+
 	^self new filename: aFile asString
     ]
 
     extent [
+	"Return the size of the surface.  Requires the file to exist
+	 if the size was not supplied at surface creation time."
+
 	extent isNil ifTrue: [
 	    self extent: ((Cairo imageSurfaceGetWidth: self cairoSurface) @
 			  (Cairo imageSurfaceGetHeight: self cairoSurface)) ].
@@ -120,7 +169,7 @@ CairoImageSurface subclass: CairoFileSurface [
     ]
 
     paint: aSurface [
-	"Private - Paint the contents of the surface on this surface."
+	"Private - Paint the contents of aSurface on this surface."
 
 	<category: 'private'>
 	super withContextDo: [ :context |
@@ -137,40 +186,69 @@ CairoImageSurface subclass: CairoFileSurface [
     filename: aString [
 	"Answer the file to which the bits of the surface are saved."
 
-	self finalize.
+	<category: 'accessing'>
 	filename := aString.
     ]
 
-    save [
-	<category: 'file'>
-	self subclassResponbsibility
-    ]
-
-    withContextDo: aBlock [
-	<category: 'accessing'>
-	super withContextDo: aBlock.
-	self save
-    ]
-]
-
-CairoFileSurface subclass: CairoPngSurface [
     buildSurface [
 	"Try to read the surface from the file if it exists.  Otherwise,
 	 create a blank surface whose size must have been given with
 	 the superclass constructor method, #extent:."
 
+	<category: 'file'>
 	^(File name: filename) exists
-	    ifTrue: [ Cairo imageSurfaceCreateFromPng: filename ]
-	    ifFalse: [ super buildSurface ]
+	    ifTrue: [ self buildSurfaceFromFile ]
+	    ifFalse: [ self buildBlankSurface ]
+    ]
+
+    buildSurfaceFromFile [
+	"Load the contents of the surface to the file specified by
+	 #filename."
+
+	<category: 'file'>
+	self subclassResponbsibility
     ]
 
     save [
+	"Save the contents of the surface to the file specified by
+	 #filename."
+
+	<category: 'file'>
+	self subclassResponbsibility
+    ]
+
+    withContextDo: aBlock [
+	"Execute aBlock passing a valid Cairo context for the
+	 surface.  After aBlock returns, the context is invalidated
+	 and the content of the surface is saved to the file."
+
+	<category: 'accessing'>
+	[ super withContextDo: aBlock ] ensure: [ self save ]
+    ]
+]
+
+CairoFileSurface subclass: CairoPngSurface [
+    buildSurfaceFromFile [
+	"Try to read the surface from the file if it exists.  Otherwise,
+	 create a blank surface whose size must have been given with
+	 the superclass constructor method, #extent:."
+
+	<category: 'file'>
+	^Cairo imageSurfaceCreateFromPng: filename
+    ]
+
+    save [
+	"Save the contents of the surface to the PNG file specified by
+	 #filename."
+
+	<category: 'file'>
 	Cairo surfaceWriteToPng: self cairoSurface filename: filename
     ]
 ].
 
 BlockClosure extend [
     maskOn: context [
+	<category: 'cairo double dispatch'>
 	| pattern |
 	[
 	    Cairo.Cairo pushGroup: context.
@@ -182,6 +260,7 @@ BlockClosure extend [
     ]
 
     on: context withSourceDo: paintBlock [
+	<category: 'cairo double dispatch'>
 	| pattern source |
 	source := Cairo.Cairo getSource: context.
 	Cairo.Cairo patternReference: source.
@@ -200,6 +279,7 @@ BlockClosure extend [
     ]
 
     setSourceOn: context [
+	<category: 'cairo double dispatch'>
 	| pattern |
 	[
 	    Cairo.Cairo pushGroup: context.
@@ -216,19 +296,25 @@ Object subclass: CairoPattern [
 
     Patterns := nil.
     CairoPattern class >> initialize [
+	<category: 'initialize'>
 	Patterns := WeakKeyDictionary new.
 	ObjectMemory addDependent: self.
     ]
 
     CairoPattern class >> update: aspect [
 	"Clear our cache."
+	<category: 'private-persistence'>
 	aspect == #returnFromSnapshot ifTrue: [
 	    Patterns do: [ :each | each finalize ]].
     ]
 
-    pattern [ ^pattern ]
+    pattern [
+	<category: 'private-persistence'>
+	^pattern
+    ]
 
     cachedPattern [
+	<category: 'private-persistence'>
 	[canonical isNil] whileTrue: [
 	    Patterns
 		at: self
@@ -247,28 +333,36 @@ Object subclass: CairoPattern [
     ]
 
     createCachedPattern [
+	<category: 'C interface'>
 	self subclassResponsibility.
     ]
 
     postCopy [
-	"Reference the same canonical object, but not the pattern."
+	"We reference the same canonical object, but the pattern lives
+	 from the canonical object."
+
+	<category: 'private-persistence'>
 	pattern := nil.
     ]
 
     finalize [
+	<category: 'private-persistence'>
 	pattern ifNotNil: [ :p | Cairo patternDestroy: p ].
 	pattern := nil.
     ]
 
     maskOn: context [
+	<category: 'cairo double dispatch'>
 	Cairo.Cairo mask: context pattern: self cachedPattern
     ]
 
     setSourceOn: context [
+	<category: 'cairo double dispatch'>
 	Cairo setSource: context source: self cachedPattern
     ]
 
     on: context withSourceDo: paintBlock [
+	<category: 'cairo double dispatch'>
 	| pattern source |
 	source := Cairo getSource: context.
 	Cairo patternReference: source.
@@ -287,24 +381,35 @@ Object subclass: CairoPattern [
 CairoPattern subclass: CairoPatternDecorator [
     | wrappedPattern |
     CairoPatternDecorator class >> on: aPattern [
+	<category: 'instance creation'>
 	^self new wrappedPattern: aPattern; yourself
     ]
 
     = anObject [
+	<category: 'basic'>
 	^self class == anObject class and: [
 	    self wrappedPattern = anObject wrappedPattern ]
     ]
 
     hash [
+	<category: 'basic'>
 	^self class hash bitXor: self wrappedPattern hash
     ]
 
-    wrappedPattern [ ^wrappedPattern ]
-    wrappedPattern: aPattern [ wrappedPattern := aPattern ]
+    wrappedPattern [
+	<category: 'accessing'>
+	^wrappedPattern
+    ]
+
+    wrappedPattern: aPattern [
+	<category: 'private-accessing'>
+	wrappedPattern := aPattern
+    ]
 ]
 
 CairoPatternDecorator subclass: ReflectedPattern [
     createCachedPattern [
+	<category: 'C interface'>
 	| result |
 	result := self wrappedPattern createCachedPattern.
 	Cairo patternSetExtend: result extend: Cairo extendReflect.
@@ -314,6 +419,7 @@ CairoPatternDecorator subclass: ReflectedPattern [
 
 CairoPatternDecorator subclass: RepeatedPattern [
     createCachedPattern [
+	<category: 'C interface'>
 	| result |
 	result := self wrappedPattern createCachedPattern.
 	Cairo patternSetExtend: result extend: Cairo extendRepeat.
@@ -323,6 +429,7 @@ CairoPatternDecorator subclass: RepeatedPattern [
 
 CairoPatternDecorator subclass: PaddedPattern [
     createCachedPattern [
+	<category: 'C interface'>
 	| result |
 	result := self wrappedPattern createCachedPattern.
 	Cairo patternSetExtend: result extend: Cairo extendPad.
@@ -334,22 +441,33 @@ CairoPattern subclass: SurfacePattern [
     | surface |
 
     SurfacePattern class >> on: aSurface [
+	<category: 'instance creation'>
 	^self new surface: aSurface; yourself
     ]
 
-    surface [ ^ surface ]
-    surface: aCairoSurface [ surface := aCairoSurface ]
+    surface [
+	<category: 'accessing'>
+	^ surface
+    ]
+
+    surface: aCairoSurface [
+	<category: 'private-accessing'>
+	surface := aCairoSurface
+    ]
 
     = anObject [
+	<category: 'basic'>
 	^self class == anObject class and: [
 	    self surface = anObject surface ]
     ]
 
     hash [
+	<category: 'basic'>
 	^self class hash bitXor: self surface hash
     ]
 
     createCachedPattern [
+	<category: 'C interface'>
 	^ Cairo patternCreateForSurface: surface cairoSurface
     ]
 ].
@@ -358,35 +476,43 @@ CairoPattern subclass: GradientPattern [
     | colorStops |
 
     GradientPattern class >> new [
+	<category: 'instance creation'>
 	^super new initialize
     ]
 
     colorStops [
+	<category: 'accessing'>
 	^colorStops
     ]
 
     initialize [
+	<category: 'initialize'>
 	colorStops := OrderedCollection new.
     ]
 
     = anObject [
+	<category: 'basic'>
 	^self class == anObject class and: [
 	    self colorStops = anObject colorStops ]
     ]
 
     hash [
+	<category: 'basic'>
 	^self class hash bitXor: self colorStops hash
     ]
 
     addStopAt: aNumber color: aColor [
+	<category: 'accessing'>
 	colorStops add: aNumber -> aColor.
     ]
 
     addStopAt: aNumber red: r green: g blue: b alpha: a [
+	<category: 'accessing'>
 	colorStops add: aNumber -> (Color r: r g: g blue: b a: a).
     ]
 
     initializeCachedPattern: p [
+	<category: 'private'>
 	| c |
 	colorStops do: [ :stop |
 	    c := stop value.
@@ -403,35 +529,42 @@ GradientPattern subclass: LinearGradient [
     | point0 point1 |
 
     LinearGradient class >> from: point0 to: point1 [
+	<category: 'instance creation'>
 	^ self new
 	    from: point0 to: point1;
 	    yourself
     ]
 
     from [
+	<category: 'accessing'>
 	^point0
     ]
 
     to [
+	<category: 'accessing'>
 	^point1
     ]
 
     from: aPoint0 to: aPoint1 [
+	<category: 'private-accessing'>
 	point0 := aPoint0.
 	point1 := aPoint1.
     ]
 
     = anObject [
+	<category: 'basic'>
 	^super = anObject and: [
 	    point0 = anObject from and: [
 	    point1 = anObject to ]]
     ]
 
     hash [
+	<category: 'basic'>
 	^(super hash bitXor: point0 hash) bitXor: point1 hash
     ]
 
     createCachedPattern [
+	<category: 'C interface'>
 	| p c |
 	p := Cairo patternCreateLinear: point0 x asCNumber
 		   y0: point0 y asCNumber
@@ -446,28 +579,34 @@ GradientPattern subclass: RadialGradient [
     | point0 r0 point1 r1 |
 
     RadialGradient class >> from: point0 radius: r0 to: point1 radius: r1 [
+	<category: 'instance creation'>
 	^ self new
 	    from: point0 radius: r0 to: point1 radius: r1;
 	    yourself
     ]
 
     from [
+	<category: 'accessing'>
 	^point0
     ]
 
     fromRadius [
+	<category: 'accessing'>
 	^r0
     ]
 
     to [
+	<category: 'accessing'>
 	^point1
     ]
 
     toRadius [
+	<category: 'accessing'>
 	^r1
     ]
 
     from: aPoint0 radius: aR0 to: aPoint1 radius: aR1 [
+	<category: 'private-accessing'>
 	point0 := aPoint0.
 	r0 := aR0.
 	point1 := aPoint1.
@@ -475,6 +614,7 @@ GradientPattern subclass: RadialGradient [
     ]
 
     = anObject [
+	<category: 'basic'>
 	^super = anObject and: [
 	    point0 = anObject from and: [
 	    r0 = anObject fromRadius and: [
@@ -483,11 +623,13 @@ GradientPattern subclass: RadialGradient [
     ]
 
     hash [
+	<category: 'basic'>
 	^(((super hash bitXor: point0 hash) bitXor: point1 hash)
 	     bitXor: r0 hash) bitXor: r1 hash
     ]
 
     createCachedPattern [
+	<category: 'C interface'>
 	| p c |
 	p := Cairo patternCreateRadial: point0 x asCNumber
 		   cy0: point0 y asCNumber
@@ -504,27 +646,62 @@ CairoPattern subclass: Color [
     | red green blue alpha |
 
     Color >> new [
+	<category: 'instance creation'>
 	^self new r: 0 g: 0 b: 0 a: 1.
     ]
 
     Color class >> r: r g: g b: b [
+	<category: 'instance creation'>
 	^ self basicNew r: r g: g b: b a: 1.0.
     ]
 
     Color class >> r: r g: g b: b a: a [
+	<category: 'instance creation'>
 	^ self basicNew r: r g: g b: b a: a.
     ]
 
-    Color class >> black [^ self r: 0 g: 0 b: 0.]
-    Color class >> white [^ self r: 1 g: 1 b: 1.]
-    Color class >> red [^ self r: 1 g: 0 b: 0.]
-    Color class >> green [^ self r: 0 g: 1 b: 0.]
-    Color class >> blue [^ self r: 0 g: 0 b: 1.]
-    Color class >> cyan [^ self r: 0 g: 1 b: 1.]
-    Color class >> magenta [^ self r: 1 g: 0 b: 1.]
-    Color class >> yellow [^ self r: 1 g: 1 b: 0.]
+    Color class >> black [
+	<category: 'instance creation'>
+	^ self r: 0 g: 0 b: 0
+    ]
+
+    Color class >> white [
+	<category: 'instance creation'>
+	^ self r: 1 g: 1 b: 1
+    ]
+
+    Color class >> red [
+	<category: 'instance creation'>
+	^ self r: 1 g: 0 b: 0
+    ]
+
+    Color class >> green [
+	<category: 'instance creation'>
+	^ self r: 0 g: 1 b: 0
+    ]
+
+    Color class >> blue [
+	<category: 'instance creation'>
+	^ self r: 0 g: 0 b: 1
+    ]
+
+    Color class >> cyan [
+	<category: 'instance creation'>
+	^ self r: 0 g: 1 b: 1
+    ]
+
+    Color class >> magenta [
+	<category: 'instance creation'>
+	^ self r: 1 g: 0 b: 1
+    ]
+
+    Color class >> yellow [
+	<category: 'instance creation'>
+	^ self r: 1 g: 1 b: 0
+    ]
 
     = anObject [
+	<category: 'basic'>
 	^self class == anObject class and: [
 	    red = anObject red and: [
 	    green = anObject green and: [
@@ -533,30 +710,63 @@ CairoPattern subclass: Color [
     ]
 
     hash [
+	<category: 'basic'>
 	^(red * 255) truncated +
 	 ((green * 255) truncated * 256) +
 	 ((blue * 255) truncated * 65536) +
 	 ((alpha * 63) truncated * 16777216)
     ]
 	 
-    red [ ^red ]
-    green [ ^green ]
-    blue [ ^blue ]
-    alpha [ ^alpha ]
+    red [
+	<category: 'accesing'>
+	^red
+    ]
+
+    green [
+	<category: 'accesing'>
+	^green
+    ]
+
+    blue [
+	<category: 'accesing'>
+	^blue
+    ]
+
+    alpha [
+	<category: 'accesing'>
+	^alpha
+    ]
 
     r: r g: g b: b a: a [
+	<category: 'private-accesing'>
 	red := r.
 	green := g.
 	blue := b.
 	alpha := a.
     ]
 
-    withRed: aNumber [ ^ Color r: aNumber g: green b: blue a: alpha ]
-    withGreen: aNumber [ ^ Color r: red g: aNumber b: blue a: alpha ]
-    withBlue: aNumber [ ^ Color r: red g: green b: aNumber a: alpha ]
-    withAlpha: aNumber [ ^ Color r: red g: green b: blue a: aNumber ]
+    withRed: aNumber [
+	<category: 'instance creation'>
+	^ Color r: aNumber g: green b: blue a: alpha
+    ]
+
+    withGreen: aNumber [
+	<category: 'instance creation'>
+	^ Color r: red g: aNumber b: blue a: alpha
+    ]
+
+    withBlue: aNumber [
+	<category: 'instance creation'>
+	^ Color r: red g: green b: aNumber a: alpha
+    ]
+
+    withAlpha: aNumber [
+	<category: 'instance creation'>
+	^ Color r: red g: green b: blue a: aNumber
+    ]
 
     mix: aColor ratio: aScale [
+	<category: 'mixing'>
 	^Color r: ((red * aScale) + (aColor red * (1 - aScale)))
 		g: ((green * aScale) + (aColor green * (1 - aScale)))
 		b: ((blue * aScale) + (aColor blue * (1 - aScale)))
@@ -564,6 +774,7 @@ CairoPattern subclass: Color [
     ]
 
     * aScale [
+	<category: 'mixing'>
 	aScale isNumber ifTrue: [
 	    ^ Color r: ((red * aScale) min: 1)
 		    g: ((green * aScale) min: 1)
@@ -576,6 +787,8 @@ CairoPattern subclass: Color [
     ]
 
     createCachedPattern [
+	<category: 'C interface'>
+
 	"Should never be reached."
 	self halt.
 	^ Cairo patternCreateRgba: red asCNumber
@@ -585,16 +798,21 @@ CairoPattern subclass: Color [
     ]
 
     printOn: st [
+	<category: 'printing'>
+
 	st << 'Color r: ' << red << ' g: ' << green << ' b: ' << blue << ' a: ' << alpha.
     ]
 
     storeOn: st [
+	<category: 'printing'>
+
 	st << $(.
 	self printOn: st.
 	st << $)
     ]
 
     setSourceOn: context [
+	<category: 'cairo double dispatch'>
 	Cairo
 	    setSourceRgba: context
 	    red: red asCNumber
@@ -607,15 +825,28 @@ CairoPattern subclass: Color [
 Object subclass: TextExtents [
     | bearing extent advance |
 
-    bearing [ ^bearing ]
-    extent [ ^extent ]
-    advance [ ^advance ]
+    bearing [
+	<category: 'accessing'>
+	^bearing
+    ]
+
+    extent [
+	<category: 'accessing'>
+	^extent
+    ]
+
+    advance [
+	<category: 'accessing'>
+	^advance
+   ]
 
     TextExtents class >> from: aCairoTextExtents [
+	<category: 'private-instance creation'>
 	^ self new initializeFrom: aCairoTextExtents
     ]
 
     initializeFrom: aCairoTextExtents [
+	<category: 'private'>
 	bearing := aCairoTextExtents xBearing value @ aCairoTextExtents yBearing value.
 	extent := aCairoTextExtents width value @ aCairoTextExtents height value.
 	advance := aCairoTextExtents xAdvance value @ aCairoTextExtents yAdvance value.
@@ -626,10 +857,12 @@ Object subclass: CairoContext [
     | surface context depth |
 
     CairoContext class >> on: aCairoSurface [
+	<category: 'instance creation'>
 	^ self new initialize: aCairoSurface
     ]
 
     initialize: aCairoSurface [
+	<category: 'private'>
 	surface := aCairoSurface.
 	depth := 0.
 	surface addDependent: self.
@@ -637,16 +870,19 @@ Object subclass: CairoContext [
     ]
 
     rebuildContext [
+	<category: 'private-persistence'>
 	context := Cairo create: surface cairoSurface.
 	self addToBeFinalized.
     ]
 
     update: aspect [
+	<category: 'private-persistence'>
 	aspect == #returnFromSnapshot ifTrue: [
 	    ^self rebuildContext].
     ]
 
     finalize [
+	<category: 'private-persistence'>
 	context ifNil: [ ^self ].
 	Cairo destroy: context.
 	context := nil.
@@ -654,47 +890,68 @@ Object subclass: CairoContext [
 	surface := nil.
     ]
 
+    restore [
+	<category: 'drawing'>
+	Cairo restore: context.
+    ]
+
+    save [
+	<category: 'drawing'>
+	Cairo save: context.
+    ]
+
     saveWhile: aBlock [
+	<category: 'drawing-handy API'>
 	Cairo save: context.
 	^ aBlock ensure: [ Cairo restore: context ].
     ]
 
     withSource: aPatternOrBlock do: paintBlock [
+	<category: 'drawing-handy API'>
 	aPatternOrBlock on: context withSourceDo: paintBlock
     ]
 
     source: aPatternOrBlock [
+	<category: 'accessing'>
 	aPatternOrBlock setSourceOn: context
     ]
 
     sourceRed: r green: g blue: b [
+	<category: 'accessing'>
 	Cairo setSourceRgb: context red: r asCNumber green: g asCNumber blue: b asCNumber.
     ]
 
     sourceRed: r green: g blue: b alpha: a [
+	<category: 'accessing'>
 	Cairo setSourceRgba: context red: r asCNumber green: g asCNumber blue: b asCNumber alpha: a asCNumber.
     ]
 
     closePath [
+	<category: 'paths'>
 	Cairo closePath: context.
     ]
 
     withClosedPath: aBlock do: opsBlock [
+	<category: 'paths-handy API'>
 	self withPath: [ aBlock value. self closePath ] do: opsBlock
     ]
 
     addClosedSubPath: aBlock [
+	<category: 'paths-handy API'>
 	self newSubPath.
 	aBlock value.
 	self closePath
     ]
 
     addSubPath: aBlock [
+	<category: 'paths-handy API'>
 	self newSubPath.
 	aBlock value
     ]
 
     withPath: aBlock do: opsBlock [
+	<category: 'paths-handy API'>
+
 	"Cannot yet save a path and go back to it later."
 	depth >= 1 ifTrue: [ self notYetImplemented ].
 	depth := depth + 1.
@@ -703,30 +960,37 @@ Object subclass: CairoContext [
     ]
 
     newSubPath [
+	<category: 'paths'>
 	Cairo newSubPath: context.
     ]
 
     newPath [
+	<category: 'paths'>
 	Cairo newPath: context.
     ]
 
     moveTo: aPoint [
+	<category: 'paths'>
 	Cairo moveTo: context x: aPoint x asCNumber y: aPoint y asCNumber.
     ]
 
     relMoveTo: aPoint [
+	<category: 'paths'>
 	Cairo relMoveTo: context dx: aPoint x asCNumber dy: aPoint y asCNumber.
     ]
 
     lineTo: aPoint [
+	<category: 'paths'>
 	Cairo lineTo: context x: aPoint x asCNumber y: aPoint y asCNumber.
     ]
 
     relLineTo: aPoint [
+	<category: 'paths'>
 	Cairo relLineTo: context dx: aPoint x asCNumber dy: aPoint y asCNumber.
     ]
 
     curveTo: aPoint3 via: aPoint1 via: aPoint2 [
+	<category: 'paths'>
 	Cairo curveTo: context
 	      x1: aPoint1 x asCNumber y1: aPoint1 y asCNumber
 	      x2: aPoint2 x asCNumber y2: aPoint2 y asCNumber
@@ -734,6 +998,7 @@ Object subclass: CairoContext [
     ]
 
     curveVia: aPoint1 via: aPoint2 to: aPoint3 [
+	<category: 'paths'>
 	Cairo curveTo: context
 	      x1: aPoint1 x asCNumber y1: aPoint1 y asCNumber
 	      x2: aPoint2 x asCNumber y2: aPoint2 y asCNumber
@@ -741,6 +1006,7 @@ Object subclass: CairoContext [
     ]
 
     arc: aPoint radius: r from: angle1 to: angle2 [
+	<category: 'paths'>
 	Cairo arc: context
 	      xc: aPoint x asCNumber yc: aPoint y asCNumber
 	      radius: r asCNumber
@@ -748,6 +1014,7 @@ Object subclass: CairoContext [
     ]
 
     arcNegative: aPoint radius: r from: angle1 to: angle2 [
+	<category: 'paths'>
 	Cairo arcNegative: context
 	      xc: aPoint x asCNumber yc: aPoint y asCNumber
 	      radius: r asCNumber
@@ -755,12 +1022,14 @@ Object subclass: CairoContext [
     ]
 
     rectangle: aRect [
+	<category: 'paths'>
 	Cairo rectangle: context
 	      x: aRect left asCNumber y: aRect top asCNumber
 	      width: aRect width asCNumber height: aRect height asCNumber.
     ]
 
     roundedRectangle: b radius: cornerRadius [
+	<category: 'paths-handy API'>
 	| hr vr h2 v2 |
 	hr := cornerRadius@0.
 	vr := 0@cornerRadius.
@@ -779,6 +1048,7 @@ Object subclass: CairoContext [
     ]
 
     groupWhile: aBlock [
+	<category: 'drawing-handy API'>
 	| pattern |
 	[
 	    Cairo.Cairo pushGroup: context.
@@ -790,113 +1060,139 @@ Object subclass: CairoContext [
     ]
 
     clipPreserve [
+	<category: 'drawing'>
 	Cairo clipPreserve: context
     ]
 
     clip [
+	<category: 'drawing'>
 	depth > 0
 	    ifTrue: [Cairo clipPreserve: context]
 	    ifFalse: [Cairo clip: context]
     ]
 
     clip: aBlock [
+	<category: 'drawing-handy API'>
 	self withPath: aBlock do: [ self clip ]
     ]
 
     resetClip [
+	<category: 'drawing'>
         Cairo resetClip: context.
     ]
 
     mask: aPatternOrBlock [
+	<category: 'drawing'>
         aPatternOrBlock maskOn: context
     ]
 
     paint [
+	<category: 'drawing'>
         Cairo paint: context.
     ]
 
     paintWith: aPatternOrBlock [
+	<category: 'drawing-handy API'>
 	self withSource: aPatternOrBlock do: [ self paint ]
     ]
 
     paintWithAlpha: a [
+	<category: 'drawing'>
         Cairo paintWithAlpha: context alpha: a asCNumber.
     ]
 
     paint: aPatternOrBlock withAlpha: a [
+	<category: 'drawing-handy API'>
 	self withSource: aPatternOrBlock do: [ self paintWithAlpha: a ]
     ]
 
     fillPreserve [
+	<category: 'drawing'>
 	Cairo fillPreserve: context
     ]
 
     fill [
+	<category: 'drawing'>
 	depth > 0
 	    ifTrue: [Cairo fillPreserve: context]
 	    ifFalse: [Cairo fill: context]
     ]
 
     fill: aBlock [
+	<category: 'drawing-handy API'>
 	self withPath: aBlock do: [ self fill ]
     ]
 
     fill: pathBlock with: aPatternOrBlock [
+	<category: 'drawing-handy API'>
 	self withSource: aPatternOrBlock do: [ self fill: pathBlock ]
     ]
 
     fillWith: aPatternOrBlock [
+	<category: 'drawing-handy API'>
 	self withSource: aPatternOrBlock do: [ self fill ]
     ]
 
     strokePreserve [
+	<category: 'drawing'>
 	Cairo strokePreserve: context
     ]
 
     stroke [
+	<category: 'drawing'>
 	depth > 0
 	    ifTrue: [Cairo strokePreserve: context]
 	    ifFalse: [Cairo stroke: context]
     ]
 
     stroke: aBlock [
+	<category: 'drawing-handy API'>
 	self withPath: aBlock do: [ self stroke ]
     ]
 
     stroke: pathBlock with: aPatternOrBlock [
+	<category: 'drawing-handy API'>
 	self withSource: aPatternOrBlock do: [ self stroke: pathBlock ]
     ]
 
     strokeWith: aPatternOrBlock [
+	<category: 'drawing-handy API'>
 	self withSource: aPatternOrBlock do: [ self stroke ]
     ]
 
     identityMatrix [
+	<category: 'transform'>
         Cairo identityMatrix: context.
     ]
 
     translateBy: aPoint [
+	<category: 'transform'>
 	Cairo translate: context tx: aPoint x asCNumber ty: aPoint y asCNumber.
     ]
 
     scaleBy: aPoint [
+	<category: 'transform'>
 	| p |
 	p := aPoint asPoint.
         Cairo scale: context sx: p x asCNumber sy: p y asCNumber.
     ]
 
     rotateBy: rads [
+	<category: 'transform'>
         Cairo rotate: context angle: rads asCNumber.
     ]
 
     nullTransform [
+	<category: 'transform-handy API'>
     ]
 
     transformBy: aTransform [
+	<category: 'transform'>
         Cairo transform: context matrix: aTransform toLocal.
     ]
 
     CairoContext class >> lookupLineCapValue: anInteger [
+	<category: 'accessing'>
 	anInteger == Cairo lineCapSquare ifTrue: [ ^#square ].
 	anInteger == Cairo lineCapRound ifTrue: [ ^#round ].
 	anInteger == Cairo lineCapButt ifTrue: [ ^#butt ].
@@ -904,6 +1200,7 @@ Object subclass: CairoContext [
     ]
 
     CairoContext class >> lookupLineJoinValue: anInteger [
+	<category: 'accessing'>
 	anInteger == Cairo lineJoinBevel ifTrue: [ ^#bevel ].
 	anInteger == Cairo lineJoinRound ifTrue: [ ^#round ].
 	anInteger == Cairo lineJoinMiter ifTrue: [ ^#miter ].
@@ -911,12 +1208,14 @@ Object subclass: CairoContext [
     ]
 
     CairoContext class >> lookupFillRuleValue: anInteger [
+	<category: 'accessing'>
 	anInteger == Cairo fillRuleEvenOdd ifTrue: [ ^#evenOdd ].
 	anInteger == Cairo fillRuleWinding ifTrue: [ ^#winding ].
 	self error: 'Unsupported fill rule value ', anInteger
     ]
 
     CairoContext class >> lookupSlantValue: anInteger [
+	<category: 'accessing'>
 	anInteger == Cairo fontSlantNormal ifTrue: [ ^#normal ].
 	anInteger == Cairo fontSlantItalic ifTrue: [ ^#italic ].
 	anInteger == Cairo fontSlantOblique ifTrue: [ ^#oblique ].
@@ -924,6 +1223,7 @@ Object subclass: CairoContext [
     ]
 
     CairoContext class >> lookupLineCap: aSymbol [
+	<category: 'accessing'>
 	aSymbol == #square ifTrue: [ ^Cairo lineCapSquare ].
 	aSymbol == #round ifTrue: [ ^Cairo lineCapRound ].
 	aSymbol == #butt ifTrue: [ ^Cairo lineCapButt ].
@@ -931,6 +1231,7 @@ Object subclass: CairoContext [
     ]
 
     CairoContext class >> lookupLineJoin: aSymbol [
+	<category: 'accessing'>
 	aSymbol == #bevel ifTrue: [ ^Cairo lineJoinBevel ].
 	aSymbol == #round ifTrue: [ ^Cairo lineJoinRound ].
 	aSymbol == #miter ifTrue: [ ^Cairo lineJoinMiter ].
@@ -938,12 +1239,14 @@ Object subclass: CairoContext [
     ]
 
     CairoContext class >> lookupFillRule: aSymbol [
+	<category: 'accessing'>
 	aSymbol == #evenOdd ifTrue: [ ^Cairo fillRuleEvenOdd ].
 	aSymbol == #winding ifTrue: [ ^Cairo fillRuleWinding ].
 	self error: 'Unsupported fill rule symbol ', aSymbol
     ]
 
     CairoContext class >> lookupSlant: aSymbol [
+	<category: 'accessing'>
 	aSymbol == #normal ifTrue: [ ^Cairo fontSlantNormal ].
 	aSymbol == #italic ifTrue: [ ^Cairo fontSlantItalic ].
 	aSymbol == #oblique ifTrue: [ ^Cairo fontSlantOblique ].
@@ -951,12 +1254,14 @@ Object subclass: CairoContext [
     ]
 
     CairoContext class >> lookupWeight: aSymbol [
+	<category: 'accessing'>
 	aSymbol == #normal ifTrue: [ ^Cairo fontWeightNormal ].
 	aSymbol == #bold ifTrue: [ ^Cairo fontWeightBold ].
 	self error: 'Unsupported weight symbol ', aSymbol
     ]
 
     selectFontFamily: aString slant: slantSymbol weight: weightSymbol [
+	<category: 'text'>
 	Cairo selectFontFace: context
 	      family: aString
 	      slant: (self class lookupSlant: slantSymbol)
@@ -964,79 +1269,80 @@ Object subclass: CairoContext [
     ]
 
     lineWidth [
+	<category: 'accessing'>
 	^Cairo getLineWidth: context.
     ]
 
     lineCap [
+	<category: 'accessing'>
 	^self class lookupLineCapValue: (Cairo getLineCap: context).
     ]
 
     fillRule [
+	<category: 'accessing'>
 	^self class lookupFillRuleValue: (Cairo getFillRule: context).
     ]
 
     lineJoin [
+	<category: 'accessing'>
 	^self class lookupLineJoinValue: (Cairo getLineJoin: context).
     ]
 
     miterLimit [
+	<category: 'accessing'>
 	^Cairo getMiterLimit: context.
     ]
 
     lineWidth: w [
+	<category: 'accessing'>
 	Cairo setLineWidth: context width: w asCNumber.
     ]
 
     lineCap: aNumber [
+	<category: 'accessing'>
 	Cairo setLineCap: context lineCap: (self class lookupLineCap: aNumber).
     ]
 
     fillRule: aNumber [
+	<category: 'accessing'>
 	Cairo setFillRule: context fillRule: (self class lookupFillRule: aNumber).
     ]
 
     lineJoin: aNumber [
+	<category: 'accessing'>
 	Cairo setLineJoin: context lineJoin: (self class lookupLineJoin: aNumber).
     ]
 
     miterLimit: aNumber [
+	<category: 'accessing'>
 	Cairo setMiterLimit: context miterLimit: aNumber asCNumber.
     ]
 
     fontSize: aNumber [
+	<category: 'accessing'>
 	Cairo setFontSize: context size: aNumber.
     ]
 
     showText: aString [
+	<category: 'drawing'>
 	Cairo showText: context utf8: aString.
     ]
 
     textPath: aString [
+	<category: 'paths'>
 	Cairo textPath: context utf8: aString.
     ]
 
     textExtents: aString [
+	<category: 'text'>
 	| ext |
 	ext := CairoTextExtents new.
-	[
+	^[
 	    Cairo textExtents: context utf8: aString extents: ext.
-	    ^ TextExtents from: ext
+	    TextExtents from: ext
 	] ensure: [ ext free ]
     ]
 ].
-
-CStruct subclass: #CairoTextExtents
-    declaration: #(
-        (#xBearing #double)
-        (#yBearing #double)
-        (#width #double)
-        (#height #double)
-        (#xAdvance #double)
-        (#yAdvance #double))
-    classVariableNames: ''
-    poolDictionaries: ''
-    category: 'CairoTextExtents Wrapper'
-!
 
 Eval [
     CairoPattern initialize

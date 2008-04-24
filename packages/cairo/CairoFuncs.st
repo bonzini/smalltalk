@@ -519,3 +519,16 @@ Object subclass: Cairo [
         ^0
     ]
 ]
+
+CStruct subclass: #CairoTextExtents
+    declaration: #(
+        (#xBearing #double)
+        (#yBearing #double)
+        (#width #double)
+        (#height #double)
+        (#xAdvance #double)
+        (#yAdvance #double))
+    classVariableNames: ''
+    poolDictionaries: ''
+    category: 'CairoTextExtents Wrapper'
+!
