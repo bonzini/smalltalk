@@ -149,25 +149,6 @@ CairoImageSurface subclass: CairoFileSurface [
 	    yourself
     ]
 
-    CairoFileSurface class >> on: aFile [
-	"Create a new surface that will save to aFile, whose
-	 size is aPoint and whose initial content is obtained
-	 by loading aFile.  aFile is reloaded on every Smalltalk
-	 image load."
-
-	^self new filename: aFile asString
-    ]
-
-    extent [
-	"Return the size of the surface.  Requires the file to exist
-	 if the size was not supplied at surface creation time."
-
-	extent isNil ifTrue: [
-	    self extent: ((Cairo imageSurfaceGetWidth: self cairoSurface) @
-			  (Cairo imageSurfaceGetHeight: self cairoSurface)) ].
-	^super extent
-    ]
-
     paint: aSurface [
 	"Private - Paint the contents of aSurface on this surface."
 
@@ -190,6 +171,69 @@ CairoImageSurface subclass: CairoFileSurface [
 	filename := aString.
     ]
 
+    saveTo: aContext [
+	"Save the contents of the surface to the file specified by
+	 #filename."
+
+	<category: 'file'>
+	self subclassResponbsibility
+    ]
+
+    withContextDo: aBlock [
+	"Execute aBlock passing a valid Cairo context for the
+	 surface.  After aBlock returns, the context is invalidated
+	 and the content of the surface is saved to the file."
+
+	<category: 'accessing'>
+	super withContextDo: [ :ctx |
+	    [ aBlock value: ctx ] ensure: [ self saveTo: ctx ] ]
+    ]
+]
+
+CairoFileSurface subclass: CairoMultiPageSurface [
+    saveTo: aContext [
+	"Save the contents of the surface to the PNG file specified by
+	 #filename."
+
+	<category: 'file'>
+	Cairo showPage: aContext
+    ]
+]
+
+CairoFileSurface subclass: CairoPdfSurface [
+    buildBlankSurface [
+	<category: 'C interface'>
+	^Cairo pdfSurfaceCreate: self filename width: extent x height: extent y
+    ]
+
+    withContextDo: aBlock [
+	"Execute aBlock passing a valid Cairo context for the
+	 surface.  The extent can be modified just before calling
+	 this.  After aBlock returns, the context is invalidated
+	 and the content of the surface is saved to the file."
+
+	<category: 'accessing'>
+	^Cairo pdfSurfaceSetSize: self cairoSurface width: extent x height: extent y
+    ]
+].
+
+CairoFileSurface subclass: CairoSvgSurface [
+    buildBlankSurface [
+	<category: 'C interface'>
+	^Cairo svgSurfaceCreate: self filename width: extent x height: extent y
+    ]
+].
+
+CairoFileSurface subclass: CairoLoadableFileSurface [
+    CairoFileSurface class >> on: aFile [
+	"Create a new surface that will save to aFile, whose
+	 size is aPoint and whose initial content is obtained
+	 by loading aFile.  aFile is reloaded on every Smalltalk
+	 image load."
+
+	^self new filename: aFile asString
+    ]
+
     buildSurface [
 	"Try to read the surface from the file if it exists.  Otherwise,
 	 create a blank surface whose size must have been given with
@@ -209,25 +253,18 @@ CairoImageSurface subclass: CairoFileSurface [
 	self subclassResponbsibility
     ]
 
-    save [
-	"Save the contents of the surface to the file specified by
-	 #filename."
+    extent [
+	"Return the size of the surface.  Requires the file to exist
+	 if the size was not supplied at surface creation time."
 
-	<category: 'file'>
-	self subclassResponbsibility
-    ]
-
-    withContextDo: aBlock [
-	"Execute aBlock passing a valid Cairo context for the
-	 surface.  After aBlock returns, the context is invalidated
-	 and the content of the surface is saved to the file."
-
-	<category: 'accessing'>
-	[ super withContextDo: aBlock ] ensure: [ self save ]
+	extent isNil ifTrue: [
+	    self extent: ((Cairo imageSurfaceGetWidth: self cairoSurface) @
+			  (Cairo imageSurfaceGetHeight: self cairoSurface)) ].
+	^super extent
     ]
 ]
 
-CairoFileSurface subclass: CairoPngSurface [
+CairoLoadableFileSurface subclass: CairoPngSurface [
     buildSurfaceFromFile [
 	"Try to read the surface from the file if it exists.  Otherwise,
 	 create a blank surface whose size must have been given with
@@ -237,7 +274,7 @@ CairoFileSurface subclass: CairoPngSurface [
 	^Cairo imageSurfaceCreateFromPng: filename
     ]
 
-    save [
+    saveTo: aContext [
 	"Save the contents of the surface to the PNG file specified by
 	 #filename."
 

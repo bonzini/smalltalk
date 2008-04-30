@@ -103,6 +103,22 @@ CairoContext.'>
         <cCall: 'cairo_image_surface_get_width' returning: #int args: #(#cObject )>
     ]
 
+    Cairo class >> pdfSurfaceCreate: file width: width height: height [
+        <cCall: 'cairo_pdf_surface_create' returning: #cObject args: #(#string #double #double)>
+    ]
+
+    Cairo class >> pdfSurfaceSetSize: file width: width height: height [
+        <cCall: 'cairo_pdf_surface_set_size' returning: #int args: #(#cObject #double #double)>
+    ]
+
+    Cairo class >> svgSurfaceCreate: file width: width height: height [
+        <cCall: 'cairo_svg_surface_create' returning: #cObject args: #(#string #double #double)>
+    ]
+
+    Cairo class >> showPage: file width: width height: height [
+        <cCall: 'cairo_show_page' returning: #void args: #(#cObject)>
+    ]
+
     Cairo class >> lineTo: cr x: x y: y [
         <cCall: 'cairo_line_to' returning: #void args: #(#cObject #double #double )>
     ]
