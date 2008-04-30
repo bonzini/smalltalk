@@ -81,16 +81,22 @@ Object subclass: CairoPattern [
 
     Patterns := nil.
     CairoPattern class >> initialize [
+	"Initialize the dictionary of patterns that have a C
+	 representation."
+
 	<category: 'initialize'>
 	Patterns := WeakKeyDictionary new.
 	ObjectMemory addDependent: self.
     ]
 
     CairoPattern class >> update: aspect [
-	"Clear our cache."
+	"Clear the dictionary of patterns that have a C
+	 representation."
+
 	<category: 'private-persistence'>
 	aspect == #returnFromSnapshot ifTrue: [
-	    Patterns do: [ :each | each finalize ]].
+	    Patterns do: [ :each | each release ].
+	    Patterns := WeakKeyDictionary new].
     ]
 
     pattern [
@@ -124,7 +130,7 @@ Object subclass: CairoPattern [
 
     postCopy [
 	"We reference the same canonical object, but the pattern lives
-	 from the canonical object."
+	 in the canonical object, not in this one."
 
 	<category: 'private-persistence'>
 	pattern := nil.
@@ -134,6 +140,13 @@ Object subclass: CairoPattern [
 	<category: 'private-persistence'>
 	pattern ifNotNil: [ :p | Cairo patternDestroy: p ].
 	pattern := nil.
+    ]
+	
+    release [
+	<category: 'private-persistence'>
+	self finalize.
+	self removeToBeFinalized.
+	super release.
     ]
 
     maskOn: context [

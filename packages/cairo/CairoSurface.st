@@ -76,6 +76,13 @@ Object subclass: CairoSurface [
 	surface := nil.
     ]
 
+    release [
+	<category: 'private-finalization'>
+	self finalize.
+	self removeToBeFinalized.
+	super release
+    ]
+
     withContextDo: aBlock [
 	"Execute aBlock passing a valid Cairo context for the
 	 surface.  The context is invalidated after aBlock returns."
@@ -83,7 +90,7 @@ Object subclass: CairoSurface [
 	<category: 'accessing'>
 	| context |
 	[ aBlock value: (context := CairoContext on: self) ] ensure: [ 
-	    context isNil ifFalse: [ context finalize ] ]
+	    context isNil ifFalse: [ context release ] ]
     ]
 ]
 

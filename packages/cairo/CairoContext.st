@@ -68,6 +68,13 @@ Object subclass: CairoContext [
 	surface := nil.
     ]
 
+    release [
+	<category: 'private-persistence'>
+	self finalize.
+	self removeToBeFinalized.
+	super release.
+    ]
+
     restore [
 	<category: 'drawing'>
 	Cairo restore: context.

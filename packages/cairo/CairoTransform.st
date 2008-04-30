@@ -279,6 +279,12 @@ Transform subclass: MatrixTransform [
         to := nil.
     ]
 
+    release [
+        self finalize.
+	self removeToBeFinalized.
+        super release
+    ]
+
     transformBy: aTransform [
 	^ self copyOp: [:n | Cairo matrixMultiply: n a: aTransform toLocal b: n]
     ]
