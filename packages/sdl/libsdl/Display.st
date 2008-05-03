@@ -203,10 +203,16 @@ as the destination for a Cairo surface.'>
 
 	<category: 'initialization'>
 	| flags screen |
-	flags := 0. " bitOr: SdlVideo sdlFullScreen."
-	screen := SdlVideo sdlSetVideoMode: size x height: size y bpp: 32 flags: flags.
+	screen := SdlVideo sdlSetVideoMode: size x height: size y bpp: 32 flags: self flags.
 	self sdlSurface: screen.
 	self setCaptions.
+    ]
+
+    flags [
+	"Private - Return the SDL_SetVideoMode flags."
+
+	<vategory: 'private'>
+	^0 " bitOr: SdlVideo sdlFullScreen."
     ]
 
     update: aSymbol [
@@ -229,6 +235,14 @@ as the destination for a Cairo surface.'>
 
 	<category: 'drawing'>
 	SdlVideo sdlFlip: self sdlSurface.
+    ]
+
+    isGLDisplay [
+	"Return true if this is an OpenGL display and graphics should be
+	 performed using OpenGL calls."
+
+	<category: 'testing'>
+	^false
     ]
 
     updateRectangle: aRect [
@@ -254,6 +268,57 @@ as the destination for a Cairo surface.'>
 		 rects: sdlrects.
     ]
 ].
+
+Object subclass: SdlGLDisplay [
+    flags [
+	"Private - Return the SDL_SetVideoMode flags."
+
+	<vategory: 'private'>
+	^super flags bitOr: SdlVideo sdlOpenGl
+    ]
+
+    critical: aBlock [
+	"Execute aBlock while the surface is locked.  This is a no-op
+	 for OpenGL, it just evaluates aBlock.  In the future we might
+	 consider using a mutex for OpenGL operations."
+
+	<category: 'drawing-direct'>
+	^aBlock value
+    ]
+
+    flip [
+	"Move the contents of the surface to the screen.  OpenGL surfaces
+	 are always double-buffered."
+
+	<category: 'drawing-SDL'>
+	SdlVideo sdlGLSwapBuffers
+    ]
+
+    isGLDisplay [
+	"Return true if this is an OpenGL display and graphics should be
+	 performed using OpenGL calls."
+
+	<category: 'testing'>
+	^true
+    ]
+
+    updateRectangle: aRect [
+	"Move the contents of the given rectangle from the surface to the
+	 screen.  OpenGL actually always flips the entire surface."
+
+	<category: 'drawing-SDL'>
+	self flip
+    ]
+
+    updateRectangles: upTo rects: sdlrects [
+	"Private - Move the contents of the given SdlRect objects from the
+	 surface to the screen.  OpenGL actually always flips the entire
+	 surface."
+
+	<category: 'drawing-SDL'>
+	self flip
+    ]
+]
 
 Eval [
     SdlDisplay initialize
