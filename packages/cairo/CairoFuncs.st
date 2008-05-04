@@ -95,6 +95,10 @@ CairoContext.'>
         <cCall: 'cairo_image_surface_create_from_png' returning: #cObject args: #(#string )>
     ]
 
+    Cairo class >> imageSurfaceGetData: surface [
+        <cCall: 'cairo_image_surface_get_data' returning: #cObject args: #(#cObject)>
+    ]
+
     Cairo class >> imageSurfaceGetHeight: filename [
         <cCall: 'cairo_image_surface_get_height' returning: #int args: #(#cObject )>
     ]

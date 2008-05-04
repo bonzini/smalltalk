@@ -94,10 +94,10 @@ Object subclass: CairoSurface [
     ]
 ]
 
-CairoSurface subclass: CairoImageSurface [
+CairoSurface subclass: CairoOffscreenSurface [
     | extent |
 
-    CairoImageSurface class >> extent: aPoint [
+    CairoOffscreenSurface class >> extent: aPoint [
 	"Create a new surface with the given size.  Right now it is
 	 only possible to create 32-bit color surfaces.
 
@@ -126,7 +126,14 @@ CairoSurface subclass: CairoImageSurface [
     ]
 ]
 
-CairoImageSurface subclass: CairoFileSurface [
+CairoOffscreenSurface subclass: CairoImageSurface [
+    data [
+	<category: 'C interface'>
+	^Cairo imageSurfaceGetData: self cairoSurface
+    ]
+]
+
+CairoOffscreenSurface subclass: CairoFileSurface [
     | filename |
 
     CairoFileSurface class >> on: aFile with: aSurface [
