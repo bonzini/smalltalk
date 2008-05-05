@@ -53,8 +53,8 @@ CStruct subclass: CairoMatrix [
         | ox oy |
 	ox := CDouble value: point x.
 	oy := CDouble value: point y.
-	[
-	    ^ block value:self value:ox value: oy
+	^ [
+	    block value:self value:ox value: oy
 	] ensure: [
 	    ox ifNotNil: [ :x | x free ].
 	    oy ifNotNil: [ :y | y free ]].
@@ -84,6 +84,7 @@ CStruct subclass: CairoMatrix [
  transformations."
 
 Object subclass: Transform [
+    | matrix |
 
     Transform class >> newIdentity [
 	^ super new initialize
@@ -91,22 +92,18 @@ Object subclass: Transform [
 
     initialize []
 
-    accept: visitor [
-        self subclassResponsibility.
-    ]
-
     before: aTransform [
         "I return a new Transform that transforms its visitor by self
         first, then by aTransform."
 
-        ^ aTransform accept: self.
+        ^ aTransform after: self.
     ]
 
     after: transform [
         "I return a new Transform that transforms its visitor by
         aTransform first, then by self."
 
-        ^ self accept: transform.
+        self subclassResponsibility
     ]
 
     Transform class >> identity [
@@ -120,26 +117,24 @@ Object subclass: Transform [
         "I return a compound transform, that transforms its visitor by
         each of the Transforms in transforms in first-to-last order."
 
-        ^ transforms inject: self identity
-                     into: [:acc :xform | acc before: xform]
+	transforms isEmpty ifTrue: [ ^self identity ].
+        ^ transforms fold: [:acc :xform | xform after: acc]
     ]
 
     about: aPoint [
-        ^ ((Translate by: aPoint)
-              before: self) before: (Translate by: (aPoint * -1))]
+        ^ ((Translate by: aPoint * -1)
+              before: self) before: (Translate by: aPoint)
+    ]
 
     asMatrixTransform [
-        ^ self accept: MatrixTransform newIdentity
+        matrix isNil ifFalse: [matrix := self after: MatrixTransform newIdentity].
+	^matrix
     ]
 
     translateBy: point [
         ^ self asMatrixTransform translateBy: point.
     ]
 
-    scaleByFactor: factor [
-        ^ self scaleBy: (factor@factor).
-    ]
-    
     scaleBy: point [
         ^ self asMatrixTransform scaleBy: point.
     ]
@@ -157,11 +152,11 @@ Object subclass: Transform [
     ]
 
     transformPoint: point [
-        ^ self subclassResponsibility
+        ^ self asMatrixTransform transformPoint: point
     ]
 
     transformDistance: point [
-        ^ self transformPoint: point
+        ^ self asMatrixTransform transformDistance: point
     ]
 
     transformBounds: rect [
@@ -192,7 +187,7 @@ Object subclass: Transform [
     ]
     
     scaleTo: sxsy [
-	^ self scaleBy: sxsy / self scale
+	^ self scaleBy: sxsy asPoint / self scale
     ]
 
     rotateTo: rads [
@@ -202,8 +197,14 @@ Object subclass: Transform [
 ]
 
 Transform subclass: IdentityTransform [
-    accept: visitor [
-	^ visitor nullTransform.
+
+    IdentityTransform class extend [
+        | instance |
+
+        instance [
+	    instance ifNil: [ instance := self new ].
+	    ^instance
+        ]
     ]
 
     before: aTransform [
@@ -212,10 +213,6 @@ Transform subclass: IdentityTransform [
 
     after: aTransform [
 	^ aTransform
-    ]
-
-    asMatrixTransform [
-	^ MatrixTransform newIdentity
     ]
 
     translateBy: aPoint [
@@ -240,15 +237,6 @@ Transform subclass: IdentityTransform [
 
     inverse [
 	^ self
-    ]
-]
-
-IdentityTransform class extend [
-    | instance |
-
-    instance [
-	instance ifNil: [ instance := self new ].
-	^instance
     ]
 ]
 
@@ -294,30 +282,32 @@ Transform subclass: MatrixTransform [
     ]
 
     scaleBy: aPoint [
-	^ self copyOp: [:n | Cairo matrixScale: n sx: aPoint x sy: aPoint y]
+	| p |
+	p := aPoint asPoint.
+	^ self copyOp: [:n | Cairo matrixScale: n sx: p x sy: p y]
     ]
 
     rotateBy: rads [
 	^ self copyOp: [:n | Cairo matrixRotate: n radians: rads]
     ]
 
-    accept: visitor [
-        ^ visitor transformBy: self.
+    after: aTransform [
+        ^ aTransform transformBy: self.
     ]
 
     transformPoint: point [
-        to withPoint: point do:
+        ^ to withPoint: point do:
             [ :mtx :x :y |
                 Cairo matrixTransformPoint: mtx x: x y: y.
-                ^ x value @ y value
+                x value @ y value
             ]
     ]
 
     transformDistance: point [
-        to withPoint: point do:
+        ^ to withPoint: point do:
             [ :mtx :x :y |
                 Cairo matrixTransformDistance: mtx dx: x dy: y.
-                ^ x value @ y value
+                x value @ y value
             ]
     ]
 
@@ -333,9 +323,10 @@ Transform subclass: MatrixTransform [
     ]
 
     rotation [
-	| pt |
-	pt := self transformDistance: (1@0).
-	^ pt arcTan
+	| pt1 pt2 |
+	pt1 := self transformDistance: (1@0).
+	pt2 := self transformDistance: (0@1).
+	^ pt2 arcTan: pt1
     ]
 
     translation [
@@ -361,8 +352,8 @@ Transform subclass: Translate [
         ^ Translate by: (dxdy + point).
     ]
 
-    accept: visitor [
-	^ visitor translateBy: dxdy.
+    after: aTransform [
+	^ aTransform translateBy: dxdy.
     ]
 
     transformPoint: point [
@@ -394,23 +385,23 @@ Transform subclass: Scale [
     Scale class >> by: aPoint [
         | scale |
         scale := Scale new.
-        scale factors: aPoint.
+        scale factors: aPoint asPoint.
         ^ scale
-    ]
-
-    Scale class >> byFactor: factor [
-        ^ Scale by: (factor@factor)
     ]
 
     scaleBy: factors [
         ^ Scale by: (sxsy * factors)
     ]
 
-    accept: visitor [
-	^ visitor scaleBy: sxsy.
+    after: aTransform [
+	^ aTransform scaleBy: sxsy.
     ]
 
     transformPoint: point [
+        ^ point * sxsy
+    ]
+    
+    transformDistance: point [
         ^ point * sxsy
     ]
     
@@ -426,7 +417,7 @@ Transform subclass: Scale [
 ]
 
 Transform subclass: Rotate [
-    | radians matrix |
+    | radians |
 
     radians: aDouble [
         radians := aDouble.
@@ -444,13 +435,8 @@ Transform subclass: Rotate [
         ^ Rotate by: radians + rads.
     ]
 
-    accept: visitor [
-	^ visitor rotateBy: radians.
-    ]
-
-    transformPoint: point [
-        matrix ifNil: [matrix := self asMatrixTransform].
-        ^ matrix transformPoint: point
+    after: aTransform [
+	^ aTransform rotateBy: radians.
     ]
 
     inverse [
