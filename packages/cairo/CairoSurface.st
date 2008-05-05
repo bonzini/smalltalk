@@ -44,8 +44,11 @@ CairoContextProvider subclass: CairoSurface [
 
     update: aspect [
 	<category: 'private-persistence'>
+	aspect == #returnFromSnapshot ifFalse: [
+	    (SurfacePattern on: self) release ].
+	self rebuildSurface.
 	aspect == #returnFromSnapshot ifTrue: [
-	    ^ self rebuildSurface].
+	    self changed: #returnFromSnapshot ].
     ]
 
     buildSurface [
@@ -64,9 +67,9 @@ CairoContextProvider subclass: CairoSurface [
 
     rebuildSurface [
 	<category: 'private-persistence'>
+	surface := nil.
 	surface := self buildSurface.
 	self addToBeFinalized.
-	self changed: #returnFromSnapshot.
     ]
 
     finalize [
@@ -167,7 +170,7 @@ CairoOffscreenSurface subclass: CairoFileSurface [
 	"Private - Paint the contents of aSurface on this surface."
 
 	<category: 'private'>
-	super withContextDo: [ :context |
+	super withContextDo: [ :context || pattern |
 	    context source: (SurfacePattern on: aSurface); paint ]
     ]
 

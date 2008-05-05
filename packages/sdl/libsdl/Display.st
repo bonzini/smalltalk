@@ -31,16 +31,106 @@
  ======================================================================"
 
 
+Object subclass: SdlDisplayFormat [
+    | caption iconCaption extent resizable fullScreen |
+
+    flags [
+	<category: 'private'>
+	self fullScreen ifTrue: [ ^SdlVideo sdlFullScreen ].
+	self resizable ifTrue: [ ^SdlVideo sdlResizable ].
+	^0
+    ]
+
+    caption [
+        "Answer the caption of the window when it is not minimized."
+
+	<category: 'accessing'>
+	caption ifNil: [ caption := 'GNU Smalltalk' ].
+	^caption
+    ]
+
+    caption: aString [
+        "Set the caption of the window when it is not minimized."
+
+	<category: 'accessing'>
+	caption := aString.
+    ]
+
+    iconCaption [
+        "Answer the caption of the window when it is minimized."
+
+	<category: 'accessing'>
+	^iconCaption ifNil: [ caption ].
+    ]
+
+    iconCaption: aString [
+        "Set the caption of the window when it is minimized.  A value of nil
+	 means the caption will not change when the window is minimized."
+
+	<category: 'accessing'>
+	iconCaption := aString
+    ]
+
+    extent [
+	"Return the size of the window."
+
+	<category: 'accessing'>
+	extent ifNil: [ extent := 640 @ 480 ].
+	^extent
+    ]
+
+    extent: aPoint [
+	"Set the size of the window."
+
+	<category: 'accessing'>
+	extent := aPoint
+    ]
+
+    fullScreen [
+	"Answer whether the SDL surface will be full-screen."
+
+	<category: 'accessing'>
+	fullScreen ifNil: [ fullScreen := false ].
+	^fullScreen
+    ]
+
+    fullScreen: aBoolean [
+	"Set whether the SDL surface will be full-screen."
+
+	<category: 'accessing'>
+	fullScreen := aBoolean
+    ]
+
+    resizable [
+	"Answer whether the SDL surface will be resizable.  If it is, the
+	 program will have to send the #resize: method to the display when
+	 it gets a resize event (the default SdlEventHandler does this)."
+
+	<category: 'accessing'>
+	resizable ifNil: [ resizable := false ].
+	^resizable
+    ]
+
+    resizable: aBoolean [
+	"Set whether the SDL surface will be resizable.  If it is, the
+	 program will have to send the #resize: method to the display when
+	 it gets a resize event (the default SdlEventHandler does this)."
+
+	<category: 'accessing'>
+	resizable := aBoolean
+    ]
+]
+
 Object subclass: SdlDisplay [
     <category: 'LibSDL-Wrapper'>
     <comment: 'I provide an object-oriented wrapper for some SDL_video
 functions.  A Display can be connected to an EventSource and be used
 as the destination for a Cairo surface.'>
 
-    | surface size caption iconCaption |
+    | surface flags extent caption iconCaption |
 
     CurrentDisplay := nil.
-    DefaultSize := nil.
+    DefaultFormat := nil.
     SdlDisplay class >> current [
 	"Return the default display, creating one if none exists."
 
@@ -57,39 +147,58 @@ as the destination for a Cairo surface.'>
 	CurrentDisplay := aDisplay
     ]
 
+    SdlDisplay class >> defaultFormat [
+	"Return the default format of the display, which is also the
+	 format used when #current is called and there is no default
+	 display."
+
+	<category: 'accessing'>
+	DefaultFormat isNil ifTrue: [ DefaultFormat := SdlDisplayFormat new ].
+	^ DefaultFormat
+    ]
+
     SdlDisplay class >> defaultSize [
 	"Return the default size of the display, which is also the
 	 size used when #current is called and there is no default
 	 display."
 
 	<category: 'accessing'>
-	 ^ DefaultSize
+	 ^ self defaultFormat extent
+    ]
+
+    SdlDisplay class >> defaultFormat: aDisplayFormat [
+	"Set the default format of the display."
+
+	<category: 'accessing'>
+	DefaultFormat := aDisplayFormat
     ]
 
     SdlDisplay class >> defaultSize: aPoint [
 	"Set the default size of the display."
 
 	<category: 'accessing'>
-	DefaultSize := aPoint
+	self defaultFormat extent: aPoint
     ]
 
-    SdlDisplay class >> initialize [
-	<category: 'private'>
-	DefaultSize := 480 @ 640
+    SdlDisplay class >> format: aSdlDisplayFormat [
+	"Return an SdlDisplay with the given format."
+
+	<category: 'instance creation'>
+	^self basicNew initialize: aSdlDisplayFormat
     ]
 
-    SdlDisplay class >> size: aPoint [
+    SdlDisplay class >> extent: aPoint [
 	"Return an SdlDisplay with the given width and height."
 
 	<category: 'instance creation'>
-	^self basicNew initialize: aPoint
+	^self format: (self defaultFormat copy extent: aPoint; yourself)
     ]
 
     SdlDisplay class >> new [
 	"Return an SdlDisplay with the default width and height."
 
 	<category: 'instance creation'>
-	^self size: DefaultSize
+	^self format: self defaultFormat
     ]
 
     sdlSurface [
@@ -136,16 +245,17 @@ as the destination for a Cairo surface.'>
 
     extent [
 	"Return the size of the display."
-	^ size
+	^ extent
     ]
 
-    initialize: aPoint [
+    initialize: aFormat [
 	"Initialize the display by hooking it up to the SdlEventSource."
 
 	<category: 'initialization'>
-	caption := 'GNU Smalltalk'.
-	iconCaption := 'GST'.
-	size := aPoint.
+	caption := aFormat caption.
+	iconCaption := aFormat iconCaption.
+	extent := aFormat extent.
+	flags := aFormat flags.
 
 	SdlEventSource instance addDependent: self.
 
@@ -203,16 +313,25 @@ as the destination for a Cairo surface.'>
 
 	<category: 'initialization'>
 	| flags screen |
-	screen := SdlVideo sdlSetVideoMode: size x height: size y bpp: 32 flags: self flags.
+	screen := SdlVideo sdlSetVideoMode: extent x height: extent y bpp: 32 flags: self flags.
 	self sdlSurface: screen.
 	self setCaptions.
+    ]
+
+    resize: newSize [
+	"Change the extent of the display to newSize."
+
+	<category: 'resize'>
+	extent := newSize.
+	self create.
+	self changed: #resize
     ]
 
     flags [
 	"Private - Return the SDL_SetVideoMode flags."
 
-	<vategory: 'private'>
-	^0 " bitOr: SdlVideo sdlFullScreen."
+	<category: 'private'>
+	^flags " bitOr: SdlVideo sdlFullScreen."
     ]
 
     update: aSymbol [
@@ -220,6 +339,7 @@ as the destination for a Cairo surface.'>
 
 	<category: 'initialization'>
 	self create.
+	self changed: aSymbol
     ]
 
     setCaptions [
@@ -318,8 +438,4 @@ Object subclass: SdlGLDisplay [
 	<category: 'drawing-SDL'>
 	self flip
     ]
-]
-
-Eval [
-    SdlDisplay initialize
 ]

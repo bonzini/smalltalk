@@ -67,11 +67,15 @@ case future versions add more event handlers.'>
     ]
 
     handleResize: sizePoint [
+	"Unlike other handlers, this one by default tells the display to
+	 resize itself."
 	<category: 'event handlers'>
+	SdlDisplay current resize: sizePoint
     ]
 
     handleQuit [
 	<category: 'event handlers'>
+	ObjectMemory quit
     ]
 
     eventMask [

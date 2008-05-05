@@ -32,7 +32,7 @@
 PackageLoader fileInPackage: #CairoSDL.
 
 SDL.SdlEventHandler subclass: CairoDemo [
-    | context |
+    | context surface |
 
     <import: SDL>
     <import: Cairo>
@@ -251,21 +251,28 @@ SDL.SdlEventHandler subclass: CairoDemo [
     ]
 
     run [
-	| surface |
-    	SdlDisplay defaultSize: self displaySize.
+    	SdlDisplay defaultFormat
+	    resizable: true;
+	    extent: self displaySize.
+
         SdlEventSource instance handler: self; startEventLoop.
         Processor activeProcess terminateOnQuit.
         surface := CairoSdlSurface on: SdlDisplay current.
-	surface withContextDo: [ :ctx |
-	    context := ctx.
-	    self draw ].
-	(CairoPngSurface on: 'demo.png' with: surface) save
+	self draw.
     ]
     
+    handleResize: size [
+	super handleResize: size.
+	self draw
+    ]
+
     draw [
-	context paintWith: Color white.
-	self samples keysAndValuesDo: [ :index :sel |
-	    self draw: sel inside: (self clippingRectangle: index) ]
+	surface withContextDo: [ :ctx |
+	    context := ctx.
+	    context paintWith: Color white.
+	    self samples keysAndValuesDo: [ :index :sel |
+	        self draw: sel inside: (self clippingRectangle: index) ] ].
+	(CairoPngSurface on: 'demo.png' with: surface) save.
     ]
     
     draw: sel inside: rect [
@@ -279,10 +286,6 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	        scaleBy: size / 256.
 		
 	    self perform: sel ]
-    ]
-
-    handleQuit [
-	ObjectMemory quit
     ]
 ]
 

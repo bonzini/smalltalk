@@ -133,7 +133,8 @@ Object subclass: CairoPattern [
 	        ifTrue: [Patterns at: self ifAbsent: [nil]]
 		ifFalse: [self]].
 
-	^canonical pattern
+	pattern isNil ifTrue: [ ^canonical cachedPattern ].
+	^pattern
     ]
 
     createCachedPattern [
@@ -142,6 +143,7 @@ Object subclass: CairoPattern [
 	<category: 'C interface'>
 	self subclassResponsibility.
     ]
+
 
     postCopy [
 	"We reference the same canonical object, but the pattern lives
@@ -153,15 +155,25 @@ Object subclass: CairoPattern [
 
     finalize [
 	<category: 'private-persistence'>
-	pattern ifNotNil: [ :p | Cairo patternDestroy: p ].
-	pattern := nil.
+	pattern ifNotNil: [ :p |
+	    pattern := nil.
+	    Cairo patternDestroy: p ].
     ]
 	
     release [
 	<category: 'private-persistence'>
-	self finalize.
-	self removeToBeFinalized.
 	super release.
+	canonical isNil ifTrue: [
+	    canonical := Patterns at: self ifAbsent: [nil].
+	    canonical isNil ifTrue: [ ^self ]].
+	canonical == self
+	    ifFalse: [ canonical release ]
+	    ifTrue: [
+		Patterns removeKey: self ifAbsent: [].
+		self finalize.
+		self removeToBeFinalized ].
+
+	canonical := nil.
     ]
 
     maskOn: context [
