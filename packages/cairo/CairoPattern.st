@@ -33,6 +33,8 @@
 
 BlockClosure extend [
     maskOn: context [
+	"Private - Used by Cairo to do double-dispatch on #mask:"
+
 	<category: 'cairo double dispatch'>
 	| pattern |
 	[
@@ -45,6 +47,8 @@ BlockClosure extend [
     ]
 
     on: context withSourceDo: paintBlock [
+	"Private - Used by Cairo to do double-dispatch on #withSource:do:"
+
 	<category: 'cairo double dispatch'>
 	| pattern source |
 	source := Cairo.Cairo getSource: context.
@@ -64,6 +68,8 @@ BlockClosure extend [
     ]
 
     setSourceOn: context [
+	"Private - Used by Cairo to do double-dispatch on #source:"
+
 	<category: 'cairo double dispatch'>
 	| pattern |
 	[
@@ -100,11 +106,18 @@ Object subclass: CairoPattern [
     ]
 
     pattern [
+	"Return the C representation of the pattern if the receiver
+	 is present in the Patterns class variable."
+
 	<category: 'private-persistence'>
 	^pattern
     ]
 
     cachedPattern [
+	"Return the C representation of the pattern, looking it up
+	 in the Patterns class variable and associating it to the
+	 receiver if none is found."
+
 	<category: 'private-persistence'>
 	[canonical isNil] whileTrue: [
 	    Patterns
@@ -124,6 +137,8 @@ Object subclass: CairoPattern [
     ]
 
     createCachedPattern [
+	"Private - Create the CObject representing the pattern."
+
 	<category: 'C interface'>
 	self subclassResponsibility.
     ]
@@ -150,16 +165,22 @@ Object subclass: CairoPattern [
     ]
 
     maskOn: context [
+	"Private - Used by Cairo to do double-dispatch on #mask:"
+
 	<category: 'cairo double dispatch'>
 	Cairo.Cairo mask: context pattern: self cachedPattern
     ]
 
     setSourceOn: context [
+	"Private - Used by Cairo to do double-dispatch on #source:"
+
 	<category: 'cairo double dispatch'>
 	Cairo setSource: context source: self cachedPattern
     ]
 
     on: context withSourceDo: paintBlock [
+	"Private - Used by Cairo to do double-dispatch on #withSource:do:"
+
 	<category: 'cairo double dispatch'>
 	| pattern source |
 	source := Cairo getSource: context.
@@ -587,8 +608,6 @@ CairoPattern subclass: Color [
     createCachedPattern [
 	<category: 'C interface'>
 
-	"Should never be reached."
-	self halt.
 	^ Cairo patternCreateRgba: red asCNumber
 		green: green asCNumber
 		blue: blue asCNumber
@@ -610,6 +629,8 @@ CairoPattern subclass: Color [
     ]
 
     setSourceOn: context [
+	"Private - Used by Cairo to do double-dispatch on #source:"
+
 	<category: 'cairo double dispatch'>
 	Cairo
 	    setSourceRgba: context

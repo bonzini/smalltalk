@@ -541,6 +541,77 @@ CairoContext.'>
         <category: 'loading'>
         ^0
     ]
+
+    Cairo class >> operatorClear [
+        <category: 'loading'>
+        ^0
+    ]
+
+    Cairo class >> operatorSource [
+        <category: 'loading'>
+        ^1
+    ]
+
+    Cairo class >> operatorOver [
+        <category: 'loading'>
+        ^2
+    ]
+
+    Cairo class >> operatorIn [
+        <category: 'loading'>
+        ^3
+    ]
+
+    Cairo class >> operatorOut [
+        <category: 'loading'>
+        ^4
+    ]
+
+    Cairo class >> operatorAtop [
+        <category: 'loading'>
+        ^5
+    ]
+
+    Cairo class >> operatorDest [
+        <category: 'loading'>
+        ^6
+    ]
+
+    Cairo class >> operatorDestOver [
+        <category: 'loading'>
+        ^7
+    ]
+
+    Cairo class >> operatorDestIn [
+        <category: 'loading'>
+        ^8
+    ]
+
+    Cairo class >> operatorDestOut [
+        <category: 'loading'>
+        ^9
+    ]
+
+    Cairo class >> operatorDestAtop [
+        <category: 'loading'>
+        ^10
+    ]
+
+    Cairo class >> operatorXor [
+        <category: 'loading'>
+        ^11
+    ]
+
+    Cairo class >> operatorAdd [
+        <category: 'loading'>
+        ^12
+    ]
+
+    Cairo class >> operatorSaturate [
+        <category: 'loading'>
+        ^13
+    ]
+
 ]
 
 CStruct subclass: CairoTextExtents [

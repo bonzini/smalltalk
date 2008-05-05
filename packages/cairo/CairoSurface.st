@@ -31,7 +31,7 @@
  ======================================================================"
 
 
-Object subclass: CairoSurface [
+CairoContextProvider subclass: CairoSurface [
     | surface |
 
     cairoSurface [
@@ -189,7 +189,7 @@ CairoOffscreenSurface subclass: CairoFileSurface [
 	"Save the contents of the surface to the file specified by
 	 #filename."
 
-	<category: 'file'>
+	<category: 'private-file'>
 	self subclassResponbsibility
     ]
 
@@ -209,7 +209,7 @@ CairoFileSurface subclass: CairoMultiPageSurface [
 	"Save the contents of the surface to the PNG file specified by
 	 #filename."
 
-	<category: 'file'>
+	<category: 'private-file'>
 	Cairo showPage: aContext
     ]
 ]
@@ -288,12 +288,20 @@ CairoLoadableFileSurface subclass: CairoPngSurface [
 	^Cairo imageSurfaceCreateFromPng: filename
     ]
 
-    saveTo: aContext [
+    save [
 	"Save the contents of the surface to the PNG file specified by
 	 #filename."
 
 	<category: 'file'>
 	Cairo surfaceWriteToPng: self cairoSurface filename: filename
+    ]
+
+    saveTo: aContext [
+	"Save the contents of the surface to the PNG file specified by
+	 #filename."
+
+	<category: 'private-file'>
+	self save
     ]
 ].
 
