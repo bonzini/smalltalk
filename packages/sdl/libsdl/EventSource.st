@@ -288,67 +288,41 @@ Object subclass: SdlEventSource [
 
     | handler pollDelay eventMask |
 
-    Instance := nil.
-
-    SdlEventSource class >> instance [
-	"Return the singleton instance of SdlEventSource."
-
-	<category: 'instance creation'>
-	Instance isNil ifTrue: [ Instance := self new ].
-	^Instance
-    ]
-
-    SdlEventSource class >> initialize [
-	"Initialize the class, and initialize SDL when the library is loaded."
-
-	<category: 'initialization'>
-	ObjectMemory addDependent: self.
-	self sdlInit.
-    ]
-
-    SdlEventSource class >> sdlInit [
-	"Initialize the SDL video subsystem, which is needed to get events."
-	Sdl sdlInit: (Sdl sdlInitVideo bitOr: Sdl sdlInitNoParachute).
-    ]
-
-    SdlEventSource class >> update: aspect [
-        "Tie the event loop to image quit and restart."
-
-	<category: 'initialization'>
-	aspect == #returnFromSnapshot ifTrue: [
-	    self sdlInit.
-	    self instance handler isNil ifFalse: [ self instance startEventLoop ].
-	    SdlDisplay current changed: #returnFromSnapshot.
-	    ^self].
-	aspect == #aboutToQuit ifTrue: [
-	    self instance interruptEventLoop.
-	    ^self].
-    ]
-
     SdlEventSource class >> new [
+	"Create a new event source.  This is private, because an event source
+	 is only created from an SdlDisplay."
 	^ super new initialize
     ]
 
     handler [
+	"Return the SdlEventHandler that will manage events for the display."
+
+	<category: 'accessing'>
 	^ handler
     ]
 
     handler: aHandler [
+	"Set the SdlEventHandler that will manage events for the display."
+
+	<category: 'accessing'>
 	handler := aHandler.
 	eventMask := handler eventMask
 	     inject: 0 into: [:mask :assoc | mask bitOr: assoc value eventMask]
     ]
 
     initialize [
+	<category: 'private-initialize'>
 	pollDelay := Delay forMilliseconds: self defaultPollDelayMilliseconds.
 	eventMask := 0.
     ]
 
     defaultPollDelayMilliseconds [
+	<category: 'accessing'>
 	^ 30 "which gives about 33 polls per second"
     ]
 
     waitEvent: anSdlEvent [
+	<category: 'private-dispatch'>
 	| peepResult |
 	[
 	    SdlEvents sdlPumpEvents.
@@ -365,6 +339,7 @@ Object subclass: SdlEventSource [
     ]
 
     waitEvent [
+	<category: 'private-dispatch'>
 	| e |
 	[e := SdlGenericEvent new.
 	self waitEvent: e.
@@ -374,6 +349,7 @@ Object subclass: SdlEventSource [
     ]
 
     dispatchEvent: e [
+	<category: 'private-dispatch'>
 	handler ifNil: [^self].
 	[e dispatchTo: handler]
 	    on: Error
@@ -385,6 +361,7 @@ Object subclass: SdlEventSource [
     ]
 
     eventLoop [
+	<category: 'private-dispatch'>
 	Sdl sdlStartEventLoop: [
 	    | e |
 	    [
@@ -398,7 +375,6 @@ Object subclass: SdlEventSource [
     ]
 
     startEventLoop [
-	self changed: #startEventLoop.
 	SdlKeyboard sdlEnableUnicode: 1.
 	[ self eventLoop ] fork name: 'SdlEventSource eventLoop'.
     ]

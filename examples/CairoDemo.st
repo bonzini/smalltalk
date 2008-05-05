@@ -255,7 +255,7 @@ SDL.SdlEventHandler subclass: CairoDemo [
 	    resizable: true;
 	    extent: self displaySize.
 
-        SdlEventSource instance handler: self; startEventLoop.
+        SdlDisplay current eventSource handler: self; startEventLoop.
         Processor activeProcess terminateOnQuit.
         surface := CairoSdlSurface on: SdlDisplay current.
 	self draw.

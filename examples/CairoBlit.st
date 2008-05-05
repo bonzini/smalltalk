@@ -43,7 +43,7 @@ SDL.SdlEventHandler subclass: BlitDemo [
     ]
 
     run [
-        SdlEventSource instance handler: self; startEventLoop.
+        SdlDisplay current eventSource handler: self; startEventLoop.
         Processor activeProcess terminateOnQuit.
         self winningDirectAccess.
         self blitStuff.

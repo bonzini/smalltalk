@@ -127,7 +127,7 @@ Object subclass: SdlDisplay [
 functions.  A Display can be connected to an EventSource and be used
 as the destination for a Cairo surface.'>
 
-    | surface flags extent caption iconCaption |
+    | surface flags extent caption iconCaption eventSource |
 
     CurrentDisplay := nil.
     DefaultFormat := nil.
@@ -145,6 +145,27 @@ as the destination for a Cairo surface.'>
 
 	<category: 'accessing'>
 	CurrentDisplay := aDisplay
+    ]
+
+    SdlDisplay class >> initialize [
+        "Initialize the class, and initialize SDL when the library is loaded."
+
+        <category: 'initialization'>
+        ObjectMemory addDependent: self.
+        self sdlInit.
+    ]
+
+    SdlDisplay class >> update: aspect [
+        "Tie the event loop to image quit and restart."
+
+        <category: 'initialization'>
+        aspect == #returnFromSnapshot ifTrue: [ self sdlInit ].
+	self changed: aspect
+    ]
+
+    SdlDisplay class >> sdlInit [
+        "Initialize the SDL video subsystem, which is needed to get events."
+        Sdl sdlInit: (Sdl sdlInitVideo bitOr: Sdl sdlInitNoParachute).
     ]
 
     SdlDisplay class >> defaultFormat [
@@ -257,12 +278,32 @@ as the destination for a Cairo surface.'>
 	extent := aFormat extent.
 	flags := aFormat flags.
 
-	SdlEventSource instance addDependent: self.
+	self class addDependent: self.
 
 	"It's our first run - simulate returning from a saved image in
 	order to set up the display window etc."
 	CurrentDisplay isNil ifTrue: [ self class current: self ].
 	self create
+    ]
+
+    update: aspect [
+        "Tie the event loop to image quit and restart."
+
+        <category: 'initialization'>
+        aspect == #returnFromSnapshot ifTrue: [
+	    self create.
+            self eventSource handler isNil ifFalse: [ self eventSource startEventLoop ].
+            self changed: #returnFromSnapshot.
+            ^self].
+        aspect == #aboutToQuit ifTrue: [
+            self eventSource interruptEventLoop.
+            ^self].
+    ]
+
+    eventSource [
+	"Return the EventSource associated to this display."
+	eventSource isNil ifTrue: [ eventSource := SdlEventSource new ].
+	^eventSource
     ]
 
     caption [
@@ -332,14 +373,6 @@ as the destination for a Cairo surface.'>
 
 	<category: 'private'>
 	^flags " bitOr: SdlVideo sdlFullScreen."
-    ]
-
-    update: aSymbol [
-	"Private - Called back by SdlEventSource when returning from snapshot."
-
-	<category: 'initialization'>
-	self create.
-	self changed: aSymbol
     ]
 
     setCaptions [
@@ -438,4 +471,8 @@ Object subclass: SdlGLDisplay [
 	<category: 'drawing-SDL'>
 	self flip
     ]
+]
+
+Eval [
+    SdlDisplay initialize
 ]
