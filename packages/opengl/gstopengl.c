@@ -1,22 +1,16 @@
 /* 
  this file is distributed under the same terms as GNU Smalltalk
 */
-#include "config.h"
-#include "gstpub.h"
+#include "gstopengl.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include GL_GL_H
-#include GL_GLU_H
-
-static VMProxy *vm_proxy = NULL ;
+VMProxy *vm_proxy = NULL ;
 
 void
-gst_initModule(proxy)
-	 VMProxy *proxy ;
+gst_initModule(VMProxy *proxy)
 {
   vm_proxy = proxy;
+
+  gst_initModule_gl ();
+  gst_initModule_glu ();
 }
 
