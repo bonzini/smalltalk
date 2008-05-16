@@ -1,0 +1,7 @@
+<package>
+  <name>GLUT</name>
+  <namespace>OpenGL</namespace>
+  <prereq>OpenGL</prereq>
+
+  <module>gstglut</module>
+</package>

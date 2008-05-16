@@ -1,0 +1,5 @@
+<package>
+  <name>OpenGL</name>
+
+  <module>gstopengl</module>
+</package>
