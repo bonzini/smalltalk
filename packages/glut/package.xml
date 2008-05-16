@@ -3,5 +3,11 @@
   <namespace>OpenGL</namespace>
   <prereq>OpenGL</prereq>
 
+  <filein>OpenGlut.st</filein>
+  <filein>OpenGlutEnum.st</filein>
+
   <module>gstglut</module>
+
+  <file>OpenGlut.st</file>
+  <file>OpenGlutEnum.st</file>
 </package>

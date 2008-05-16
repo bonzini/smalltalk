@@ -1,5 +1,14 @@
 <package>
   <name>OpenGL</name>
+  <namespace>OpenGL</namespace>
+
+  <filein>OpenGL.st</filein>
+  <filein>OpenGLEnum.st</filein>
+  <filein>OpenGLUEnum.st</filein>
 
   <module>gstopengl</module>
+
+  <file>OpenGL.st</file>
+  <file>OpenGLEnum.st</file>
+  <file>OpenGLUEnum.st</file>
 </package>
