@@ -311,7 +311,6 @@ gst_opengl_glGetDoublev ( GLenum pname )
     {
       /* Allocating an Array object */
       anArray = vm_proxy->objectAlloc (vm_proxy->arrayClass, size);
-      vm_proxy->registerOOP (anArray);
 
       /* retreiving datas from OpenGL */
       params = (GLdouble *) alloca (sizeof (GLdouble) * size);
@@ -336,7 +335,6 @@ gst_opengl_glGetFloatv ( GLenum pname )
     {
       /* Allocating an Array object */
       anArray = vm_proxy->objectAlloc (vm_proxy->arrayClass, size);
-      vm_proxy->registerOOP (anArray);
 
       /* retreiving datas from OpenGL */
       params = (GLfloat *) alloca (sizeof (GLfloat) * size);
@@ -361,7 +359,6 @@ gst_opengl_glGetIntegerv ( GLenum pname )
     {
       /* Allocating an Array object */
       anArray = vm_proxy->objectAlloc (vm_proxy->arrayClass, size);
-      vm_proxy->registerOOP (anArray);
 
       /* retrieving datas from OpenGL */
       params = (GLint *) alloca (sizeof (GLint) * size);
@@ -372,6 +369,44 @@ gst_opengl_glGetIntegerv ( GLenum pname )
 	vm_proxy->OOPAtPut (anArray, i, vm_proxy->intToOOP (params[i]));
     }
   return anArray;
+}
+
+static OOP
+gst_opengl_glGenTextures ( GLsizei size )
+{
+  GLint *textures;
+  int i;
+  OOP anArray = nil;
+
+  /* Allocating an Array object */
+  anArray = vm_proxy->objectAlloc (vm_proxy->arrayClass, size);
+
+  /* retrieving datas from OpenGL */
+  textures = (GLint *) alloca (sizeof (GLint) * size);
+  glGenTextures (size, textures);
+
+  /* Converting datas to Smalltalk int object */
+  for (i = 0; i < size; ++i)
+    vm_proxy->OOPAtPut (anArray, i, vm_proxy->intToOOP (textures[i]));
+
+  return anArray;
+}
+
+static void
+gst_opengl_glDeleteTextures ( OOP texturesOOP )
+{
+  /* Allocating an Array object */
+  GLsizei size = vm_proxy->basicSize (texturesOOP);
+  GLint *textures;
+
+  /* retrieving datas from OpenGL */
+  textures = (GLint *) alloca (sizeof (GLint) * size);
+  textures = gst_opengl_oop_to_int_array (textures, texturesOOP, size);
+  if (!textures)
+    return;
+
+  /* Converting datas to Smalltalk int object */
+  glDeleteTextures (size, textures);
 }
 
 
@@ -431,7 +466,7 @@ void gst_initModule_gl()
   vm_proxy->defineCFunc ("glCompressedTexSubImage3D", glCompressedTexSubImage3D);
   vm_proxy->defineCFunc ("glCullFace", glCullFace);
   vm_proxy->defineCFunc ("glDeleteLists", glDeleteLists);
-  vm_proxy->defineCFunc ("glDeleteTextures", glDeleteTextures);
+  vm_proxy->defineCFunc ("glDeleteTextures", gst_opengl_glDeleteTextures);
   vm_proxy->defineCFunc ("glDepthFunc", glDepthFunc);
   vm_proxy->defineCFunc ("glDepthMask", glDepthMask);
   vm_proxy->defineCFunc ("glDepthRange", glDepthRange);
@@ -468,7 +503,7 @@ void gst_initModule_gl()
   vm_proxy->defineCFunc ("glFrontFace", glFrontFace);
   vm_proxy->defineCFunc ("glFrustum", glFrustum);
   vm_proxy->defineCFunc ("glGenLists", glGenLists);
-  vm_proxy->defineCFunc ("glGenTextures", glGenTextures);
+  vm_proxy->defineCFunc ("glGenTextures", gst_opengl_glGenTextures);
   // vm_proxy->defineCFunc ("glGetBooleanv", glGetBooleanv);
   vm_proxy->defineCFunc ("glGetClipPlane", glGetClipPlane);
   vm_proxy->defineCFunc ("glGetCompressedTexImage", glGetCompressedTexImage);

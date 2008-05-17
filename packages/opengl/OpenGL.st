@@ -365,6 +365,18 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    glDeleteTextures: which [
+	<category: 'Textures'>
+	<cCall: 'glDeleteTextures' returning: #void args: #( #smalltalk )>
+	
+    ]
+
+    glGenTextures: count [
+	<category: 'Textures'>
+	<cCall: 'glGenTextures' returning: #smalltalk args: #( #int )>
+	
+    ]
+
     glGenLists: range [
 	<category: 'Display List'>
 	<cCall: 'glGenLists' returning: #int args: #( #int )>
