@@ -129,6 +129,59 @@ OOP gst_opengl_gluUnProject4 (GLdouble winX, GLdouble winY, GLdouble winZ, GLdou
 }
 
 
+void gst_opengl_gluCylinder (GLenum draw, GLenum normals, GLenum orient,
+			    GLboolean texture, GLdouble base, GLdouble top,
+			    GLdouble height, GLint slices, GLint stacks)
+{
+  GLUquadric *q = gluNewQuadric ();
+  gluQuadricDrawStyle (q, draw);
+  gluQuadricNormals (q, normals);
+  gluQuadricOrientation (q, orient);
+  gluQuadricTexture (q, texture);
+  gluCylinder (q, base, top, height, slices, stacks);
+  gluDeleteQuadric (q);
+}
+
+void gst_opengl_gluSphere (GLenum draw, GLenum normals, GLenum orient,
+			   GLboolean texture, GLdouble radius,
+			   GLint slices, GLint stacks)
+{
+  GLUquadric *q = gluNewQuadric ();
+  gluQuadricDrawStyle (q, draw);
+  gluQuadricNormals (q, normals);
+  gluQuadricOrientation (q, orient);
+  gluQuadricTexture (q, texture);
+  gluSphere (q, radius, slices, stacks);
+  gluDeleteQuadric (q);
+}
+
+void gst_opengl_gluDisk (GLenum draw, GLenum normals, GLenum orient,
+			 GLboolean texture, GLdouble inner, GLdouble outer,
+			 GLint slices, GLint loops)
+{
+  GLUquadric *q = gluNewQuadric ();
+  gluQuadricDrawStyle (q, draw);
+  gluQuadricNormals (q, normals);
+  gluQuadricOrientation (q, orient);
+  gluQuadricTexture (q, texture);
+  gluDisk (q, inner, outer, slices, loops);
+  gluDeleteQuadric (q);
+}
+
+void gst_opengl_gluPartialDisk (GLenum draw, GLenum normals, GLenum orient,
+			        GLboolean texture, GLdouble inner, GLdouble outer,
+			        GLint slices, GLint loops,
+				GLdouble start, GLdouble sweep)
+{
+  GLUquadric *q = gluNewQuadric ();
+  gluQuadricDrawStyle (q, draw);
+  gluQuadricNormals (q, normals);
+  gluQuadricOrientation (q, orient);
+  gluQuadricTexture (q, texture);
+  gluPartialDisk (q, inner, outer, slices, loops, start, sweep);
+  gluDeleteQuadric (q);
+}
+
 /* Init module */
 void gst_initModule_glu() {
 
@@ -144,10 +197,9 @@ void gst_initModule_glu() {
   vm_proxy->defineCFunc ("gluBuild3DMipmapLevels", gluBuild3DMipmapLevels) ;
   vm_proxy->defineCFunc ("gluBuild3DMipmaps", gluBuild3DMipmaps) ;
   vm_proxy->defineCFunc ("gluCheckExtension", gluCheckExtension) ;
-  vm_proxy->defineCFunc ("gluCylinder", gluCylinder) ;
-  vm_proxy->defineCFunc ("gluDeleteQuadric", gluDeleteQuadric) ;
+  vm_proxy->defineCFunc ("gluCylinder", gst_opengl_gluCylinder) ;
   vm_proxy->defineCFunc ("gluDeleteTess", gluDeleteTess) ;
-  vm_proxy->defineCFunc ("gluDisk", gluDisk) ;
+  vm_proxy->defineCFunc ("gluDisk", gst_opengl_gluDisk) ;
   vm_proxy->defineCFunc ("gluEndCurve", gluEndCurve) ;
   vm_proxy->defineCFunc ("gluEndPolygon", gluEndPolygon) ;
   vm_proxy->defineCFunc ("gluEndSurface", gluEndSurface) ;
@@ -157,18 +209,13 @@ void gst_initModule_glu() {
   vm_proxy->defineCFunc ("gluLookAt", gluLookAt) ;
   vm_proxy->defineCFunc ("gluNextContour", gluNextContour) ;
   vm_proxy->defineCFunc ("gluOrtho2D", gluOrtho2D) ;
-  vm_proxy->defineCFunc ("gluPartialDisk", gluPartialDisk) ;
+  vm_proxy->defineCFunc ("gluPartialDisk", gst_opengl_gluPartialDisk) ;
   vm_proxy->defineCFunc ("gluPerspective", gluPerspective) ;
   vm_proxy->defineCFunc ("gluPickMatrix", gst_opengl_gluPickMatrix) ;
   vm_proxy->defineCFunc ("gluProject", gst_opengl_gluProject) ;
   vm_proxy->defineCFunc ("gluPwlCurve", gst_opengl_gluPwlCurve) ;
-  // vm_proxy->defineCFunc ("gluQuadricCallback", gst_opengl_gluQuadricCallback) ;
-  vm_proxy->defineCFunc ("gluQuadricDrawStyle", gluQuadricDrawStyle) ;
-  vm_proxy->defineCFunc ("gluQuadricNormals", gluQuadricNormals) ;
-  vm_proxy->defineCFunc ("gluQuadricOrientation", gluQuadricOrientation) ;
-  vm_proxy->defineCFunc ("gluQuadricTexture", gluQuadricTexture) ;
   vm_proxy->defineCFunc ("gluScaleImage", gluScaleImage) ;
-  vm_proxy->defineCFunc ("gluSphere", gluSphere) ;
+  vm_proxy->defineCFunc ("gluSphere", gst_opengl_gluSphere) ;
   vm_proxy->defineCFunc ("gluUnProject", gst_opengl_gluUnProject) ;
   vm_proxy->defineCFunc ("gluUnProject4", gst_opengl_gluUnProject4) ;
 }

@@ -42,6 +42,109 @@ OpenGLInterface extend [
 	^aNurb gluEndSurface
     ]
 
+    gluCylinder: base top: top height: height slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+        self
+	    gluCylinder: OpenGLInterface gluFill
+	    normals: OpenGLInterface gluSmooth
+	    orient: OpenGLInterface gluOutside
+	    texture: true
+	    base: base top: top height: height slices: slices stacks: stacks
+    ]
+
+    gluDisk: outer slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+        self
+	    gluDisk: OpenGLInterface gluFill
+	    normals: OpenGLInterface gluSmooth
+	    orient: OpenGLInterface gluOutside
+	    texture: true
+	    inner: 0.0 outer: outer slices: slices stacks: stacks
+    ]
+
+    gluDisk: inner outer: outer slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+        self
+	    gluDisk: OpenGLInterface gluFill
+	    normals: OpenGLInterface gluSmooth
+	    orient: OpenGLInterface gluOutside
+	    texture: true
+	    inner: inner outer: outer slices: slices stacks: stacks
+    ]
+
+    gluPartialDisk: outer slices: slices stacks: stacks
+	start: start sweep: sweep [
+
+	<category: 'GLU'>
+	self
+	    gluPartialDisk: OpenGLInterface gluFill
+	    normals: OpenGLInterface gluSmooth
+	    orient: OpenGLInterface gluOutside
+	    texture: true
+	    inner: 0.0 outer: outer slices: slices stacks: stacks
+	    start: start sweep: sweep
+    ]
+
+    gluPartialDisk: inner outer: outer slices: slices stacks: stacks
+	start: start sweep: sweep [
+
+	<category: 'GLU'>
+	self
+	    gluPartialDisk: OpenGLInterface gluFill
+	    normals: OpenGLInterface gluSmooth
+	    orient: OpenGLInterface gluOutside
+	    texture: true
+	    inner: inner outer: outer slices: slices stacks: stacks
+	    start: start sweep: sweep
+    ]
+
+    gluSphere: radius slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+	self
+	    gluSphere: OpenGLInterface gluFill
+	    normals: OpenGLInterface gluSmooth
+	    orient: OpenGLInterface gluOutside
+	    texture: true
+	    radius: radius slices: slices stacks: stacks
+    ]
+
+    gluCylinder: draw normals: normals orient: orient texture: texture
+	base: base top: top height: height slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+	<cCall: 'gluCylinder' returning: #void args: #( #int #int #int #boolean #double #double #double #int #int)>
+	
+    ]
+
+    gluDisk: draw normals: normals orient: orient texture: texture
+	inner: inner outer: outer slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+	<cCall: 'gluDisk' returning: #void args: #( #int #int #int #boolean #double #double #int #int)>
+	
+    ]
+
+    gluPartialDisk: draw normals: normals orient: orient texture: texture
+	inner: inner outer: outer slices: slices stacks: stacks
+	start: start sweep: sweep [
+
+	<category: 'GLU'>
+	<cCall: 'gluPartialDisk' returning: #void args: #( #int #int #int #boolean #double #double #int #int #double #double)>
+	
+    ]
+
+    gluSphere: draw normals: normals orient: orient texture: texture
+	radius: radius slices: slices stacks: stacks [
+
+	<category: 'GLU'>
+	<cCall: 'gluSphere' returning: #void args: #( #int #int #int #boolean #double #int #int)>
+	
+    ]
+
     gluUnProject: x y: y z: z modelview: mvMatrix projection: projMatrix viewport: aViewport [
 	<category: 'GLU'>
 	<cCall: 'gluUnProject' returning: #smalltalk args: #( #double #double #double #smalltalk #smalltalk #smalltalk )>

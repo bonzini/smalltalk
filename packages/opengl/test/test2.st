@@ -79,7 +79,7 @@ Object subclass: OpenGLTest [
 	<category: 'test'>
 	aWindow glClear: (OpenGLInterface glColorBufferBit bitOr: OpenGLInterface glDepthBufferBit).
 	aWindow 
-	    glutSolidSphere: 1.0
+	    gluSphere: 1.0
 	    slices: 50
 	    stacks: 16.
 	aWindow glutSwapBuffers
