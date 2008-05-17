@@ -487,7 +487,7 @@ See OpenGL programming guide for more informations.'>
 
     doesNotUnderstand: aMessage [
 	<category: 'context'>
-	self openGLInterface perform: aMessage
+	^aMessage sendTo: self openGLInterface
     ]
 ]
 

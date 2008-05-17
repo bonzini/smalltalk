@@ -15,15 +15,13 @@ See OpenGL programming guide for more informations.'>
 
     glClearColor: aColor [
 	<category: 'GL'>
-	self 
-	    cacheGlClearColor: aColor red
-	    green: aColor green
-	    blue: aColor blue
+	<cCall: 'glClearColorv' returning: #void args: #( #smalltalk)>
+
     ]
 
-    cacheGlClearColor: aRed green: aGreen blue: aBlue [
+    glClearColor: aRed green: aGreen blue: aBlue alpha: aAlpha [
 	<category: 'GL'>
-	<cCall: 'glClearColor' returning: #void args: #( #float #float #float )>
+	<cCall: 'glClearColor' returning: #void args: #( #float #float #float #float)>
 	
     ]
 
@@ -39,12 +37,9 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glColor3f: aColor [
+    glColor: aColor [
 	<category: 'GL'>
-	self 
-	    glColor3f: aColor red
-	    green: aColor green
-	    blue: aColor blue
+	<cCall: 'glColorv' returning: #void args: #( #smalltalk )>
     ]
 
     glColor3f: aRed green: aGreen blue: aBlue [
@@ -59,12 +54,9 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glScalef: aVertex [
+    glScale: aVertex [
 	<category: 'GL'>
-	self 
-	    glScalef: aVertex x
-	    y: aVertex y
-	    z: aVertex z
+	<cCall: 'glScalev' returning: #int args: #( #smalltalk )>
     ]
 
     glScalef: anX y: anY z: anZ [
@@ -106,13 +98,9 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glRotatef: angle direction: aVertex [
+    glRotate: angle direction: aVertex [
 	<category: 'GL'>
-	^self 
-	    glRotatef: angle
-	    x: aVertex x
-	    y: aVertex y
-	    z: aVertex z
+	<cCall: 'glRotatev' returning: #int args: #( #float #smalltalk )>
     ]
 
     glRotatef: angle x: anX y: aY z: aZ [
@@ -127,12 +115,10 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glTranslatef: aVertex [
+    glTranslate: aVertex [
 	<category: 'GL'>
-	self 
-	    glTranslatef: aVertex x
-	    y: aVertex y
-	    z: aVertex z
+	<cCall: 'glTranslatev' returning: #int args: #( #smalltalk )>
+
     ]
 
     glTranslatef: x y: y z: z [
@@ -141,26 +127,16 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glTranslated: aVertex [
-	<category: 'GL'>
-	self 
-	    glTranslated: aVertex x
-	    y: aVertex y
-	    z: aVertex z
-    ]
-
     glTranslated: aX y: aY z: aZ [
 	<category: 'GL'>
 	<cCall: 'glTranslated' returning: #void args: #( #int #int #int )>
 	
     ]
 
-    glLightPosition: number position: aVertex [
+    glLightv: lightNumber property: aProp value: anArray [
 	<category: 'GL'>
-	self 
-	    glLightfv: number
-	    property: OpenGLInterface glPosition
-	    value: aVertex
+	<cCall: 'glLightv' returning: #int args: #( #int #int #smalltalk )>
+	
     ]
 
     glLightfv: lightNumber property: aProp value: anArray [
@@ -190,6 +166,12 @@ See OpenGL programming guide for more informations.'>
     glColorMaterial: aFace mode: aMode [
 	<category: 'GL'>
 	<cCall: 'glColorMaterial' returning: #void args: #( #int #int )>
+	
+    ]
+
+    glMaterialv: aFace mode: aProp value: anArray [
+	<category: 'GL'>
+	<cCall: 'glMaterialv' returning: #int args: #( #int #int #smalltalk )>
 	
     ]
 
@@ -235,9 +217,9 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glVertex2f: aPoint [
+    glVertex: aVertex [
 	<category: 'GL'>
-	self glVertex2f: aPoint x y: aPoint y
+	<cCall: 'glVertexv' returning: #int args: #( #smalltalk )>
     ]
 
     glVertex2f: aX y: aY [
@@ -246,26 +228,16 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
-    glVertex3f: aPoint [
-	<category: 'GL'>
-	self 
-	    glVertex3f: aPoint x
-	    y: aPoint y
-	    z: aPoint z
-    ]
-
     glVertex3f: aX y: aY z: aZ [
 	<category: 'GL'>
 	<cCall: 'glVertex3f' returning: #void args: #(#float #float #float)>
 	
     ]
 
-    glNormal3f: aPoint [
+    glNormal: aPoint [
 	<category: 'GL'>
-	self 
-	    glNormal3f: aPoint x
-	    y: aPoint y
-	    z: aPoint z
+	<cCall: 'glNormalv' returning: #int args: #(#smalltalk )>
+
     ]
 
     glNormal3f: aX y: aY z: aZ [
@@ -309,6 +281,54 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    loadTransposeMatrix: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glLoadTransposeMatrixv' retuning: #void args: #(#smalltalk)>
+	
+    ]
+
+    multTransposeMatrix: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glMultTransposeMatrixv' retuning: #void args: #(#smalltalk)>
+	
+    ]
+
+    loadTransposeMatrixf: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glLoadTransposeMatrixf' retuning: #void args: #(#cObject)>
+	
+    ]
+
+    multTransposeMatrixf: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glMultTransposeMatrixf' retuning: #void args: #(#cObject)>
+	
+    ]
+
+    loadTransposeMatrixd: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glLoadTransposeMatrixd' retuning: #void args: #(#cObject)>
+	
+    ]
+
+    multTransposeMatrixd: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glMultTransposeMatrixd' retuning: #void args: #(#cObject)>
+	
+    ]
+
+    loadMatrix: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glLoadMatrixv' retuning: #void args: #(#smalltalk)>
+	
+    ]
+
+    multMatrix: aMatrix [
+	<category: 'Matrix manipulation'>
+	<cCall: 'glMultMatrixv' retuning: #void args: #(#smalltalk)>
+	
+    ]
+
     loadMatrixf: aMatrix [
 	<category: 'Matrix manipulation'>
 	<cCall: 'glLoadMatrixf' retuning: #void args: #(#cObject)>
@@ -331,52 +351,6 @@ See OpenGL programming guide for more informations.'>
 	<category: 'Matrix manipulation'>
 	<cCall: 'glMultMatrixd' retuning: #void args: #(#cObject)>
 	
-    ]
-
-    multiplyMatrix: aMatrix for: aMode [
-	"Save the current matrix mode, sets the requested mode, multiply the"
-
-	"matrix, get back to the corrent matrix mode"
-
-	<category: 'Matrix manipulation'>
-	| currentMode |
-	currentMode := self matrixMode.
-	self matrixMode: aMode.
-	self multMatrix: aMatrix.
-	self matrixMode: currentMode
-    ]
-
-    setMatrix: aMatrix for: aMode [
-	"Save the current matrix mode, sets the requested mode, sets the"
-
-	"matrix, get back to the corrent matrix mode"
-
-	<category: 'Matrix manipulation'>
-	| currentMode |
-	currentMode := self matrixMode.
-	self matrixMode: aMode.
-	self loadMatrix: aMatrix.
-	self matrixMode: currentMode
-    ]
-
-    getModelviewMatrix [
-	<category: 'Matrix retreiving'>
-	^self getMatrixFor: OpenGLInterface glModelviewMatrix
-    ]
-
-    getProjectionMatrix [
-	<category: 'Matrix retreiving'>
-	^self getMatrixFor: OpenGLInterface glProjectionMatrix
-    ]
-
-    getTextureMatrix [
-	<category: 'Matrix retreiving'>
-	^self getMatrixFor: OpenGLInterface glTextureMatrix
-    ]
-
-    getMatrixFor: aMode [
-	<category: 'Matrix retreiving'>
-	^Matrix16f new loadFrom: (self glGetFloatv: aMode)
     ]
 
     glIsList: listNum [
@@ -469,6 +443,12 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    glMap1: target u1: u1 u2: u2 ustride: uStride uorder: uOrdrer points: arrayOfPoints [
+	<category: 'Map'>
+	<cCall: 'glMap1v' returning: #void args: #(#int #float #float #int #int #smalltalk)>
+	
+    ]
+
     glMap1f: target u1: u1 u2: u2 ustride: uStride uorder: uOrdrer points: arrayOfPoints [
 	<category: 'Map'>
 	<cCall: 'glMap1f' returning: #void args: #(#int #float #float #int #int #cObject)>
@@ -478,6 +458,12 @@ See OpenGL programming guide for more informations.'>
     glMap1d: target u1: u1 u2: u2 ustride: uStride uorder: uOrdrer points: arrayOfPoints [
 	<category: 'Map'>
 	<cCall: 'glMap1d' returning: #void args: #(#int #double #double #int #int #cObject)>
+	
+    ]
+
+    glMap2: target u1: u1 u2: u2 ustride: uStride uorder: uOrdrer v1: v1 v2: v2 vstride: vStride vorder: vOrder points: arrayOfPoints [
+	<category: 'Map'>
+	<cCall: 'glMap2v' returning: #void args: #(#int #float #float #int #int #float #float #int #int #smalltalk)>
 	
     ]
 
@@ -508,6 +494,14 @@ See OpenGL programming guide for more informations.'>
     glEvalMesh2: mode i1: aI1 i2: aI2 j1: aJ1 j2: aJ2 [
 	<category: 'Map'>
 	<cCall: 'glEvalMesh2' returning: #void args: #(#int #int #int #int #int )>
+	
+    ]
+
+    glGetDoublev: mode [
+	"the returned value is an array of floating point values"
+
+	<category: 'Get functions'>
+	<cCall: 'glGetDoublev' returning: #smalltalk args: #(#int)>
 	
     ]
 

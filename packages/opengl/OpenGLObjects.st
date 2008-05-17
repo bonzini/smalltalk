@@ -19,16 +19,16 @@ Object subclass: Color [
 	    red: aRed;
 	    green: aGreen;
 	    blue: aBlue;
-	    transparency: 1.0
+	    alpha: 1.0
     ]
 
-    Color class >> red: aRed green: aGreen blue: aBlue transparency: aTransparency [
+    Color class >> red: aRed green: aGreen blue: aBlue alpha: aTransparency [
 	<category: 'Creating'>
 	^(self new)
 	    red: aRed;
 	    green: aGreen;
 	    blue: aBlue;
-	    transparency: aTransparency
+	    alpha: aTransparency
     ]
 
     Color class >> black [
@@ -37,7 +37,7 @@ Object subclass: Color [
 	    red: 0.0;
 	    green: 0.0;
 	    blue: 0.0;
-	    transparency: 1.0
+	    alpha: 1.0
     ]
 
     Color class >> white [
@@ -46,7 +46,7 @@ Object subclass: Color [
 	    red: 1.0;
 	    green: 1.0;
 	    blue: 1.0;
-	    transparency: 1.0
+	    alpha: 1.0
     ]
 
     Color class >> red [
@@ -55,7 +55,7 @@ Object subclass: Color [
 	    red: 1.0;
 	    green: 0.0;
 	    blue: 0.0;
-	    transparency: 0.0
+	    alpha: 0.0
     ]
 
     Color class >> green [
@@ -64,7 +64,7 @@ Object subclass: Color [
 	    red: 0.0;
 	    green: 1.0;
 	    blue: 0.0;
-	    transparency: 0.0
+	    alpha: 0.0
     ]
 
     Color class >> blue [
@@ -73,7 +73,7 @@ Object subclass: Color [
 	    red: 0.0;
 	    green: 0.0;
 	    blue: 1.0;
-	    transparency: 0.0
+	    alpha: 0.0
     ]
 
     red [
@@ -106,12 +106,12 @@ Object subclass: Color [
 	self at: 3 put: aFloat
     ]
 
-    transparency [
+    alpha [
 	<category: 'Accessing'>
 	^self at: 4
     ]
 
-    transparency: aFloat [
+    alpha: aFloat [
 	<category: 'Accessing'>
 	self at: 4 put: aFloat
     ]
@@ -119,7 +119,7 @@ Object subclass: Color [
     asArray [
 	<category: 'Transforming'>
 	| anArray |
-	self transparency isNil 
+	self alpha isNil 
 	    ifTrue: 
 		[anArray := Array 
 			    with: self red
@@ -130,7 +130,7 @@ Object subclass: Color [
 			    with: self red
 			    with: self green
 			    with: self blue
-			    with: self transparency].
+			    with: self alpha].
 	^anArray
     ]
 
@@ -168,6 +168,7 @@ another axis for matrix works'>
 	<category: 'Creating'>
 	| v |
 	v := self basicNew: self maxSize.
+	v basicAt: 4 put: 1.0.
 	v size: 2.
 	^v
     ]

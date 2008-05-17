@@ -10,176 +10,120 @@
 
 void gst_opengl_gluLoadSamplingMatrices (OOP nurb, OOP modelMatrix, OOP projectionMatrix, OOP viewportVertex)
 {
-  GLfloat model[16] ;
-  GLfloat projection[16] ;
-  GLint viewport[4] ;
-  size_t nObjs, i ;
+  GLfloat model[16], *pmodel ;
+  GLfloat projection[16], *pproj ;
+  GLint viewport[4], *pvport ;
 
-  /* Retreive model matrix (4x4) */
-  nObjs = vm_proxy->OOPSize(modelMatrix) ;
-  if(nObjs < 16) 
-	return ;					/* Should fire an interrupt */
-  for(i = 0 ; i < 16 ; ++i)
-	model[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(modelMatrix, i)) ;
+  pmodel = gst_opengl_oop_to_array (model, modelMatrix, 16);
+  pproj = gst_opengl_oop_to_array (projection, projectionMatrix, 16);
+  pvport = gst_opengl_oop_to_int_array (viewport, viewportVertex, 4);
 
-  /* Retreive projection matrix (4x4) */
-  nObjs = vm_proxy->OOPSize(projectionMatrix) ;
-  if(nObjs < 16) 
-	return ;					/* Should fire an interrupt */
-  for(i = 0 ; i < 16 ; ++i)
-	projection[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(projectionMatrix, i)) ;
+  if (!pmodel || !pproj || !pvport)
+    return;					/* Should fire an exception */
 
-  /* Retreive viewport (4) */
-  nObjs = vm_proxy->OOPSize(viewportVertex) ;
-  if(nObjs < 4) 
-	return ;					/* Should fire an interrupt */
-  for(i = 0 ; i < 4 ; ++i)
-	viewport[i] = vm_proxy->OOPToInt(vm_proxy->OOPAt(viewportVertex, i)) ;
-
-
-  gluLoadSamplingMatrices (vm_proxy->OOPToCObject(nurb), model, projection, viewport) ;
+  gluLoadSamplingMatrices (vm_proxy->OOPToCObject(nurb), pmodel, pproj, pvport) ;
 }
 
-void gst_opengl_gluPickMatrix (GLdouble x, GLdouble y, GLdouble delX, GLdouble delY, OOP viewportOO)
+void gst_opengl_gluPickMatrix (GLdouble x, GLdouble y, GLdouble delX, GLdouble delY, OOP viewportVertex)
 {
-  int nObjs, i ;
-  GLint viewport[4] ;
-  nObjs = vm_proxy->OOPSize(viewportOO) ;
-  if(nObjs != 4)
-	return ;					/* Should fire an interrupt */
-  for(i = 0 ; i < 4 ; ++i)
-	viewport[i] = vm_proxy->OOPToInt(vm_proxy->OOPAt(viewportOO, i)) ;
-  gluPickMatrix (x, y, delX, delY, viewport) ;
+  GLint viewport[4], *pvport ;
+  pvport = gst_opengl_oop_to_int_array (viewport, viewportVertex, 4);
+  if (!pvport)
+    return;					/* Should fire an exception */
+
+  gluPickMatrix (x, y, delX, delY, pvport) ;
 }
 
-OOP gst_opengl_gluProject (GLdouble objX, GLdouble objY, GLdouble objZ, const GLdouble *model, const GLdouble *proj, const GLint *view) 
+OOP gst_opengl_gluProject (GLdouble objX, GLdouble objY, GLdouble objZ, OOP modelMatrix, OOP projectionMatrix, OOP viewportVertex) 
 {
   GLdouble winX, winY, winZ ;
-  OOP result = nil ;					/* An array of 3 doubles */
+  GLdouble model[16], *pmodel ;
+  GLdouble projection[16], *pproj ;
+  GLint viewport[4], *pvport ;
+  OOP result = nil ;
 
-  if(GL_TRUE == gluProject (objX, objY, objZ, model, proj, view, &winX, &winY, &winZ))
+  pmodel = gst_opengl_oop_to_dbl_array (model, modelMatrix, 16);
+  pproj = gst_opengl_oop_to_dbl_array (projection, projectionMatrix, 16);
+  pvport = gst_opengl_oop_to_int_array (viewport, viewportVertex, 4);
+
+  if (!pmodel || !pproj || !pvport)
+    return result;					/* Should fire an exception */
+
+  if(GL_TRUE == gluProject (objX, objY, objZ, pmodel, pproj, pvport, &winX, &winY, &winZ))
 	{
 	  result = vm_proxy->objectAlloc(vm_proxy->arrayClass, 3) ; /* Create an array of 3 variables */  
-	  vm_proxy->OOPAtPut(result, 0,
-								 vm_proxy->longDoubleToOOP(winX)) ;
-	  vm_proxy->OOPAtPut(result, 1,
-								 vm_proxy->longDoubleToOOP(winY)) ;
-	  vm_proxy->OOPAtPut(result, 2,
-								 vm_proxy->longDoubleToOOP(winZ)) ;
+	  vm_proxy->OOPAtPut(result, 0, vm_proxy->floatToOOP(winX)) ;
+	  vm_proxy->OOPAtPut(result, 1, vm_proxy->floatToOOP(winY)) ;
+	  vm_proxy->OOPAtPut(result, 2, vm_proxy->floatToOOP(winZ)) ;
 	}
   return result ;
 }
 
 void gst_opengl_gluPwlCurve (OOP nurb, GLint count, OOP data, GLint stride, GLenum type)
 {
-  GLfloat* dataFloat ;
-  size_t nObjs = 0 ;
-  size_t i ;					/* index */
-  /* Retreive data and put them in an array */
-  nObjs = vm_proxy->OOPSize(data) ;
-  if(nObjs < count) 
-	return ;					/* Should fire an interrupt */
-  dataFloat = alloca (sizeof(GLfloat) * count) ;
-  for(i = 0 ; i < count ; ++i)
-	dataFloat[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(data, i)) ;
+  GLfloat* dataFloat, *p ;
 
-  gluPwlCurve (vm_proxy->OOPToCObject(nurb),
-			   count,
-			   dataFloat,
-			   stride, 
-			   type) ;
+  dataFloat = alloca (sizeof (GLfloat) * count);
+  p = gst_opengl_oop_to_array (dataFloat, data, count);
+  if (!p)
+    return;
+
+  gluPwlCurve (vm_proxy->OOPToCObject(nurb), count, p, stride, type) ;
 }
 
 OOP gst_opengl_gluUnProject (GLdouble winX, GLdouble winY, GLdouble winZ, OOP modelMatrix, OOP projectionMatrix, OOP viewportVertex)
 {
-  GLdouble model[16], projection[16] ;
-  GLint viewport[4] ;
   GLdouble objX, objY, objZ ;
-  OOP result = nil ;			/* An array of 3 doubles */
-  size_t nObjs, i ;
+  GLdouble model[16], *pmodel ;
+  GLdouble projection[16], *pproj ;
+  GLint viewport[4], *pvport ;
+  OOP result = nil ;
 
-  /* Retreive model matrix (4x4) */
-  nObjs = vm_proxy->OOPSize(modelMatrix) ;
-  if(nObjs < 16) 
-	return result ;				/* Should fire an interrupt */
-  for(i = 0 ; i < 16 ; ++i)
-	model[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(modelMatrix, i)) ;
+  pmodel = gst_opengl_oop_to_dbl_array (model, modelMatrix, 16);
+  pproj = gst_opengl_oop_to_dbl_array (projection, projectionMatrix, 16);
+  pvport = gst_opengl_oop_to_int_array (viewport, viewportVertex, 4);
 
-  /* Retreive projection matrix (4x4) */
-  nObjs = vm_proxy->OOPSize(projectionMatrix) ;
-  if(nObjs < 16) 
-	return result ;				/* Should fire an interrupt */
-  for(i = 0 ; i < 16 ; ++i)
-	projection[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(projectionMatrix, i)) ;
+  if (!pmodel || !pproj || !pvport)
+    return result;					/* Should fire an exception */
 
-  /* Retreive viewport (4) */
-  nObjs = vm_proxy->OOPSize(viewportVertex) ;
-  if(nObjs < 4) 
-	return result ;				/* Should fire an interrupt */
-  for(i = 0 ; i < 4 ; ++i)
-	viewport[i] = (int) vm_proxy->OOPToFloat(vm_proxy->OOPAt(viewportVertex, i)) ;
-
-
-  if(GL_TRUE == gluUnProject (winX, winY, winZ, model, projection, viewport, &objX, &objY, &objZ)) 
+  if(GL_TRUE == gluUnProject (winX, winY, winZ, pmodel, pproj, pvport, &objX, &objY, &objZ)) 
 	{
 	  /* Create an array of 3 variables */  
 	  result = vm_proxy->objectAlloc(vm_proxy->arrayClass, 3) ; 
 
-	  vm_proxy->OOPAtPut(result, 0,
-								 vm_proxy->longDoubleToOOP(objX)) ;
-	  vm_proxy->OOPAtPut(result, 1,
-								 vm_proxy->longDoubleToOOP(objY)) ;
-	  vm_proxy->OOPAtPut(result, 2,
-								 vm_proxy->longDoubleToOOP(objZ)) ;
+	  vm_proxy->OOPAtPut(result, 0, vm_proxy->longDoubleToOOP(objX)) ;
+	  vm_proxy->OOPAtPut(result, 1, vm_proxy->longDoubleToOOP(objY)) ;
+	  vm_proxy->OOPAtPut(result, 2, vm_proxy->longDoubleToOOP(objZ)) ;
 	  vm_proxy->registerOOP(result) ;
 	}
   return result ;
 }
 
 OOP gst_opengl_gluUnProject4 (GLdouble winX, GLdouble winY, GLdouble winZ, GLdouble clipW, 
-								OOP modelMatrix, OOP projectionMatrix, OOP viewportVertex, 
-								GLdouble nearVal, GLdouble farVal)
+				OOP modelMatrix, OOP projectionMatrix, OOP viewportVertex, 
+				GLdouble nearVal, GLdouble farVal)
 {
-  GLdouble model[16], projection[16] ;
-  GLint viewport[4] ;
   GLdouble objX, objY, objZ, objW ;
-  OOP result = nil ;			/* An array of 3 doubles */
-  size_t nObjs, i ;
+  GLdouble model[16], *pmodel ;
+  GLdouble projection[16], *pproj ;
+  GLint viewport[4], *pvport ;
+  OOP result = nil ;
 
-  /* Retreive model matrix (4x4) */
-  nObjs = vm_proxy->OOPSize(modelMatrix) ;
-  if(nObjs < 16) 
-	return result ;				/* Should fire an interrupt */
-  for(i = 0 ; i < 16 ; ++i)
-	model[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(modelMatrix, i)) ;
+  pmodel = gst_opengl_oop_to_dbl_array (model, modelMatrix, 16);
+  pproj = gst_opengl_oop_to_dbl_array (projection, projectionMatrix, 16);
+  pvport = gst_opengl_oop_to_int_array (viewport, viewportVertex, 4);
 
-  /* Retreive projection matrix (4x4) */
-  nObjs = vm_proxy->OOPSize(projectionMatrix) ;
-  if(nObjs < 16) 
-	return result ;				/* Should fire an interrupt */
-  for(i = 0 ; i < 16 ; ++i)
-	projection[i] = vm_proxy->OOPToFloat(vm_proxy->OOPAt(projectionMatrix, i)) ;
-
-  /* Retreive viewport (4) */
-  nObjs = vm_proxy->OOPSize(viewportVertex) ;
-  if(nObjs < 4) 
-	return result ;				/* Should fire an interrupt */
-  for(i = 0 ; i < 4 ; ++i)
-	viewport[i] = vm_proxy->OOPToInt(vm_proxy->OOPAt(viewportVertex, i)) ;
-
+  if (!pmodel || !pproj || !pvport)
+    return nil;					/* Should fire an exception */
 
   if(GL_TRUE == gluUnProject4 (winX, winY, winZ, clipW, model, projection, viewport, nearVal, farVal, &objX, &objY, &objZ, &objW)) 
 	{
 	  result = vm_proxy->objectAlloc(vm_proxy->arrayClass, 4) ; /* Create an array of 4 variables */  
 
-	  vm_proxy->OOPAtPut(result, 0,
-								 vm_proxy->longDoubleToOOP(objX)) ;
-	  vm_proxy->OOPAtPut(result, 1,
-								 vm_proxy->longDoubleToOOP(objY)) ;
-	  vm_proxy->OOPAtPut(result, 2,
-								 vm_proxy->longDoubleToOOP(objZ)) ;
-	  vm_proxy->OOPAtPut(result, 3,
-								 vm_proxy->longDoubleToOOP(objW)) ;
+	  vm_proxy->OOPAtPut(result, 0, vm_proxy->longDoubleToOOP(objX)) ;
+	  vm_proxy->OOPAtPut(result, 1, vm_proxy->longDoubleToOOP(objY)) ;
+	  vm_proxy->OOPAtPut(result, 2, vm_proxy->longDoubleToOOP(objZ)) ;
+	  vm_proxy->OOPAtPut(result, 3, vm_proxy->longDoubleToOOP(objW)) ;
 	}
   return result ;
 }
