@@ -217,6 +217,23 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    glTexCoord: aVertex [
+	<category: 'GL'>
+	<cCall: 'glTexCoordv' returning: #int args: #( #smalltalk )>
+    ]
+
+    glTexCoord2f: aX y: aY [
+	<category: 'GL'>
+	<cCall: 'glTexCoord2f' returning: #void args: #(#float #float)>
+	
+    ]
+
+    glTexCoord3f: aX y: aY z: aZ [
+	<category: 'GL'>
+	<cCall: 'glTexCoord3f' returning: #void args: #(#float #float #float)>
+	
+    ]
+
     glVertex: aVertex [
 	<category: 'GL'>
 	<cCall: 'glVertexv' returning: #int args: #( #smalltalk )>
@@ -231,6 +248,23 @@ See OpenGL programming guide for more informations.'>
     glVertex3f: aX y: aY z: aZ [
 	<category: 'GL'>
 	<cCall: 'glVertex3f' returning: #void args: #(#float #float #float)>
+	
+    ]
+
+    glRasterPos: aRasterPos [
+	<category: 'GL'>
+	<cCall: 'glRasterPosv' returning: #int args: #( #smalltalk )>
+    ]
+
+    glRasterPos2f: aX y: aY [
+	<category: 'GL'>
+	<cCall: 'glRasterPos2f' returning: #void args: #(#float #float)>
+	
+    ]
+
+    glRasterPos3f: aX y: aY z: aZ [
+	<category: 'GL'>
+	<cCall: 'glRasterPos3f' returning: #void args: #(#float #float #float)>
 	
     ]
 
@@ -377,6 +411,12 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    glBindTexture: mode to: id [
+	<category: 'Textures'>
+	<cCall: 'glBindTexture' returning: #void args: #( #int #int )>
+	
+    ]
+
     glGenLists: range [
 	<category: 'Display List'>
 	<cCall: 'glGenLists' returning: #int args: #( #int )>
@@ -422,6 +462,12 @@ See OpenGL programming guide for more informations.'>
     glTexEnvi: target property: aProperty value: aValue [
 	<category: 'Textures'>
 	<cCall: 'glTexEnvi' returning: #void args: #(#int #int #int)>
+	
+    ]
+
+    glTexEnvv: target property: aProperty value: aValue [
+	<category: 'Textures'>
+	<cCall: 'glTexEnvv' returning: #void args: #(#int #int #smalltalk)>
 	
     ]
 

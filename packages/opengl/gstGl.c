@@ -117,6 +117,38 @@ gst_opengl_glVertexv (OOP vertexOOP)
 }
 
 static int
+gst_opengl_glTexCoordv (OOP vertexOOP)
+{
+  GLfloat vertex[4];
+  GLfloat *p;
+
+  vertex[2] = 0.0;
+  vertex[3] = 1.0;
+  p = gst_opengl_oop_to_array_2 (vertex, vertexOOP, 2, 4);
+  if (!p)
+    return GL_INVALID_VALUE;
+
+  glTexCoord4fv (p);
+  return 0;
+}
+
+static int
+gst_opengl_glRasterPosv (OOP vertexOOP)
+{
+  GLfloat vertex[4];
+  GLfloat *p;
+
+  vertex[2] = 0.0;
+  vertex[3] = 1.0;
+  p = gst_opengl_oop_to_array_2 (vertex, vertexOOP, 2, 4);
+  if (!p)
+    return GL_INVALID_VALUE;
+
+  glRasterPos4fv (p);
+  return 0;
+}
+
+static int
 gst_opengl_glMultMatrixv (OOP matrixOOP)
 {
   GLfloat matrix[16];
@@ -141,12 +173,56 @@ gst_opengl_glMultTransposeMatrixv (OOP matrixOOP)
 }
 
 static int
+gst_opengl_glMap_size (GLenum target)
+{
+  switch (target)
+    {
+    case GL_MAP1_TEXTURE_COORD_1:
+    case GL_MAP2_TEXTURE_COORD_1:
+    case GL_MAP1_INDEX:
+    case GL_MAP2_INDEX:
+      return 1;
+
+    case GL_MAP1_TEXTURE_COORD_2:
+    case GL_MAP2_TEXTURE_COORD_2:
+      return 2;
+
+    case GL_MAP1_TEXTURE_COORD_3:
+    case GL_MAP2_TEXTURE_COORD_3:
+    case GL_MAP1_VERTEX_3:
+    case GL_MAP2_VERTEX_3:
+    case GL_MAP1_NORMAL:
+    case GL_MAP2_NORMAL:
+      return 3;
+
+    case GL_MAP1_TEXTURE_COORD_4:
+    case GL_MAP2_TEXTURE_COORD_4:
+    case GL_MAP1_VERTEX_4:
+    case GL_MAP2_VERTEX_4:
+    case GL_MAP1_COLOR_4:
+    case GL_MAP2_COLOR_4:
+      return 4;
+
+    default:
+      return 0;
+    }
+}
+
+
+static int
 gst_opengl_glMap1v (GLenum target, GLdouble u1, GLdouble u2, GLint stride,
 		    GLint order, OOP pointsOOP)
 {
-  int npoints = (order - 1) * stride + 3;
-  GLfloat *points = (GLfloat *) alloca (sizeof (GLfloat) * npoints);
-  GLfloat *p = gst_opengl_oop_to_array (points, pointsOOP, npoints);
+  int npoints, size;
+  GLfloat *points, *p;
+
+  size = gst_opengl_glMap_size (target);
+  if (!size)
+    return GL_INVALID_ENUM;
+
+  npoints = (order - 1) * stride + size;
+  points = (GLfloat *) alloca (sizeof (GLfloat) * npoints);
+  p = gst_opengl_oop_to_array (points, pointsOOP, npoints);
   if (!p)
     return GL_INVALID_VALUE;
 
@@ -155,14 +231,20 @@ gst_opengl_glMap1v (GLenum target, GLdouble u1, GLdouble u2, GLint stride,
 }
 
 static int
-gst_opengl_glMap2v (GLenum target, GLdouble u1, GLdouble u2, GLint ustride,
-		    GLint uorder, GLdouble v1, GLdouble v2, GLint vstride,
+gst_opengl_glMap2v (GLenum target, GLfloat u1, GLfloat u2, GLint ustride,
+		    GLint uorder, GLfloat v1, GLfloat v2, GLint vstride,
 		    GLint vorder, OOP pointsOOP)
 {
-  int npoints = (uorder - 1) * ustride + (vorder - 1) * vstride + 3;
-  GLfloat *points = (GLfloat *) alloca (sizeof (GLfloat) * npoints);
-  GLfloat *p = gst_opengl_oop_to_array (points, pointsOOP, npoints);
+  int npoints, size;
+  GLfloat *points, *p;
 
+  size = gst_opengl_glMap_size (target);
+  if (!size)
+    return GL_INVALID_ENUM;
+
+  npoints = (uorder - 1) * ustride + (vorder - 1) * vstride + size;
+  points = (GLfloat *) alloca (sizeof (GLfloat) * npoints);
+  p = gst_opengl_oop_to_array (points, pointsOOP, npoints);
   if (!p)
     return GL_INVALID_VALUE;
 
@@ -234,6 +316,40 @@ gst_opengl_glLightv (GLenum face, GLenum pname, OOP paramsOOP)
     return GL_INVALID_VALUE;
 
   glLightfv (face, pname, params);
+  return 0;
+}
+
+
+static int
+gst_opengl_glTexEnvv_size (GLenum pname)
+{
+  switch (pname)
+    {
+    case GL_TEXTURE_ENV_COLOR:
+      return 4;
+
+    case GL_TEXTURE_ENV_MODE:
+      return 1;
+
+    default:
+      return 0;
+    }
+}
+
+static int
+gst_opengl_glTexEnvv (GLenum face, GLenum pname, OOP paramsOOP)
+{
+  GLfloat *params;
+  int size = gst_opengl_glTexEnvv_size (pname);
+  if (size == 0)
+    return GL_INVALID_ENUM;
+
+  params = (GLfloat *) alloca (sizeof (GLfloat) * size);
+  params = gst_opengl_oop_to_array (params, paramsOOP, size);
+  if (!params)
+    return GL_INVALID_VALUE;
+
+  glTexEnvfv (face, pname, params);
   return 0;
 }
 
@@ -673,6 +789,7 @@ void gst_initModule_gl()
   vm_proxy->defineCFunc ("glRasterPos4iv", glRasterPos4iv);
   vm_proxy->defineCFunc ("glRasterPos4s", glRasterPos4s);
   vm_proxy->defineCFunc ("glRasterPos4sv", glRasterPos4sv);
+  vm_proxy->defineCFunc ("glRasterPosv", gst_opengl_glRasterPosv);
   vm_proxy->defineCFunc ("glReadBuffer", glReadBuffer);
   vm_proxy->defineCFunc ("glRectd", glRectd);
   vm_proxy->defineCFunc ("glRectdv", glRectdv);
@@ -730,10 +847,12 @@ void gst_initModule_gl()
   vm_proxy->defineCFunc ("glTexCoord4iv", glTexCoord4iv);
   vm_proxy->defineCFunc ("glTexCoord4s", glTexCoord4s);
   vm_proxy->defineCFunc ("glTexCoord4sv", glTexCoord4sv);
+  vm_proxy->defineCFunc ("glTexCoordv", gst_opengl_glTexCoordv);
   vm_proxy->defineCFunc ("glTexEnvf", glTexEnvf);
   vm_proxy->defineCFunc ("glTexEnvfv", glTexEnvfv);
   vm_proxy->defineCFunc ("glTexEnvi", glTexEnvi);
   vm_proxy->defineCFunc ("glTexEnviv", glTexEnviv);
+  vm_proxy->defineCFunc ("glTexEnvv", gst_opengl_glTexEnvv);
   vm_proxy->defineCFunc ("glTexGend", glTexGend);
   vm_proxy->defineCFunc ("glTexGendv", glTexGendv);
   vm_proxy->defineCFunc ("glTexGenf", glTexGenf);

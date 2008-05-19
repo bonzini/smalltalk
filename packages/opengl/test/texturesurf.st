@@ -39,16 +39,16 @@ Object subclass: TextureSurface [
 	imageWidth := 64.
 	imageHeight := 64.
 	image := ByteArray new: 3 * imageWidth * imageHeight.
-	aStream := ByteStream on: image.
+	aStream := WriteStream on: image.
 	(0 to: imageHeight - 1) do: 
 		[:i | 
 		ti := 2.0 * Float pi * i / imageHeight.
 		(0 to: imageWidth - 1) do: 
 			[:j | 
 			tj := 2.0 * Float pi * j / imageWidth.
-			aStream nextPut: (127 * (1.0 + ti sin)) asInteger asCharacter.
-			aStream nextPut: (127 * (1.0 + (2.0 * tj) cos)) asInteger asCharacter.
-			aStream nextPut: (127 * (1.0 + (ti + tj) cos)) asInteger asCharacter]]
+			aStream nextPut: (127 * (1.0 + ti sin)) asInteger.
+			aStream nextPut: (127 * (1.0 + (2.0 * tj) cos)) asInteger.
+			aStream nextPut: (127 * (1.0 + (ti + tj) cos)) asInteger]]
     ]
 
     init [
@@ -124,7 +124,7 @@ Object subclass: TextureSurface [
 	    pixels: image.
 	aWindow glEnable: OpenGLInterface glTexture2d.
 	aWindow glEnable: OpenGLInterface glDepthTest.
-	aWindow glShadeModel: OpenGLInterface glFlat.
+	aWindow glShadeModel: OpenGLInterface glSmooth.
 	aWindow 
 	    addCallback: Glut displayFuncEvent
 	    to: self
