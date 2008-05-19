@@ -133,6 +133,24 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    glLightModelf: aProperty value: aValue [
+	<category: 'GL'>
+	<cCall: 'glLightModelf' returning: #void args: #(#int #float)>
+	
+    ]
+
+    glLightModeli: aProperty value: aValue [
+	<category: 'GL'>
+	<cCall: 'glLightModeli' returning: #void args: #(#int #int)>
+	
+    ]
+
+    glLightModelv: target property: aProperty value: aValue [
+	<category: 'GL'>
+	<cCall: 'glLightModelv' returning: #int args: #(#int #smalltalk)>
+	
+    ]
+
     glLightv: lightNumber property: aProp value: anArray [
 	<category: 'GL'>
 	<cCall: 'glLightv' returning: #int args: #( #int #int #smalltalk )>
@@ -453,6 +471,24 @@ See OpenGL programming guide for more informations.'>
 	
     ]
 
+    glFogf: aProperty value: aValue [
+	<category: 'Fog'>
+	<cCall: 'glFogf' returning: #void args: #(#int #float)>
+	
+    ]
+
+    glFogi: aProperty value: aValue [
+	<category: 'Fog'>
+	<cCall: 'glFogi' returning: #void args: #(#int #int)>
+	
+    ]
+
+    glFogv: target property: aProperty value: aValue [
+	<category: 'Fog'>
+	<cCall: 'glFogv' returning: #int args: #(#int #smalltalk)>
+	
+    ]
+
     glTexEnvf: target property: aProperty value: aValue [
 	<category: 'Textures'>
 	<cCall: 'glTexEnvf' returning: #void args: #(#int #int #float)>
@@ -467,13 +503,25 @@ See OpenGL programming guide for more informations.'>
 
     glTexEnvv: target property: aProperty value: aValue [
 	<category: 'Textures'>
-	<cCall: 'glTexEnvv' returning: #void args: #(#int #int #smalltalk)>
+	<cCall: 'glTexEnvv' returning: #int args: #(#int #int #smalltalk)>
+	
+    ]
+
+    glTexParameterf: target property: aProperty value: aValue [
+	<category: 'Textures'>
+	<cCall: 'glTexParameterf' returning: #void args: #(#int #int #float)>
 	
     ]
 
     glTexParameteri: target property: aProperty value: aValue [
 	<category: 'Textures'>
 	<cCall: 'glTexParameteri' returning: #void args: #(#int #int #int)>
+	
+    ]
+
+    glTexParameterv: target property: aProperty value: aValue [
+	<category: 'Textures'>
+	<cCall: 'glTexParameterv' returning: #int args: #(#int #int #smalltalk)>
 	
     ]
 
