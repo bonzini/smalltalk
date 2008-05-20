@@ -1,17 +1,42 @@
+"======================================================================
+|
+|   OpenGL GLU Method Definitions
+|
+|
+ ======================================================================"
+
+"======================================================================
+|
+| Copyright 2008 Free Software Foundation, Inc.
+| Written by Olivier Blanc.
+|
+| This file is part of the GNU Smalltalk class library.
+|
+| The GNU Smalltalk class library is free software; you can redistribute it
+| and/or modify it under the terms of the GNU Lesser General Public License
+| as published by the Free Software Foundation; either version 2.1, or (at
+| your option) any later version.
+| 
+| The GNU Smalltalk class library is distributed in the hope that it will be
+| useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+| General Public License for more details.
+| 
+| You should have received a copy of the GNU Lesser General Public License
+| along with the GNU Smalltalk class library; see the file COPYING.LIB.
+| If not, write to the Free Software Foundation, 59 Temple Place - Suite
+| 330, Boston, MA 02110-1301, USA.  
+|
+ ======================================================================"
+
+
+
 OpenGLInterface extend [
 
     gluLookAt: anEye center: aCenter up: aDirection [
 	<category: 'GLU'>
-	self 
-	    gluLookAt: anEye x
-	    y: anEye y
-	    z: anEye z
-	    center: aCenter x
-	    y: aCenter y
-	    z: aCenter z
-	    up: aDirection x
-	    y: aDirection y
-	    z: aDirection z
+	<cCall: 'gluLookAtv' returning: #int args: #( #smalltalk #smalltalk #smalltalk )>
+
     ]
 
     gluLookAt: anEyeX y: anEyeY z: anEyeZ center: aCenterX y: aCenterY z: aCenterZ up: aDirectionX y: aDirectionY z: aDirectionZ [
