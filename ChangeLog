@@ -1,5 +1,11 @@
 2008-06-01  Paolo Bonzini  <bonzini@gnu.org>
 
+	* kernel/BlkClosure.st: Fix weird case of #on:do:on:do:on:do:.
+	* tests/exceptions.st: Add test case.
+	* tests/exceptions.ok: Regenerate.
+
+2008-06-01  Paolo Bonzini  <bonzini@gnu.org>
+
 	* kernel/FileDescr.st: Make #file call #asFile.
 	* kernel/URL.st: Fix bugs introduced in File rewrite.
 

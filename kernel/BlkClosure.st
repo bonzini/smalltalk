@@ -70,27 +70,27 @@ creation of Processes from blocks.'>
 				[(activeHandlers bitAt: i) = 1 
 				    ifTrue: 
 					["Sorry, this handler is already active..."
+					nested := true]
+				    ifFalse:
+					[activeHandlers := activeHandlers setBit: i.
+					goodness > bestGoodness 
+					    ifTrue: 
+						[best := i.
+						bestGoodness := goodness]]]]].
 
-					nested := true.
-					goodness := -1]].
-			goodness > bestGoodness 
-			    ifTrue: 
-				[best := i.
-				bestGoodness := goodness]]].
+	context at: context numArgs + 1 put: activeHandlers.
 
 	"Now instantiate the best handler we found"
 	best isNil 
 	    ifFalse: 
-		[context at: context numArgs + 1 put: (activeHandlers setBit: best).
-		signal 
+		[signal 
 		    onDoBlock: context receiver
 		    handlerBlock: (context at: best + 1)
 		    onDoContext: context
 		    previousState: activeHandlers.
 		#found]
 	    ifTrue: 
-		[context at: context numArgs + 1 put: activeHandlers.
-		nested ifTrue: [#skip] ifFalse: [nil]]]
+		[nested ifTrue: [#skip] ifFalse: [nil]]]
     ]
 
     BlockClosure class >> numArgs: args numTemps: temps bytecodes: bytecodes depth: depth literals: literalArray [
