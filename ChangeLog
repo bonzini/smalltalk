@@ -1,3 +1,10 @@
+2008-06-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* kernel/BlkClosure.st: Revert previous change.
+	* kernel/AnsiExcept.st: Adjust call to #instantiateNextHandler:.
+	* kernel/ExcHandling.st: Scan for outer exception handlers from the handler's
+	context.
+
 2008-06-01  Paolo Bonzini  <bonzini@gnu.org>
 
 	* tests/Ansi.st: Remove one testcase.
