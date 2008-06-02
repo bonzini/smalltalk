@@ -68,12 +68,6 @@ CObject subclass: Nurbs [
 	
     ]
 
-    gluNurbsCallback: anEvent receiver: anObject selector: aSymbol [
-	<category: 'private - C interface'>
-	<cCall: 'gluNurbsCallback' returning: #void args: #(#selfSmalltalk #int #smalltalk #smalltalk)>
-	
-    ]
-
     gluNurbsCurve: sKnotsCount knots: sKnots stride: stride control: controlPoints order: aSOrder type: aType [
 	<category: 'private - C interface'>
 	<cCall: 'gluNurbsCurve' returning: #void args: #(#self #int #smalltalk #int #smalltalk #int #int)>
@@ -97,5 +91,26 @@ CObject subclass: Nurbs [
 	<cCall: 'gluEndSurface' returning: #void args: #(#self)>
 	
     ]
-]
 
+    connect: aCallback to: aBlock [
+	<category: 'internal - callback definition'>
+	"Associate a callback to a block"
+	callbacks ifNil: [callbacks := Dictionary new].
+	callbacks at: aCallback put: aBlock.
+	self connect: aCallback printNl.
+    ]
+
+    getCallback: aCallback  [
+	<category: 'internal - C Primitive - callback definition'>
+	"Used to retreive the callback block associated"
+	^callbacks at: aCallback
+    ]
+
+    connect: aCallback [
+	<category: 'internal - C Primitive - Callback connect primitive'>
+	<cCall: 'gluNurbsConnectSignal'
+		returning: #void
+		args: #( #selfSmalltalk #int )>
+    ]
+
+]

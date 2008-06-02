@@ -127,22 +127,23 @@ Object subclass: SurfPoints [
 	aNurb gluNurbsProperty: OpenGLInterface gluNurbsMode value: OpenGLInterface gluNurbsTessellator.
 	aNurb gluNurbsProperty: OpenGLInterface gluSamplingTolerance value: 25.0.
 	aNurb gluNurbsProperty: OpenGLInterface gluDisplayMode value: OpenGLInterface gluFill.
+
 	aNurb 
-	    gluNurbsCallback: OpenGLInterface gluNurbsBegin
-	    receiver: self
-	    selector: #beginCallback:.
+	    connect: OpenGLInterface gluNurbsBegin
+	    to: [:n | self beginCallback: n].
 	aNurb 
-	    gluNurbsCallback: OpenGLInterface gluNurbsVertex
-	    receiver: self
-	    selector: #vertexCallback:y:z:.
+	    connect: OpenGLInterface gluNurbsVertex
+	    to: [:x :y :z | self vertexCallback: x y: y z: z].
 	aNurb 
-	    gluNurbsCallback: OpenGLInterface gluNurbsNormal
-	    receiver: self
-	    selector: #normalCallback:y:z:.
+	    connect: OpenGLInterface gluNurbsNormal
+	    to: [:x :y :z | self normalCallback:x y: y z: z].
 	aNurb 
-	    gluNurbsCallback: OpenGLInterface gluNurbsEnd
-	    receiver: self
-	    selector: #endCallback.
+	    connect: OpenGLInterface gluNurbsEnd
+	    to: [self endCallback].
+	"aNurb
+	    callback: OpenGLInterface gluNurbsError
+	    to: [:error | Transcript show: (aWindow gluErrorString: error); nl]."
+
 	aWindow 
 	    addCallback: Glut keyboardFuncEvent
 	    to: self
@@ -155,11 +156,7 @@ Object subclass: SurfPoints [
 	    addCallback: Glut reshapeFuncEvent
 	    to: self
 	    selector: #reshape:height:
-    ]
 
-    nurbsError: errorCode [
-	<category: 'test'>
-	Transcript show: (aWindow gluErrorString: errorCode)
     ]
 
     beginCallback: whichType [
@@ -224,7 +221,7 @@ Object subclass: SurfPoints [
     ]
 
     vertexCallback: x y: y z: z [
-	"Transcript show: 'glVertex3f: ' , x printString , ' ' , y printString , ' ' , z printString ; cr."
+	"Transcript show: 'glVertex glVertex3f: ' , x printString , ' ' , y printString , ' ' , z printString ; cr."
 
 	<category: 'test'>
 	aWindow 
