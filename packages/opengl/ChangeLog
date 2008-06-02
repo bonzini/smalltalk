@@ -11,6 +11,17 @@
 
 2008-06-02  Olivier Blanc  <olivier.blanc@laposte.net>
 
+	* OpenGLU.st: Remove nurbs functions.
+	* OpenGLUNurbs.st: New.
+	* gstopengl.h: Declare newly exported functions.
+	* gstGl.c: Export gst_opengl_glMap_size.
+	* gstGlu.c: Call gst_initModule_gluNurbs.
+	* gstGluNurbs.c: New.
+	* test/surface.st: New.
+	* test/surfpoints.st: New.
+
+2008-06-02  Olivier Blanc  <olivier.blanc@laposte.net>
+
 	* OpenGLUNurbs.st: Change the callback implementation to attach
 	callback functions to nurbs objects.
 	* gstGluNurbs.c: Likewise.
