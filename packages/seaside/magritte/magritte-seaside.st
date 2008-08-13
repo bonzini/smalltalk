@@ -451,59 +451,6 @@ WAComponent subclass: MAComponent [
 
 
 
-MAComponent subclass: MAColorChooser [
-    | color |
-    
-    <comment: 'MAColorComponent use me to display a beautiful palette'>
-    <category: 'Magritte-Seaside-Core'>
-
-    MAColorChooser class >> color: aColor [
-	<category: 'instance creation'>
-	^(self new)
-	    color: aColor;
-	    yourself
-    ]
-
-    MAColorChooser class >> isAbstract [
-	<category: 'testing'>
-	^false
-    ]
-
-    cancel [
-	<category: 'actions'>
-	self answer: nil
-    ]
-
-    color [
-	<category: 'accessing'>
-	^color
-    ]
-
-    color: aColor [
-	<category: 'accessing'>
-	color := aColor
-    ]
-
-    palette [
-	<category: 'accessing-dynamic'>
-	^Color oldColorPaletteForDepth: 16 extent: 200 @ 100
-    ]
-
-    renderContentOn: html [
-	<category: 'rendering'>
-	(html map)
-	    callback: [:point | self answer: (self palette colorAt: point)];
-	    with: [html image form: self palette]
-    ]
-
-    save [
-	<category: 'actions'>
-	self answer: self color
-    ]
-]
-
-
-
 MAComponent subclass: MADescriptionComponent [
     | memento description parent |
     
@@ -875,84 +822,6 @@ MAElementComponent subclass: MACheckboxComponent [
 		html
 		    space;
 		    render: self description checkboxLabel]
-    ]
-]
-
-
-
-MAElementComponent subclass: MAColorComponent [
-    
-    <comment: 'Seaside component of MAColorDescription. I display a little box with the current selected color. If you click on the box, a beautiful palette will be displayed thanks to MAColorChooser.'>
-    <category: 'Magritte-Seaside-Components'>
-
-    MAColorComponent class >> isAbstract [
-	<category: 'testing'>
-	^false
-    ]
-
-    choose [
-	<category: 'actions'>
-	self chooser: (MAColorChooser color: self value)
-    ]
-
-    form [
-	<category: 'accessing'>
-	| form |
-	form := Form extent: self width @ self height depth: 32.
-	(form getCanvas)
-	    drawPolygon: (Array 
-			with: 0 @ self height
-			with: 0 @ 0
-			with: self width @ 0)
-		color: Color white
-		borderWidth: 0
-		borderColor: Color white;
-	    drawPolygon: (Array 
-			with: 0 @ self height
-			with: self width @ self height
-			with: self width @ 0)
-		color: Color black
-		borderWidth: 0
-		borderColor: Color white;
-	    fillRectangle: (0 @ 0 extent: self width @ self height) color: self value.
-	^form
-    ]
-
-    hasLabelId [
-	<category: 'testing'>
-	^true
-    ]
-
-    height [
-	<category: 'accessing'>
-	^15
-    ]
-
-    renderEditorOn: html [
-	<category: 'rendering'>
-	(html imageButton)
-	    id: self labelId;
-	    callback: [self choose];
-	    attributeAt: 'width' put: self width;
-	    attributeAt: 'height' put: self height;
-	    attributeAt: 'src' put: (html context urlForDocument: self form)
-    ]
-
-    renderViewerOn: html [
-	<category: 'rendering'>
-	(html image)
-	    id: self labelId;
-	    form: self form
-    ]
-
-    value [
-	<category: 'accessing'>
-	^super value ifNil: [self description kind transparent]
-    ]
-
-    width [
-	<category: 'accessing'>
-	^30
     ]
 ]
 
@@ -3541,7 +3410,6 @@ MAExampleEditor subclass: MADescriptionEditor [
 	    add: MATimeDescription;
 	    add: MATimeStampDescription;
 	    add: nil;
-	    add: MAColorDescription;
 	    add: MATokenDescription;
 	    add: nil;
 	    add: MAFileDescription;
@@ -3695,17 +3563,6 @@ MAStringDescription class extend [
 
 
 
-MAColorDescription class extend [
-
-    defaultComponentClasses [
-	<category: '*magritte-seaside-defaults'>
-	^Array with: MAColorComponent
-    ]
-
-]
-
-
-
 MAFileModel extend [
 
     renderImageOn: html [
@@ -3793,7 +3650,6 @@ ValueHolder subclass: MADescriptionHolder [
 	    add: MADateDescription;
 	    add: MATimeDescription;
 	    add: MATimeStampDescription;
-	    add: MAColorDescription;
 	    add: MATokenDescription;
 	    add: MAFileDescription;
 	    add: MAClassDescription;
@@ -3857,7 +3713,6 @@ ValueHolder subclass: MADescriptionHolder [
     MADescriptionHolder class >> groupPick [
 	<category: 'groups'>
 	^(Set new)
-	    add: MAColorDescription;
 	    add: MATokenDescription;
 	    yourself
     ]

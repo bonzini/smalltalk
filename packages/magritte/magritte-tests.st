@@ -279,7 +279,7 @@ TestCase subclass: MADynamicObjectTest [
 	self assert: object asString = 'nil'
     ]
 
-    testNilOrNotNil [
+    "testNilOrNotNil [
 	<category: 'testing'>
 	| object |
 	object := MADynamicObject on: [1].
@@ -288,7 +288,7 @@ TestCase subclass: MADynamicObjectTest [
 	object := MADynamicObject on: [nil].
 	self assert: object isNil.
 	self deny: object notNil
-    ]
+    ]"
 ]
 
 
@@ -847,7 +847,7 @@ MAObjectTest subclass: MAAccessorTest [
     testStore [
 	<category: 'testing-identity'>
 	self 
-	    assert: (self actualClass evaluatorClass 
+	    assert: (Behavior
 		    evaluate: self accessor storeString) = self accessor
     ]
 
@@ -1393,7 +1393,7 @@ MASelectorAccessorTest subclass: MAAutoSelectorAccessorTest [
     runCase [
 	<category: 'running'>
 	mock := self mockInstance.
-	SystemChangeNotifier uniqueInstance doSilently: [super runCase]
+	super runCase
     ]
 
     tearDown [
@@ -1401,10 +1401,9 @@ MASelectorAccessorTest subclass: MAAutoSelectorAccessorTest [
 	super tearDown.
 
 	"remove methods and category"
-	(self mock class organization 
-	    listAtCategoryNamed: self accessor categoryName) 
+	(self mock class selectors
+	    select: [ :each | (self mock class >> each) methodCategory = self accessor categoryName ])
 		do: [:each | self mock class removeSelector: each].
-	self mock class organization removeCategory: self accessor categoryName.
 
 	"remove instance variables"
 	self mock class instVarNames 
@@ -2055,7 +2054,7 @@ MADescriptionTest subclass: MAContainerTest [
 
     testSize [
 	<category: 'testing-accessing'>
-	self assert: self description size isZero.
+	self assert: self description size = 0.
 	self description add: self child1.
 	self assert: self description size = 1.
 	self description add: self child2.
@@ -2542,29 +2541,6 @@ MAElementDescriptionTest subclass: MAClassDescriptionTest [
 
 
 
-MAElementDescriptionTest subclass: MAColorDescriptionTest [
-    
-    <comment: nil>
-    <category: 'Magritte-Tests-Description'>
-
-    MAColorDescriptionTest class >> isAbstract [
-	<category: 'testing'>
-	^false
-    ]
-
-    actualClass [
-	<category: 'private'>
-	^MAColorDescription
-    ]
-
-    includedInstance [
-	<category: 'private'>
-	^Color blue
-    ]
-]
-
-
-
 MAElementDescriptionTest subclass: MAFileDescriptionTest [
     
     <comment: nil>
@@ -2963,7 +2939,7 @@ MAMagnitudeDescriptionTest subclass: MATimeStampDescriptionTest [
 
     excludedInstance [
 	<category: 'private'>
-	^TimeStamp 
+	^DateTime 
 	    year: 1980
 	    month: 1
 	    day: 11
@@ -2974,7 +2950,7 @@ MAMagnitudeDescriptionTest subclass: MATimeStampDescriptionTest [
 
     includedInstance [
 	<category: 'private'>
-	^TimeStamp 
+	^DateTime 
 	    year: 1980
 	    month: 6
 	    day: 11
@@ -2985,7 +2961,7 @@ MAMagnitudeDescriptionTest subclass: MATimeStampDescriptionTest [
 
     maxInstance [
 	<category: 'private'>
-	^TimeStamp 
+	^DateTime 
 	    year: 1980
 	    month: 6
 	    day: 12
@@ -2996,7 +2972,7 @@ MAMagnitudeDescriptionTest subclass: MATimeStampDescriptionTest [
 
     minInstance [
 	<category: 'private'>
-	^TimeStamp 
+	^DateTime 
 	    year: 1980
 	    month: 6
 	    day: 10
@@ -3307,11 +3283,6 @@ MAOptionDescriptionTest subclass: MASingleOptionDescriptionTest [
 	self deny: self description isGrouped.
 	self description groupBy: #grouping.
 	self assert: self description isGrouped
-    ]
-
-    testGroupOf [
-	<category: 'testing-properties'>
-	self assert: MADateDescription grouping = 'Magnitude'
     ]
 ]
 

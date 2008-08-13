@@ -1,3 +1,36 @@
+"======================================================================
+|
+|   Magritte compatibility methods for GNU Smalltalk
+|
+|
+ ======================================================================"
+
+"======================================================================
+|
+| Copyright 2008 Free Software Foundation, Inc.
+| Written by Paolo Bonzini.
+|
+| This file is part of the GNU Smalltalk class library.
+|
+| The GNU Smalltalk class library is free software; you can redistribute it
+| and/or modify it under the terms of the GNU Lesser General Public License
+| as published by the Free Software Foundation; either version 2.1, or (at
+| your option) any later version.
+| 
+| The GNU Smalltalk class library is distributed in the hope that it will be
+| useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+| General Public License for more details.
+| 
+| You should have received a copy of the GNU Lesser General Public License
+| along with the GNU Smalltalk class library; see the file COPYING.LIB.
+| If not, write to the Free Software Foundation, 59 Temple Place - Suite
+| 330, Boston, MA 02110-1301, USA.  
+|
+ ======================================================================"
+
+
+
 Object subclass: MACompatibility [
     
     <category: 'Magritte-Model-Core'>
@@ -47,21 +80,11 @@ Object subclass: MACompatibility [
 
 
 
-Symbol extend [
-    isUnary [
-	<category: 'testing'>
-
-	^self numArgs = 0
-    ]
-]
-
-
-
 ByteArray subclass: UUID [
     
     <shape: #byte>
     <category: 'Seaside-Core-Utilities'>
-    <comment: 'I am a session or conticuation key.'>
+    <comment: 'I am a UUID.  Sending #new generates a UUIDv1.'>
 
     Node := nil.
     SequenceValue := nil.
@@ -70,10 +93,14 @@ ByteArray subclass: UUID [
     GeneratorMutex := nil.
 
     UUID class >> timeValue [
-	^Time utcSecondClock * 1000 + Time millisecondClock * 10000
+	"Returns the time value for a UUIDv1, in 100 nanoseconds units
+	 since 1-1-1601."
+	^((Time utcSecondClock + (109572 * 86400)) * 1000
+	    + Time millisecondClock) * 10000
     ]
 
     UUID class >> randomNodeValue [
+	"Return the node value for a UUIDv1."
 	| n |
 	"TODO: use some kind of digest to produce cryptographically strong
 	 random numbers."
@@ -84,6 +111,8 @@ ByteArray subclass: UUID [
     ]
 
     UUID class >> update: aSymbol [
+	"Update the sequence value of a UUIDv1 when an image is restarted."
+
 	aSymbol == #returnFromSnapshot ifTrue: [
 	    "You cannot be sure that the node ID is the same."
 	    GeneratorMutex critical: [
@@ -94,11 +123,15 @@ ByteArray subclass: UUID [
     ]
 
     UUID class >> defaultSize [
+	"Return the size of a UUIDv1."
+
 	<category: 'private'>
 	^16
     ]
 
     UUID class >> initialize [
+	"Initialize the class."
+
 	<category: 'initialization'>
 	ObjectMemory addDependent: self.
 	Generator := Random new.
@@ -109,11 +142,15 @@ ByteArray subclass: UUID [
     ]
 
     UUID class >> new [
+	"Return a new UUIDv1."
+
 	<category: 'instance-creation'>
 	^(self new: self defaultSize) initialize
     ]
 
     initialize [
+	"Fill in the fields of a new UUIDv1."
+
 	<category: 'private'>
 	| t |
 	GeneratorMutex critical: [
@@ -148,6 +185,7 @@ ByteArray subclass: UUID [
     ]
 
     printOn: aStream [
+	"Print the bytes in the receiver in UUID format."
 	<category: 'printing'>
 	self printOn: aStream from: 1 to: 4.
 	aStream nextPut: $-.
@@ -161,25 +199,86 @@ ByteArray subclass: UUID [
     ]
 ]
 
+
+
+Symbol extend [
+    isUnary [
+	"Return true if the symbol represents a Unary selector."
+	<category: 'testing'>
+
+	^self numArgs = 0
+    ]
+]
+
 FileDescriptor extend [
-    binary []
+    binary [
+	"Do nothing, needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
+    ]
 ]
 
 Object extend [
-    asString [ ^self displayString ]
-    isCollection [ ^false ]
-    isEmptyOrNil [ ^false ]
+    asString [
+	"Return the #displayString, needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
+        ^self displayString
+    ]
+
+    isCollection [
+	"Return false, needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
+        ^false
+    ]
+
+    isEmptyOrNil [ 
+	"Return false, needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
+        ^false
+    ]
 ]
 
 Collection extend [
-    intersection: b [ ^self asSet & b ]
-    hasEqualElements: b [ ^self asArray = b asArray ]
-    isCollection [ ^true ]
-    isEmptyOrNil [ ^self isEmpty ]
+    intersection: b [
+	"Return the set of elements common to the receiver and B."
+
+	<category: 'squeak compatibility'>
+        ^self asSet & b
+    ]
+
+    hasEqualElements: b [
+	"Compare the elements in the receiver and B.  Can be improved,
+	 looking at Squeak's implementation."
+
+	<category: 'squeak compatibility'>
+        ^self asArray = b asArray
+    ]
+
+    isCollection [
+	"Return true, needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
+        ^true
+    ]
+
+    isEmptyOrNil [
+	"Return true if the collection is empty, needed for Squeak
+	 compatibility."
+
+	<category: 'squeak compatibility'>
+        ^self isEmpty
+    ]
 ]
 
 SequenceableCollection extend [
     sort: aBlock [
+	"Sort the items of the receiver according to the sort block,
+	 aBlock."
+
+	<category: 'squeak compatibility'>
 	self
 	    replaceFrom: 1
 	    to: self size
@@ -188,25 +287,53 @@ SequenceableCollection extend [
     ]
 ]
 
+SortedCollection extend [
+    sort: aBlock [
+	"Sort the items of the receiver according to the sort block,
+	 aBlock, and change the sort block to aBlock."
+
+	<category: 'squeak compatibility'>
+	sortBlock := aBlock.
+	self sortFrom: firstIndex to: lastIndex.
+        sorted := true.
+        lastOrdered := lastIndex
+    ]
+]
+
 UndefinedObject extend [
-    isEmptyOrNil [ ^true ]
+    isEmptyOrNil [
+	"Return true, needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
+	^true
+    ]
 ]
 
 String extend [
     includesSubstring: aString caseSensitive: aBoolean [
+	"Needed for Squeak compatibility."
+
+	<category: 'squeak compatibility'>
 	aBoolean ifTrue: [ ^(self indexOfSubCollection: aString) > 0 ].
 	^(self asLowercase indexOfSubCollection: aString asLowercase) > 0
     ]
 ]
 
 ValueHolder extend [
-    contents [ ^self value ]
-    contents: anObject [ self value: anObject ]
+    contents [
+	"Needed for Squeak compatibility."
+	^self value
+    ]
+    contents: anObject [
+	"Needed for Squeak compatibility."
+	self value: anObject
+    ]
 ]
 
 Time extend [
     print24: boolean24 showSeconds: booleanSec on: aStream [
-        "Print a representation of the receiver on aStream"
+        "Print a representation of the receiver on aStream according
+	 to the given flags.  Needed for Squeak compatibility."
 
         <category: 'arithmetic'>
 	| h |
@@ -223,8 +350,13 @@ Time extend [
 ]
 
 Object subclass: MAVisitor [
-    MAVisitor class >> new [ ^super new initialize ]
-    initialize []
+    MAVisitor class >> new [
+	<category: 'instance creation'>
+	^super new initialize
+    ]
+    initialize [
+	<category: 'initialization'>
+    ]
 ]
 
 Eval [

@@ -255,7 +255,7 @@ MAProxyObject subclass: MADynamicObject [
 
     realSubject [
 	<category: 'accessing'>
-	^super realSubject on: UnhandledError do: [:err | nil]
+	^super realSubject on: SystemExceptions.UnhandledException do: [:err | nil]
     ]
 ]
 
@@ -281,26 +281,13 @@ ArrayedCollection extend [
 
 
 
-BlockContext extend [
-
-    asDynamicObject [
-	"Answer an object that will automatically evaluate the receiver when it receives a message. It will eventually pass the message to the resulting object. Use with caution, for details see *MADynamicObject*."
-
-	<category: '*magritte-model-converting'>
-	^MADynamicObject on: self
-    ]
-
-]
-
-
-
 Class extend [
 
     descriptionContainer [
 	"Return the default description container."
 
 	<category: '*magritte-model-configuration'>
-	^(MAPriorityContainer new)
+	^(Magritte.MAPriorityContainer new)
 	    label: self label;
 	    yourself
     ]
@@ -347,7 +334,7 @@ Collection extend [
 	| done |
 	done := false.
 	^self 
-	    reject: [:each | each = anObject and: [done not] and: [done := true]]
+	    reject: [:each | (each = anObject and: [done not]) and: [done := true]]
     ]
 
 ]
@@ -360,7 +347,7 @@ BlockClosure extend [
 	"Answer an object that will automatically evaluate the receiver when it receives a message. It will eventually pass the message to the resulting object. Use with caution, for details see *MADynamicObject*."
 
 	<category: '*magritte-model'>
-	^MADynamicObject on: self
+	^Magritte.MADynamicObject on: self
     ]
 
 ]
@@ -371,7 +358,7 @@ SequenceableCollection extend [
 
     asAccessor [
 	<category: '*magritte-model'>
-	^MAChainAccessor accessors: self
+	^Magritte.MAChainAccessor accessors: self
     ]
 
     moveDown: anObject [
@@ -393,13 +380,13 @@ SequenceableCollection extend [
     ]
 
     reduce: aBlock [
-	<category: '*magritte-model'>
-	| result |
-	self isEmpty ifTrue: [^nil].
-	result := self first.
-	2 to: self size
-	    do: [:index | result := aBlock value: result value: (self at: index)].
-	^result
+       <category: '*magritte-model'>
+       | result |
+       self isEmpty ifTrue: [^nil].
+       result := self first.
+       2 to: self size
+           do: [:index | result := aBlock value: result value: (self at: index)].
+       ^result
     ]
 
 ]
@@ -410,7 +397,7 @@ Symbol extend [
 
     asAccessor [
 	<category: '*magritte-model-converting'>
-	^MASelectorAccessor selector: self
+	^Magritte.MASelectorAccessor selector: self
     ]
 
     isDescriptionDefinition [
@@ -425,14 +412,14 @@ Symbol extend [
 
 	<category: '*magritte-model-testing'>
 	^self isDescriptionSelector 
-	    and: [self numArgs = 1 and: [self beginsWith: aSelector]]
+	    and: [self numArgs = 1 and: [self startsWith: aSelector]]
     ]
 
     isDescriptionSelector [
 	"Answer wheter the receiver is a method selector following the naming conventions of a  description selector."
 
 	<category: '*magritte-model-testing'>
-	^self ~= #description and: [self beginsWith: #description]
+	^self ~= #description and: [self startsWith: #description]
     ]
 
 ]
@@ -514,99 +501,6 @@ Object subclass: MAAdaptiveModel [
 
 
 
-Object subclass: MACompatibility [
-    
-    <category: 'Magritte-Model-Core'>
-    <comment: 'I am providing all the platform compatibility code on my class side, so that porting to different Smalltalk dialects can concentrate in a single place.'>
-
-    MACompatibility class >> allSubInstancesOf: aClass do: aBlock [
-	"Evaluate the aBlock for all instances of aClass and all its subclasses."
-
-	<category: 'environment'>
-	aClass allSubInstancesDo: aBlock
-    ]
-
-    MACompatibility class >> choose: aString from: aCollection [
-	"Display aString to the user and let him choose any of the items in aCollection."
-
-	<category: 'user-interface'>
-	| index strings list |
-	list := aCollection asOrderedCollection.
-	strings := list collect: [:each | each asString].
-	index := self toolbuilder: [:tb | tb chooseFrom: strings title: aString]
-		    else: [PopUpMenu withCaption: aString chooseFrom: strings].
-	^index isZero ifFalse: [list at: index]
-    ]
-
-    MACompatibility class >> classNamed: aString [
-	"Return the class named aString, nil if the class can't be found."
-
-	<category: 'environment'>
-	^Smalltalk classNamed: aString
-    ]
-
-    MACompatibility class >> confirm: aString [
-	"Display aString to the user and let him confirm."
-
-	<category: 'user-interface'>
-	^self toolbuilder: [:tb | tb confirm: aString]
-	    else: [PopUpMenu confirm: aString]
-    ]
-
-    MACompatibility class >> inform: aString [
-	"Display aString to the user."
-
-	<category: 'user-interface'>
-	self toolbuilder: [:tb | tb inform: aString]
-	    else: [PopUpMenu inform: aString]
-    ]
-
-    MACompatibility class >> openWorkspace: aContentsString titled: aTitleString [
-	"Open a new wokspace with the contents aContentsString and the title aTitleString."
-
-	<category: 'user-interface'>
-	(Workspace new)
-	    contents: aContentsString;
-	    openLabel: aTitleString
-    ]
-
-    MACompatibility class >> referenceStream: aReadWriteStream [
-	"Return a stream instance to operate on aReadWriteStream being able to serialize and deserialize objects by sending #nextPut: and #next. Squeak: The implementation of ReferenceStream doesn't work well together with the default WriteStream implementaiton, therefor we have to change it on the fly."
-
-	<category: 'environment'>
-	^ReferenceStream on: (aReadWriteStream class = WriteStream 
-		    ifTrue: [RWBinaryOrTextStream on: aReadWriteStream contents]
-		    ifFalse: [aReadWriteStream])
-    ]
-
-    MACompatibility class >> request: aString default: anObject [
-	"Display aString and requests an input from the user, whereas anObject is the default value."
-
-	<category: 'user-interface'>
-	| result |
-	result := self 
-		    toolbuilder: [:tb | tb request: aString initialAnswer: anObject]
-		    else: [FillInTheBlankMorph request: aString initialAnswer: anObject].
-	^result isEmpty ifTrue: [nil] ifFalse: [result]
-    ]
-
-    MACompatibility class >> toolbuilder: aBlock else: anotherBlock [
-	<category: 'user-interface'>
-	^(Smalltalk hasClassNamed: #UIManager) 
-	    ifTrue: [aBlock value: (Smalltalk classNamed: #UIManager) default]
-	    ifFalse: [anotherBlock value]
-    ]
-
-    MACompatibility class >> uuid [
-	"Answer a random object that is extremly likely to be unique over space and time."
-
-	<category: 'environment'>
-	^UUID new
-    ]
-]
-
-
-
 Object subclass: MADescriptionBuilder [
     | cache |
     
@@ -648,9 +542,7 @@ Object subclass: MADescriptionBuilder [
     finalize [
 	<category: 'initialization'>
 	super finalize.
-	self
-	    flush;
-	    unregister
+	self flush
     ]
 
     flush [
@@ -665,36 +557,7 @@ Object subclass: MADescriptionBuilder [
 
     initialize [
 	<category: 'initialization'>
-	self
-	    flush;
-	    register
-    ]
-
-    modified: anEvent [
-	<category: 'events'>
 	self flush
-    ]
-
-    register [
-	<category: 'actions'>
-	(SystemChangeNotifier uniqueInstance)
-	    notify: self
-		ofSystemChangesOfItem: #method
-		change: #Added
-		using: #modified:;
-	    notify: self
-		ofSystemChangesOfItem: #method
-		change: #Modified
-		using: #modified:;
-	    notify: self
-		ofSystemChangesOfItem: #method
-		change: #Removed
-		using: #modified:
-    ]
-
-    unregister [
-	<category: 'actions'>
-	SystemChangeNotifier uniqueInstance noMoreNotificationsFor: self
     ]
 ]
 
@@ -874,7 +737,7 @@ There are different file-models that you can use with Magritte. The idea is that
 
     isEmpty [
 	<category: 'testing'>
-	^self filesize isZero
+	^self filesize = 0
     ]
 
     isImage [
@@ -953,7 +816,7 @@ The files are currently stored using the following scheme:
 
     MAExternalFileModel class >> baseDirectory [
 	<category: 'accessing'>
-	^baseDirectory ifNil: [FileDirectory default directoryNamed: 'files']
+	^baseDirectory ifNil: [Directory working / 'files']
     ]
 
     MAExternalFileModel class >> baseDirectory: aStringOrDirectory [
@@ -961,7 +824,7 @@ The files are currently stored using the following scheme:
 
 	<category: 'accessing'>
 	baseDirectory := aStringOrDirectory isString 
-		    ifTrue: [FileDirectory on: aStringOrDirectory]
+		    ifTrue: [aStringOrDirectory asFile]
 		    ifFalse: [aStringOrDirectory]
     ]
 
@@ -997,11 +860,11 @@ The files are currently stored using the following scheme:
     contents [
 	<category: 'accessing'>
 	| stream |
-	^(self directory exists and: [self directory fileExists: self filename]) 
+	^(self directory exists and: [self directory includes: self filename]) 
 	    ifFalse: [ByteArray new]
 	    ifTrue: 
 		[stream := self readStream.
-		[stream contents] ensure: [stream close]]
+		[stream contents asByteArray] ensure: [stream close]]
     ]
 
     contents: aByteArray [
@@ -1015,16 +878,16 @@ The files are currently stored using the following scheme:
     directory [
 	<category: 'accessing-dynamic'>
 	^self location inject: self baseDirectory
-	    into: [:result :each | result directoryNamed: each]
+	    into: [:result :each | result / each]
     ]
 
     finalize [
 	<category: 'initialization'>
 	| directory |
 	directory := self directory.
-	directory exists ifTrue: [directory recursiveDelete].
-	[(directory := directory containingDirectory) entries isEmpty] 
-	    whileTrue: [directory recursiveDelete].
+	directory exists ifTrue: [directory all remove].
+	"[(directory := directory parent) entries isEmpty] 
+	    whileTrue: [directory all remove]."
 	super finalize.
 	location := nil
     ]
@@ -1051,7 +914,7 @@ The files are currently stored using the following scheme:
 
     readStream [
 	<category: 'accessing-dynamic'>
-	^(self directory readOnlyFileNamed: self filename) binary
+	^(self directory / self filename) readStream
     ]
 
     uniqueLocation: aLocationDefinition [
@@ -1062,24 +925,24 @@ The files are currently stored using the following scheme:
 	valid := false.
 	result := Array new: aLocationDefinition size.
 	[valid] whileFalse: 
-		[directory := self baseDirectory assureExistence.
+		[directory := self baseDirectory createDirectories.
 		result keysAndValuesDo: 
 			[:index :value | 
 			definition := aLocationDefinition at: index.
 			result at: index
 			    put: ((String new: definition first) 
 				    collect: [:each | definition second atRandom]).
-			directory := directory directoryNamed: (result at: index).
+			directory := directory / (result at: index).
 			directory exists 
 			    ifFalse: 
-				[directory assureExistence.
+				[directory createDirectories.
 				valid := true]]].
 	^result
     ]
 
     writeStream [
 	<category: 'accessing-dynamic'>
-	^(self directory forceNewFileNamed: self filename) binary
+	^(self directory / self filename) writeStream
     ]
 ]
 
@@ -1133,11 +996,11 @@ Object subclass: MAObject [
 	<category: 'accessing'>
 	^'The MIT License
 
-Copyright (c) 2003-' , Date current year asString 
+Copyright (c) 2003-' , Date today year asString 
 	    , ' Lukas Renggli, renggli at gmail.com
 
 Copyright (c) 2003-' 
-		, Date current year asString 
+		, Date today year asString 
 		, ' Software Composition Group, University of Bern, Switzerland
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -1296,7 +1159,7 @@ MAObject subclass: MAAccessor [
     storeOn: aStream [
 	<category: 'printing'>
 	aStream
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' new'
     ]
 
@@ -1371,7 +1234,7 @@ MAAccessor subclass: MADelegatorAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' on: ';
 	    store: self next;
 	    nextPut: $)
@@ -1466,7 +1329,7 @@ MADelegatorAccessor subclass: MAChainAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' on: ';
 	    store: self next;
 	    nextPutAll: ' accessor: ';
@@ -1539,7 +1402,7 @@ MAAccessor subclass: MADictionaryAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' key: ';
 	    store: self key;
 	    nextPut: $)
@@ -1623,7 +1486,7 @@ MAAccessor subclass: MANullAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' uuid: ';
 	    store: self uuid;
 	    nextPut: $)
@@ -1712,7 +1575,7 @@ MAAccessor subclass: MAPluggableAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' read: '.
 	self storeBlock: self readBlock on: aStream.
 	aStream nextPutAll: ' write: '.
@@ -1827,7 +1690,7 @@ MAAccessor subclass: MASelectorAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' read: ';
 	    store: self readSelector;
 	    nextPutAll: ' write: ';
@@ -1870,12 +1733,12 @@ MASelectorAccessor subclass: MAAutoSelectorAccessor [
 	    compile: (String streamContents: 
 			[:stream | 
 			stream
-			    nextPutAll: self readSelector;
+			    nextPutAll: self readSelector, ' [';
 			    cr.
 			stream
 			    tab;
 			    nextPutAll: '^ ';
-			    nextPutAll: self readSelector])
+			    nextPutAll: self readSelector, ' ]'])
 	    classified: self categoryName
     ]
 
@@ -1894,12 +1757,12 @@ MASelectorAccessor subclass: MAAutoSelectorAccessor [
 			stream
 			    nextPutAll: self writeSelector;
 			    space;
-			    nextPutAll: 'anObject';
+			    nextPutAll: 'anObject [';
 			    cr.
 			stream
 			    tab;
 			    nextPutAll: self readSelector;
-			    nextPutAll: ' := anObject'])
+			    nextPutAll: ' := anObject ]'])
 	    classified: self categoryName
     ]
 
@@ -1938,7 +1801,7 @@ MAAccessor subclass: MAVariableAccessor [
     MAVariableAccessor class >> name: aString [
 	<category: 'instance creation'>
 	^(self new)
-	    name: aString;
+	    name: aString asSymbol;
 	    yourself
     ]
 
@@ -1981,7 +1844,7 @@ MAAccessor subclass: MAVariableAccessor [
 	<category: 'printing'>
 	aStream
 	    nextPut: $(;
-	    nextPutAll: self class name;
+	    store: self class;
 	    nextPutAll: ' name: ';
 	    store: self name;
 	    nextPut: $)
@@ -3462,34 +3325,6 @@ MAElementDescription subclass: MAClassDescription [
 
 
 
-MAElementDescription subclass: MAColorDescription [
-    
-    <category: 'Magritte-Model-Description'>
-    <comment: 'I am a description of colors, possible values are instances of ==Color==. My visual representation could be a color-chooser.'>
-
-    MAColorDescription class >> isAbstract [
-	<category: 'testing'>
-	^false
-    ]
-
-    MAColorDescription class >> label [
-	<category: 'accessing'>
-	^'Color'
-    ]
-
-    acceptMagritte: aVisitor [
-	<category: 'visiting'>
-	aVisitor visitColorDescription: self
-    ]
-
-    kind [
-	<category: 'accessing'>
-	^Color
-    ]
-]
-
-
-
 MAElementDescription subclass: MAFileDescription [
     
     <category: 'Magritte-Model-Description'>
@@ -3758,7 +3593,7 @@ MAMagnitudeDescription subclass: MATimeDescription [
 MAMagnitudeDescription subclass: MATimeStampDescription [
     
     <category: 'Magritte-Model-Description'>
-    <comment: 'I am a description of timestamps, possible values are instances of ==TimeStamp==. My visual representation could be a date- and time-picker.'>
+    <comment: 'I am a description of timestamps, possible values are instances of ==DateTime==. My visual representation could be a date- and time-picker.'>
 
     MATimeStampDescription class >> isAbstract [
 	<category: 'testing'>
@@ -3777,7 +3612,7 @@ MAMagnitudeDescription subclass: MATimeStampDescription [
 
     kind [
 	<category: 'accessing'>
-	^TimeStamp
+	^DateTime
     ]
 ]
 
@@ -3972,7 +3807,7 @@ MAReferenceDescription subclass: MAOptionDescription [
 	^
 	[:a :b | 
 	(self reference toString: a) 
-	    caseInsensitiveLessOrEqual: (self reference toString: b)]
+	    <= (self reference toString: b)]
     ]
 
     sorted [
@@ -4270,7 +4105,7 @@ MAReferenceDescription subclass: MARelationDescription [
     allClasses [
 	<category: 'accessing-dynamic'>
 	^(Array withAll: self classes)
-	    sort: [:a :b | a label caseInsensitiveLessOrEqual: b label];
+	    sort: [:a :b | a label <= b label];
 	    yourself
     ]
 
@@ -5306,7 +5141,7 @@ Object subclass: MAVisitor [
 	<category: 'private'>
 	aClass withAllSubclassesDo: 
 		[:class | 
-		(class category beginsWith: 'Magritte') 
+		(class category startsWith: 'Magritte') 
 		    ifTrue: 
 			[self 
 			    compile: (String streamContents: 
@@ -5357,11 +5192,6 @@ Object subclass: MAVisitor [
     ]
 
     visitClassDescription: anObject [
-	<category: 'visiting-description'>
-	self visitElementDescription: anObject
-    ]
-
-    visitColorDescription: anObject [
 	<category: 'visiting-description'>
 	self visitElementDescription: anObject
     ]
@@ -5693,15 +5523,6 @@ MAReader subclass: MAStringReader [
 	self shouldNotImplement
     ]
 
-    visitColorDescription: aDescription [
-	<category: 'visiting-description'>
-	(self contents notEmpty and: 
-		[self contents 
-		    allSatisfy: [:each | '#0123456789ABCDEFabcdef.' includes: each]]) 
-	    ifFalse: [MAReadError signal].
-	self object: (aDescription kind fromString: self contents)
-    ]
-
     visitContainer: anObject [
 	<category: 'visiting-description'>
 	self shouldNotImplement
@@ -5885,23 +5706,6 @@ MAWriter subclass: MAStringWriter [
 	self stream nextPutAll: self object label
     ]
 
-    visitColorDescription: aDescription [
-	<category: 'visiting-description'>
-	stream nextPut: $#.
-	stream nextPutAll: ((255 * self object red) asInteger 
-		    printPaddedWith: $0
-		    to: 2
-		    base: 16).
-	stream nextPutAll: ((255 * self object green) asInteger 
-		    printPaddedWith: $0
-		    to: 2
-		    base: 16).
-	stream nextPutAll: ((255 * self object blue) asInteger 
-		    printPaddedWith: $0
-		    to: 2
-		    base: 16)
-    ]
-
     visitContainer: aDescription [
 	<category: 'visiting-description'>
 	aDescription do: 
@@ -5988,7 +5792,7 @@ Object class extend [
 
     description [
 	<category: '*magritte-model-accessing'>
-	^MADescriptionBuilder for: self
+	^Magritte.MADescriptionBuilder for: self
     ]
 
 ]
@@ -6013,7 +5817,7 @@ Object extend [
 	"Return a class to be used to remember or cache the receiver, namely a memento object."
 
 	<category: '*magritte-model-accessing'>
-	^MACheckedMemento
+	^Magritte.MACheckedMemento
     ]
 
     readUsing: aDescription [
@@ -6038,7 +5842,7 @@ UndefinedObject extend [
 
     asAccessor [
 	<category: '*magritte-model-converting'>
-	^MANullAccessor new
+	^Magritte.MANullAccessor new
     ]
 
     label [
