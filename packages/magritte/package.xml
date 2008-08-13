@@ -1,0 +1,12 @@
+<package>
+  <name>Magritte</name>
+  <namespace>Magritte</namespace>
+
+  <test>
+    <filein>magritte-tests.st</filein>
+    <file>magritte-tests.st</file>
+  </test>
+
+  <filein>magritte-model.st</filein>
+  <file>magritte-model.st</file>
+</package>
