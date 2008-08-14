@@ -1,6 +1,10 @@
 <package>
   <name>Magritte-Seaside</name>
   <namespace>Magritte</namespace>
+
+  <start>Magritte.MADescriptionEditor registerAsApplication: (
+    %1 ifNil: ['editor'])</start>
+
   <prereq>Seaside-Core</prereq>
   <prereq>Magritte</prereq>
 

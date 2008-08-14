@@ -1,3 +1,5 @@
+Magritte import: Seaside.
+
 MAVisitor subclass: MAComponentRenderer [
     | component html errors group |
     
@@ -203,7 +205,7 @@ MAFileDescription class extend [
 
 
 
-WADecoration subclass: MAComponentDecoration [
+Seaside.WADecoration subclass: MAComponentDecoration [
     
     <comment: nil>
     <category: 'Magritte-Seaside-Decorations'>
@@ -391,7 +393,7 @@ Symbol extend [
 
 
 
-WAComponent subclass: MAComponent [
+Seaside.WAComponent subclass: MAComponent [
     
     <comment: nil>
     <category: 'Magritte-Seaside-Core'>
@@ -2112,7 +2114,7 @@ MATextInputComponent subclass: MATimeStampInputComponent [
 
     current [
 	<category: 'actions'>
-	self value: TimeStamp current
+	self value: DateTime now
     ]
 
     renderEditorOn: html [
@@ -3225,7 +3227,7 @@ MAComponent subclass: MAReport [
 
 
 
-WAComponent subclass: MAExampleEditor [
+Seaside.WAComponent subclass: MAExampleEditor [
     | description report |
     
     <comment: nil>
@@ -3300,7 +3302,7 @@ WAComponent subclass: MAExampleEditor [
 
     refresh [
 	<category: 'actions'>
-	self report rows: self description children
+	self report rows: self description children; refresh
     ]
 
     renderButtonsOn: html [
@@ -4076,7 +4078,7 @@ MACommandColumn subclass: MAIndexedCommandColumn [
 		[:each | 
 		(html anchor)
 		    callback: 
-			    [each key evaluateWithArguments: (Array with: anObject with: anInteger)];
+			    [each key valueWithArguments: (Array with: anObject with: anInteger)];
 		    with: each value]
 	    separatedBy: [html space]
     ]

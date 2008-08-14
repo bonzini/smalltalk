@@ -1,18 +1,5 @@
 String extend [
 
-    lines [
-	"Retrun a collection with the string-lines of the receiver."
-
-	<category: '*magritte-model-accessing'>
-	| input |
-	input := self readStream.
-	^Array streamContents: 
-		[:output | 
-		[input atEnd] whileFalse: 
-			[output nextPut: (input upTo: Character cr).
-			input peek = Character lf ifTrue: [input next]]]
-    ]
-
     matches: aString [
 	<category: '*magritte-model-testing'>
 	aString isEmpty ifTrue: [^true].
@@ -144,7 +131,7 @@ MAValidationError subclass: MAMultipleErrors [
     printOn: aStream [
 	<category: 'printing'>
 	self collection do: [:each | aStream print: each]
-	    separatedBy: [aStream nextPut: Character cr]
+	    separatedBy: [aStream nextPut: Character nl]
     ]
 
     setCollection: aCollection [
@@ -319,7 +306,7 @@ Collection extend [
 	^String streamContents: 
 		[:stream | 
 		self do: [:each | stream nextPutAll: each]
-		    separatedBy: [stream nextPut: Character cr]]
+		    separatedBy: [stream nextPut: Character nl]]
     ]
 
     copyWithAll: aCollection [

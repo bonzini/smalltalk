@@ -8,6 +8,8 @@ Changes to be made upon porting:
   to all references to Magritte classes.
 - other rules needed:
 
+  Character cr->Character nl
+
   (``@object nextPutAll: self class name) -> (``@object store: self class)
 
   ``@object evaluatorClass) -> Behavior
@@ -25,6 +27,7 @@ Changes to be made upon porting:
    MAColorComponent
    MAColorDescription (and places where it is "added", in Magritte-Seaside)
 
+- remove String>>#lines.
 - in MAAutoSelectorAccessor add brackets to methods created by
   #createReadAccessor: and #createWriteAccessor:
 - in MAAutoSelectorAccessorTest>>#tearDown eliminate the call to
@@ -36,3 +39,8 @@ Changes to be made upon porting:
 - there is some problem with exceptions that screws up SUnit :-) if a test
   fails with an error.  to work around it, disable
   MADynamicObjectTest>>#testException until you fix all testsuite errors.
+
+- in Magritte-Seaside, add "Magritte import: Seaside" at the top, and add
+  "Seaside." before class definitions that subclass from seaside (grep
+  for /^WA/).
+

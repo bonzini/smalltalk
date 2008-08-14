@@ -239,6 +239,23 @@ Object extend [
 	<category: 'squeak compatibility'>
         ^false
     ]
+
+    isVariableBinding [
+	"Return false, needed by Magritte-Seaside."
+
+	<category: 'squeak compatibility'>
+        ^false
+    ]
+
+]
+
+Association extend [
+    isVariableBinding [
+	"Return false, needed by Magritte-Seaside."
+
+	<category: 'squeak compatibility'>
+        ^true
+    ]
 ]
 
 Collection extend [
@@ -359,6 +376,8 @@ Object subclass: MAVisitor [
     ]
 ]
 
+
+
 Eval [
     UUID initialize.
 ]
