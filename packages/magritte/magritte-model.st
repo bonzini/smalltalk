@@ -1858,6 +1858,112 @@ MAAccessor subclass: MAVariableAccessor [
 
 
 
+ValueHolder subclass: MADescriptionHolder [
+    
+    <category: 'Magritte-Examples'>
+    <comment: nil>
+
+    MADescriptionHolder class >> descriptionClasses [
+	<category: 'accessing'>
+	^(OrderedCollection new)
+	    add: MAStringDescription;
+	    add: MAMemoDescription;
+	    add: MASymbolDescription;
+	    add: MAPasswordDescription;
+	    add: MABooleanDescription;
+	    add: MASingleOptionDescription;
+	    add: MAMultipleOptionDescription;
+	    add: MAToOneRelationDescription;
+	    add: MAToManyRelationDescription;
+	    add: MANumberDescription;
+	    add: MADurationDescription;
+	    add: MADateDescription;
+	    add: MATimeDescription;
+	    add: MATimeStampDescription;
+	    add: MATokenDescription;
+	    add: MAFileDescription;
+	    add: MAClassDescription;
+	    add: MATableDescription;
+	    yourself
+    ]
+
+    MADescriptionHolder class >> descriptionValue [
+	<category: 'meta'>
+	^(MASingleOptionDescription new)
+	    options: self descriptionClasses;
+	    reference: MAClassDescription new;
+	    groupBy: #grouping;
+	    selectorAccessor: 'contents';
+	    label: 'Type';
+	    priority: 20;
+	    yourself
+    ]
+
+    MADescriptionHolder class >> groupChoice [
+	<category: 'groups'>
+	^(Set new)
+	    add: MABooleanDescription;
+	    add: MASingleOptionDescription;
+	    add: MAMultipleOptionDescription;
+	    add: MAToOneRelationDescription;
+	    add: MAToManyRelationDescription;
+	    yourself
+    ]
+
+    MADescriptionHolder class >> groupMagnitude [
+	<category: 'groups'>
+	^(Set new)
+	    add: MANumberDescription;
+	    add: MADurationDescription;
+	    add: MADateDescription;
+	    add: MATimeDescription;
+	    add: MATimeStampDescription;
+	    yourself
+    ]
+
+    MADescriptionHolder class >> groupMisc [
+	<category: 'groups'>
+	^(Set new)
+	    add: MAFileDescription;
+	    add: MAClassDescription;
+	    add: MATableDescription;
+	    yourself
+    ]
+
+    MADescriptionHolder class >> groupOf: aClass [
+	<category: 'api'>
+	(self groupText includes: aClass) ifTrue: [^'Text'].
+	(self groupChoice includes: aClass) ifTrue: [^'Choice'].
+	(self groupMagnitude includes: aClass) ifTrue: [^'Magnitude'].
+	(self groupPick includes: aClass) ifTrue: [^'Pick'].
+	(self groupMisc includes: aClass) ifTrue: [^'Miscellaneous'].
+	^'Other'
+    ]
+
+    MADescriptionHolder class >> groupPick [
+	<category: 'groups'>
+	^(Set new)
+	    add: MATokenDescription;
+	    yourself
+    ]
+
+    MADescriptionHolder class >> groupText [
+	<category: 'groups'>
+	^(Set new)
+	    add: MAStringDescription;
+	    add: MAMemoDescription;
+	    add: MASymbolDescription;
+	    add: MAPasswordDescription;
+	    yourself
+    ]
+
+    initialize [
+	<category: 'initialize-release'>
+	self contents: self class descriptionClasses first
+    ]
+]
+
+
 MAObject subclass: MADescription [
     | accessor |
     
@@ -1944,6 +2050,11 @@ The write-accessor is automatically deduced by adding a colon to the read-select
 	    label: aString
 	    priority: aNumber
 	    default: anObject
+    ]
+
+    MADescription class >> grouping [
+	<category: '*magritte-seaside-examples'>
+	^MADescriptionHolder groupOf: self
     ]
 
     MADescription class >> defaultAccessor [

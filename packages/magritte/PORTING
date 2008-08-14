@@ -31,7 +31,6 @@ Changes to be made upon porting:
   #removeCategory:.
 - in MAVariableAccessor class>>#name:, add #asSymbol
 - in MAExternalFileModel>>#contents, change "stream contents" to "stream contents asByteArray"
-- remove MASingleOptionDescriptionTest>>#testGroupOf (buggy?)
 - remove MADynamicObjectTest>>#testNilOrNotNil (cannot pass on GNU Smalltalk right now)
 
 - there is some problem with exceptions that screws up SUnit :-) if a test

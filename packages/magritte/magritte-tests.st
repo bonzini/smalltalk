@@ -3284,6 +3284,11 @@ MAOptionDescriptionTest subclass: MASingleOptionDescriptionTest [
 	self description groupBy: #grouping.
 	self assert: self description isGrouped
     ]
+
+    testGroupOf [
+	<category: 'testing-properties'>
+	self assert: MADateDescription grouping = 'Magnitude'
+    ]
 ]
 
 
