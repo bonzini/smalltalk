@@ -93,15 +93,6 @@ win_fd_isset (int fd, fd_set * set)
   return 0;
 }
 
-int win_select(int n, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *ptv);
-int win_recv(int fd, void* buffer, int n, int flags);
-
-#undef select
-#define select win_select
-
-#undef recv
-#define recv win_recv
-
 #define FD_TO_SOCKET(fd)   ((SOCKET) _get_osfhandle ((fd)))
 #define SOCKET_TO_FD(fh)   (_open_osfhandle ((HANDLE) (fh), O_RDWR | O_BINARY))
 
