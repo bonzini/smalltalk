@@ -60,36 +60,110 @@
 #endif
 
 #ifdef __MSVCRT__
+
+/* Declare data structures for ntdll functions.  */
+typedef struct _FILE_PIPE_LOCAL_INFORMATION {
+  ULONG NamedPipeType;
+  ULONG NamedPipeConfiguration;
+  ULONG MaximumInstances;
+  ULONG CurrentInstances;
+  ULONG InboundQuota;
+  ULONG ReadDataAvailable;
+  ULONG OutboundQuota;
+  ULONG WriteQuotaAvailable;
+  ULONG NamedPipeState;
+  ULONG NamedPipeEnd;
+} FILE_PIPE_LOCAL_INFORMATION, *PFILE_PIPE_LOCAL_INFORMATION;
+
+typedef struct _IO_STATUS_BLOCK
+{
+  union u {
+    NTSTATUS Status;
+    PVOID Pointer;
+  };
+  ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+#define FilePipeLocalInformation 24
+
+typedef NTSTATUS (NTAPI *PNtQueryInformationFile)
+         (HANDLE, IO_STATUS_BLOCK *, VOID *, ULONG, FILE_INFORMATION_CLASS);
+
+#ifndef PIPE_BUF
+#define PIPE_BUF       512
+#endif
+
+/* Compute revents values for file handle H.  */
+
 static int
 win32_compute_revents (HANDLE h, int sought)
 {
-  int i, ret;
+  int i, ret, happened;
   INPUT_RECORD *irbuffer;
-  DWORD nevents, nbuffer;
+  DWORD avail, nbuffer;
+  IO_STATUS_BLOCK iosb;
+  FILE_PIPE_LOCAL_INFORMATION fpli;
+  static PNtQueryInformationFile NtQueryInformationFile;
 
   ret = WaitForSingleObject (h, 0);
   if (ret != WAIT_OBJECT_0)
     return sought & (POLLOUT | POLLWRNORM | POLLWRBAND);
 
-  if (GetFileType (h) != FILE_TYPE_CHAR)
-    return sought & ~(POLLPRI | POLLRDBAND);
+  switch (GetFileType (h))
+    {
+    case FILE_TYPE_PIPE:
+      if (!NtQueryInformationFile)
+        NtQueryInformationFile = (PNtQueryInformationFile)
+          GetProcAddress (GetModuleHandle ("ntdll.dll"),
+                          "NtQueryInformationFile");
 
-  nbuffer = nevents = 0;
-  bRet = GetNumberOfConsoleInputEvents (h, &nbuffer);
-  if (!bRet || nbuffer == 0)
-    return POLLHUP;
+      happened = 0;
+      if (!PeekNamedPipe (h, NULL, 0, NULL, &avail, NULL))
+	return POLLERR;
 
-  irbuffer = (INPUT_RECORD *) alloca (nbuffer * sizeof (INPUT_RECORD));
-  bRet = PeekConsoleInput (h, irbuffer, nbuffer, &nevents);
-  if (!bRet || nevents == 0)
-    return POLLHUP;
+      if (avail)
+	happened |= sought & (POLLIN | POLLRDNORM);
 
-  for (i = 0; i < nevents; i++)
-    if (irbuffer[i].EventType == KEY_EVENT)
+      memset (&iosb, 0, sizeof (iosb));
+      memset (&fpli, 0, sizeof (fpli));
+
+      /* If NtQueryInformationFile fails, optimistically assume the pipe is
+         writable.  This could happen on Win9x, because NtQueryInformationFile
+         is not available, or if we inherit a pipe that doesn't permit
+         FILE_READ_ATTRIBUTES access on the write end (I think this should
+         not happen since WinXP SP2; WINE seems fine too).  Otherwise,
+         ensure that enough space is available for atomic writes.  */
+      if (NtQueryInformationFile (h, &iosb, &fpli, sizeof (fpli),
+				  FilePipeLocalInformation)
+	  || fpli.WriteQuotaAvailable >= PIPE_BUF
+	  || (fpli.OutboundQuota < PIPE_BUF &&
+	      fpli.WriteQuotaAvailable == fpli.OutboundQuota))
+	happened |= sought & (POLLOUT | POLLWRNORM | POLLWRBAND);
+
+      return happened;
+
+    case FILE_TYPE_CHAR:
+      nbuffer = avail = 0;
+      bRet = GetNumberOfConsoleInputEvents (h, &nbuffer);
+      if (!bRet || nbuffer == 0)
+	return POLLHUP;
+
+      irbuffer = (INPUT_RECORD *) alloca (nbuffer * sizeof (INPUT_RECORD));
+      bRet = PeekConsoleInput (h, irbuffer, nbuffer, &avail);
+      if (!bRet || avail == 0)
+	return POLLHUP;
+
+      for (i = 0; i < avail; i++)
+	if (irbuffer[i].EventType == KEY_EVENT)
+	  return sought & ~(POLLPRI | POLLRDBAND);
+
+      return sought & (POLLOUT | POLLWRNORM | POLLWRBAND);
+
+    default:
       return sought & ~(POLLPRI | POLLRDBAND);
-
-  return sought & (POLLOUT | POLLWRNORM | POLLWRBAND);
+    }
 }
+/* Convert fd_sets returned by select into revents values.  */
 
 static int
 win32_compute_revents_socket (SOCKET h, int sought,
