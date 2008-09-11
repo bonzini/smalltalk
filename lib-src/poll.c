@@ -175,15 +175,18 @@ win32_compute_revents_socket (SOCKET h, int sought,
       char data[64];
       WSASetLastError (0);
       r = recv (h, data, sizeof (data), MSG_PEEK);
+
+      /* If the event happened on an unconnected server socket, that's fine. */
+      if (r < 0 && GetLastError() == 10057)
+       r = 1;
+
       error = WSAGetLastError ();
       WSASetLastError (0);
 
       if (r == 0)
         happened |= POLLHUP;
 
-      /* If the event happened on an unconnected server socket,
-         that's fine. */
-      else if (r > 0 || ( /* (r == -1) && */ error == WSAENOTCONN))
+      else if (r > 0)
         happened |= (POLLIN | POLLRDNORM) & sought;
 
       /* Distinguish hung-up sockets from other errors.  */
