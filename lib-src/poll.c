@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <alloca.h>
+
 #include <sys/types.h>
 #include "poll.h"
 #include <errno.h>
@@ -79,7 +81,9 @@ typedef struct _IO_STATUS_BLOCK
   ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 
-#define FilePipeLocalInformation 24
+typedef enum _FILE_INFORMATION_CLASS {
+  FilePipeLocalInformation = 24
+} FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
 typedef DWORD (WINAPI *PNtQueryInformationFile)
 	 (HANDLE, IO_STATUS_BLOCK *, VOID *, ULONG, FILE_INFORMATION_CLASS);
