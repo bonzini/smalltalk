@@ -20,21 +20,24 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
-
 #include <alloca.h>
 
 #include <sys/types.h>
 #include "poll.h"
 #include <errno.h>
 #include <limits.h>
-#include "socketx.h"
 #include <assert.h>
-#include <unistd.h>
 
 #ifdef __MSVCRT__
+#include <windows.h>
+#include <winsock2.h>
 #include <io.h>
 #include <stdio.h>
 #include <conio.h>
+#else
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <unistd.h>
 #endif
 
 #ifdef HAVE_SYS_IOCTL_H
@@ -106,6 +109,7 @@ win32_compute_revents (HANDLE h, int sought)
   static PNtQueryInformationFile NtQueryInformationFile;
 
   ret = WaitForSingleObject (h, 0);
+
   if (ret != WAIT_OBJECT_0)
     return sought & (POLLOUT | POLLWRNORM | POLLWRBAND);
 
@@ -179,18 +183,15 @@ win32_compute_revents_socket (SOCKET h, int sought,
       char data[64];
       WSASetLastError (0);
       r = recv (h, data, sizeof (data), MSG_PEEK);
-
-      /* If the event happened on an unconnected server socket, that's fine. */
-      if (r < 0 && GetLastError() == 10057)
-       r = 1;
-
       error = WSAGetLastError ();
       WSASetLastError (0);
 
       if (r == 0)
         happened |= POLLHUP;
 
-      else if (r > 0)
+      /* If the event happened on an unconnected server socket,
+         that's fine. */
+      else if (r > 0 || ( /* (r == -1) && */ error == WSAENOTCONN))
         happened |= (POLLIN | POLLRDNORM) & sought;
 
       /* Distinguish hung-up sockets from other errors.  */
@@ -426,7 +427,7 @@ poll (pfd, nfd, timeout)
       if (pfd[i].fd < 0)
         continue;
 
-      h = (HANDLE) _get_osfhandle (i);
+      h = (HANDLE) _get_osfhandle (pfd[i].fd);
       assert (h != NULL);
       if ((getsockopt ((SOCKET) h, SOL_SOCKET, SO_TYPE, sockbuf, &optlen)
            != SOCKET_ERROR)
@@ -437,17 +438,17 @@ poll (pfd, nfd, timeout)
           /* see above; socket handles are mapped onto select.  */
           if (pfd[i].events & (POLLIN | POLLRDNORM))
             {
-              FD_SET (pfd[i].fd, &rfds);
+              FD_SET ((SOCKET) h, &rfds);
               ev |= FD_READ | FD_ACCEPT;
             }
           if (pfd[i].events & (POLLOUT | POLLWRNORM | POLLWRBAND))
             {
-              FD_SET (pfd[i].fd, &wfds);
+              FD_SET ((SOCKET) h, &wfds);
               ev |= FD_WRITE | FD_CONNECT;
             }
           if (pfd[i].events & (POLLPRI | POLLRDBAND))
             {
-              FD_SET (pfd[i].fd, &efds);
+              FD_SET ((SOCKET) h, &efds);
               ev |= FD_OOB;
             }
           if (ev)
@@ -504,7 +505,7 @@ poll (pfd, nfd, timeout)
           continue;
         }
 
-      h = (HANDLE) _get_osfhandle (i);
+      h = (HANDLE) _get_osfhandle (pfd[i].fd);
       if (h != handle_array[nhandles])
         {
           /* It's a socket.  */
