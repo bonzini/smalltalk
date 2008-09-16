@@ -613,21 +613,6 @@ TestCase subclass: OBBrowserTest [
 	^found
     ]
 
-    mouseMoveEventIn: name [
-	<category: 'simulating'>
-	| rect plm |
-	plm := self findListContaining: name.
-	rect := plm listMorph rectForRow: (plm getListDelicately indexOf: name).
-	^MouseMoveEvent new 
-	    setType: #mouseEnter
-	    startPoint: rect center + (rect width @ 0)
-	    endPoint: rect center
-	    trail: #()
-	    buttons: 4
-	    hand: ActiveHand
-	    stamp: Time millisecondClockValue
-    ]
-
     node [
 	<category: 'configuration'>
 	self subclassResponsibility
