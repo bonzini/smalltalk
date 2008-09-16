@@ -16,6 +16,11 @@
 </package>
 
 <package>
+  <name>OmniBrowser</name>
+  <prereq>OmniBrowser-Core</prereq>
+</package>
+
+<package>
   <name>Regex</name>
 </package>
 

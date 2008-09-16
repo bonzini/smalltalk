@@ -1,0 +1,33 @@
+<package>
+  <name>OmniBrowser-Core</name>
+  <namespace>OmniBrowser</namespace>
+
+  <test>
+    <filein>OB-Fake.st</filein>
+    <filein>OB-Tests-Core.st</filein>
+    <filein>OB-Tests-Fake.st</filein>
+
+    <sunit>
+      OmniBrowser.OBAnnouncerTest OmniBrowser.OBBrowserCommandsTest
+      OmniBrowser.OBBuilderTest OmniBrowser.OBColumnPanelTest
+      OmniBrowser.OBColumnTest OmniBrowser.OBCommandTest
+      OmniBrowser.OBDefinitionPanelTest OmniBrowser.OBFanTest
+      OmniBrowser.OBFakeBrowserTest OmniBrowser.OBFakeBuilderTest
+      OmniBrowser.OBFakeMenuTest OmniBrowser.OBMetaNodeTest
+      OmniBrowser.OBOpenTest OmniBrowser.OBLibraryOpenTest
+      OmniBrowser.OBPluggableCommandTest OmniBrowser.OBRescueFilterTest
+      OmniBrowser.OBSubtreeTest OmniBrowser.OBSwitchTest
+      OmniBrowser.OBTextSelectionTest
+    </sunit>
+  </test>
+
+  <filein>OB-GST.st</filein>
+  <filein>OmniBrowser.st</filein>
+
+  <file>OB-GST.st</file>
+  <file>OmniBrowser.st</file>
+  <file>OB-Fake.st</file>
+  <file>OB-Tests-Core.st</file>
+  <file>OB-Tests-Fake.st</file>
+  <file>OmniBrowser.st</file>
+</package>
