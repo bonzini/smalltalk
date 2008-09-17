@@ -2043,26 +2043,9 @@ OBObject subclass: OBDefinition [
 	^OBDefinitionChanged definition: self
     ]
 
-    doItContext [
-	<category: 'callbacks'>
-	^nil
-    ]
-
-    doItReceiver [
-	<category: 'callbacks'>
-	| class |
-	class := self selectedClass.
-	^class ifNotNil: [class theNonMetaClass] ifNil: [FakeClassPool new]
-    ]
-
     isEditable [
 	<category: 'testing'>
 	^true
-    ]
-
-    selectedClass [
-	<category: 'callbacks'>
-	^nil
     ]
 
     selection [
@@ -2318,7 +2301,7 @@ selection	- the currently selected edge'>
     noteParent: pNode child: cNode [
 	<category: 'filtering'>
 	pNode metaNode edges 
-	    withIndexDo: [:edge :index | cNode metaNode = edge metaNode ifTrue: [selection := index]]
+	    doWithIndex: [:edge :index | cNode metaNode = edge metaNode ifTrue: [selection := index]]
     ]
 
     selection [
@@ -3701,11 +3684,6 @@ Is it OK to discard those changes?'
 	    ifNil: [nil]
     ]
 
-    environment [
-	<category: 'accessing'>
-	^self selectedClass environment
-    ]
-
     getDefinition [
 	<category: 'accessing'>
 	^browser currentNode ifNotNil: [:n | n definition]
@@ -3743,14 +3721,6 @@ Is it OK to discard those changes?'
 	        ifTrue: [self changed: #text]
 	        ifFalse: [self changed: #codeChangedElsewhere] ].
 	canDiscardEdits := true.
-    ]
-
-    selectedClass [
-	<category: 'callbacks'>
-	^self withDefinitionDo: 
-		[:def | 
-		(def respondsTo: #selectedClass) ifTrue: [def selectedClass]]
-	    ifNil: [nil]
     ]
 
     selection [

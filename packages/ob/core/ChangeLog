@@ -1,0 +1,9 @@
+2009-09-17  Paolo Bonzini  <bonzini@gnu.org>
+
+	* OB-Fake.st: Add #handleInformRequest: to OBFakePlatform.
+	* OmniBrowser.st: Delete methods needed only by OB-Standard.
+
+Based on:
+- OB-Fake-dr.10.mcz.st
+- OB-Tests-Core-cwp.65.mcz.st
+- OmniBrowser-dr.416

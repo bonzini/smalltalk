@@ -690,6 +690,9 @@ OBPlatform subclass: OBFakePlatform [
 	self setPreference: aSymbol toValue: true
     ]
 
+    handleInformRequest: req [
+    ]
+
     menuWithIcons [
 	^menuWithIcons ifNil: [false ]
     ]
