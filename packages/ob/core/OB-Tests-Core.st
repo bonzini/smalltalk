@@ -499,7 +499,7 @@ TestCase subclass: OBBrowserTest [
 	<category: 'simulating'>
 	| button |
 	button := (self morphsOfClass: OBFakeButton) 
-		    detect: [:m | m label contents = aString]
+		    detect: [:m | m label = aString]
 		    ifNone: [self signalFailure: 'No button labeled ' , aString].
 	button click
     ]

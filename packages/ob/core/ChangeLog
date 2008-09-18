@@ -1,3 +1,7 @@
+2009-09-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	* OB-Tests-Core.st: Fix Squeak-y usage of #contents.
+
 2009-09-17  Paolo Bonzini  <bonzini@gnu.org>
 
 	* OB-Fake.st: Add #handleInformRequest: to OBFakePlatform.
