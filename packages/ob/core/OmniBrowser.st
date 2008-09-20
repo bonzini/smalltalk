@@ -3526,7 +3526,7 @@ OBPanel subclass: OBTextPanel [
 	<category: 'callbacks'>
 	self addEditingItemsToMenu: aMenu shifted: aBoolean.
 	self addTextCommandsToMenu: aMenu selection: aTextSelection.
-	self addMoreToMenu: aMenu.
+	"self addMoreToMenu: aMenu."
 	^aMenu
     ]
 

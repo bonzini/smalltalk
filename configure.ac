@@ -407,6 +407,7 @@ GST_PACKAGE_ENABLE([NCurses],
 GST_PACKAGE_ENABLE([NetClients], [net])
 GST_PACKAGE_ENABLE([DhbNumericalMethods], [numerics])
 GST_PACKAGE_ENABLE([OmniBrowser-Core], [ob/core])
+GST_PACKAGE_ENABLE([OmniBrowser-GTK], [ob/gtk])
 GST_PACKAGE_ENABLE([OpenGL], [opengl],
    [GST_HAVE_OPENGL],
    [gst_cv_opengl_libs],

@@ -17,7 +17,7 @@
 
 <package>
   <name>OmniBrowser</name>
-  <prereq>OmniBrowser-Core</prereq>
+  <prereq>OmniBrowser-GTK</prereq>
 </package>
 
 <package>

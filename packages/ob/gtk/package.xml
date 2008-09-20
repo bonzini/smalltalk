@@ -1,0 +1,11 @@
+<package>
+  <name>OmniBrowser-GTK</name>
+  <namespace>OmniBrowser</namespace>
+  <provides>OmniBrowser</provides>
+
+  <prereq>OmniBrowser-Core</prereq>
+  <prereq>GTK</prereq>
+
+  <filein>OB-GTK.st</filein>
+  <file>OB-GTK.st</file>
+</package>
