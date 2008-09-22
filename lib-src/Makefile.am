@@ -6,7 +6,7 @@ library_la_DEPENDENCIES =  @LTLIBOBJS@ @LTALLOCA@
 # These are to be included *always*, the rest are driven by configure.in
 library_la_SOURCES = \
        qsort.c getopt.c getopt1.c md5.c sha1.c avltrees.c rbtrees.c lock.c \
-       strspell.c signalx.c ltdl.c regex.c pointer-set.c
+       strspell.c signalx.c ltdl.c regex.c socketx.c pointer-set.c
 
 noinst_HEADERS = \
        obstack.h poll_.h getopt.h md5.h sha1.h ansidecl.h strspell.h lock.h \
