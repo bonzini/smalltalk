@@ -1,5 +1,10 @@
 2008-09-22  Paolo Bonzini  <bonzini@gnu.org>
 
+	* cint.c: Fix ia64 cobjects.st failure by always using a ffi_arg-sized
+	field.
+
+2008-09-22  Paolo Bonzini  <bonzini@gnu.org>
+
 	* input.c: Revert 2008-09-18 change.  Check whether get_cur_file()
 	returns nil instead.
 
