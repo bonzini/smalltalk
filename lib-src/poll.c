@@ -1,7 +1,7 @@
 /* Emulation for poll(2)
    Contributed by Paolo Bonzini.
 
-   Copyright 2001, 2002, 2003, 2006, 2007 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2006, 2007, 2008 Free Software Foundation, Inc.
 
    This file is part of gnulib.
 
@@ -19,7 +19,7 @@
    with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include <config.h>
 #include <alloca.h>
 
 #include <sys/types.h>
@@ -30,12 +30,13 @@
 
 #if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
 #define WIN32_NATIVE
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #include <io.h>
 #include <stdio.h>
 #include <conio.h>
 #else
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <unistd.h>
@@ -48,7 +49,6 @@
 #include <sys/filio.h>
 #endif
 
-#include <sys/time.h>
 #include <time.h>
 
 #ifndef INFTIM
@@ -188,10 +188,10 @@ win32_compute_revents_socket (SOCKET h, int sought, long lNetworkEvents)
 {
   int happened = 0;
 
-  if (lNetworkEvents & FD_ACCEPT)
+  if ((lNetworkEvents & (FD_READ | FD_ACCEPT | FD_CLOSE)) == FD_ACCEPT)
     happened |= (POLLIN | POLLRDNORM) & sought;
 
-  else if (lNetworkEvents & (FD_READ | FD_CLOSE))
+  else if (lNetworkEvents & (FD_READ | FD_ACCEPT | FD_CLOSE))
     {
       int r, error;
 
@@ -201,7 +201,7 @@ win32_compute_revents_socket (SOCKET h, int sought, long lNetworkEvents)
       error = WSAGetLastError ();
       WSASetLastError (0);
 
-      if (r > 0)
+      if (r > 0 || error == WSAENOTCONN)
         happened |= (POLLIN | POLLRDNORM) & sought;
 
       /* Distinguish hung-up sockets from other errors.  */
@@ -209,7 +209,7 @@ win32_compute_revents_socket (SOCKET h, int sought, long lNetworkEvents)
 	       || error == WSAECONNABORTED || error == WSAENETRESET)
         happened |= POLLHUP;
 
-      else if (error != WSAENOTCONN)
+      else
         happened |= POLLERR;
     }
 
@@ -401,14 +401,12 @@ poll (pfd, nfd, timeout)
   return rc;
 #else
   static struct timeval tv0;
-  struct timeval tv = { 0, 0 };
-  struct timeval *ptv;
   static HANDLE hEvent;
   WSANETWORKEVENTS ev;
   HANDLE h, handle_array[FD_SETSIZE + 2];
   DWORD ret, wait_timeout, nhandles;
-  int nsock;
-  BOOL bRet;
+  fd_set rfds, wfds, xfds;
+  BOOL poll_again;
   MSG msg;
   char sockbuf[256];
   int rc;
@@ -425,14 +423,20 @@ poll (pfd, nfd, timeout)
 
   handle_array[0] = hEvent;
   nhandles = 1;
-  nsock = 0;
+  FD_ZERO (&rfds);
+  FD_ZERO (&wfds);
+  FD_ZERO (&xfds);
 
   /* Classify socket handles and create fd sets. */
   for (i = 0; i < nfd; i++)
     {
       size_t optlen = sizeof(sockbuf);
+      pfd[i].revents = 0;
       if (pfd[i].fd < 0)
         continue;
+      if (!(pfd[i].events & (POLLIN | POLLRDNORM |
+                             POLLOUT | POLLWRNORM | POLLWRBAND)))
+	continue;
 
       h = (HANDLE) _get_osfhandle (pfd[i].fd);
       assert (h != NULL);
@@ -447,29 +451,50 @@ poll (pfd, nfd, timeout)
 
           /* see above; socket handles are mapped onto select.  */
           if (pfd[i].events & (POLLIN | POLLRDNORM))
-            requested |= FD_READ | FD_ACCEPT;
+	    {
+              requested |= FD_READ | FD_ACCEPT;
+	      FD_SET ((SOCKET) h, &rfds);
+	    }
           if (pfd[i].events & (POLLOUT | POLLWRNORM | POLLWRBAND))
-            requested |= FD_WRITE | FD_CONNECT;
+	    {
+              requested |= FD_WRITE | FD_CONNECT;
+	      FD_SET ((SOCKET) h, &wfds);
+	    }
           if (pfd[i].events & (POLLPRI | POLLRDBAND))
-            requested |= FD_OOB;
+	    {
+              requested |= FD_OOB;
+	      FD_SET ((SOCKET) h, &xfds);
+	    }
+
           if (requested)
-            {
-              WSAEventSelect ((SOCKET) h, hEvent, requested);
-              nsock++;
-            }
+            WSAEventSelect ((SOCKET) h, hEvent, requested);
         }
       else
         {
-          if (pfd[i].events & (POLLIN | POLLRDNORM |
-                               POLLOUT | POLLWRNORM | POLLWRBAND))
-            handle_array[nhandles++] = h;
+          handle_array[nhandles++] = h;
+
+	  /* Poll now.  If we get an event, do not poll again.  */
+          pfd[i].revents = win32_compute_revents (h, pfd[i].events);
+          if (pfd[i].revents)
+	    wait_timeout = 0;
         }
     }
 
-  if (timeout == INFTIM)
-    wait_timeout = INFINITE;
+  if (select (0, &rfds, &wfds, &xfds, &tv0) > 0)
+    {
+      /* Do MsgWaitForMultipleObjects anyway to dispatch messages, but
+	 no need to call select again.  */
+      poll_again = FALSE;
+      wait_timeout = 0;
+    }
   else
-    wait_timeout = timeout;
+    {
+      poll_again = TRUE;
+      if (timeout == INFTIM)
+        wait_timeout = INFINITE;
+      else
+        wait_timeout = timeout;
+    }
 
   _flushall ();
   for (;;)
@@ -480,6 +505,7 @@ poll (pfd, nfd, timeout)
       if (ret == WAIT_OBJECT_0 + nhandles)
 	{
           /* new input of some other kind */
+	  BOOL bRet;
           while ((bRet = PeekMessage (&msg, NULL, 0, 0, PM_REMOVE)) != 0)
             {
               TranslateMessage (&msg);
@@ -490,6 +516,9 @@ poll (pfd, nfd, timeout)
 	break;
     }
 
+  if (poll_again)
+    select (0, &rfds, &wfds, &xfds, &tv0);
+
   /* Place a sentinel at the end of the array.  */
   handle_array[nhandles] = NULL;
   nhandles = 1;
@@ -498,10 +527,10 @@ poll (pfd, nfd, timeout)
       int happened;
 
       if (pfd[i].fd < 0)
-        {
-          pfd[i].revents = 0;
-          continue;
-        }
+        continue;
+      if (!(pfd[i].events & (POLLIN | POLLRDNORM |
+                             POLLOUT | POLLWRNORM | POLLWRBAND)))
+	continue;
 
       h = (HANDLE) _get_osfhandle (pfd[i].fd);
       if (h != handle_array[nhandles])
@@ -509,6 +538,17 @@ poll (pfd, nfd, timeout)
           /* It's a socket.  */
           WSAEnumNetworkEvents ((SOCKET) h, NULL, &ev);
 	  WSAEventSelect ((SOCKET) h, 0, 0);
+
+	  /* If we're lucky, WSAEnumNetworkEvents already provided a way
+	     to distinguish FD_READ and FD_ACCEPT; this saves a recv later.  */
+	  if (FD_ISSET ((SOCKET) h, &rfds)
+	      && !(ev.lNetworkEvents & (FD_READ | FD_ACCEPT)))
+	    ev.lNetworkEvents |= FD_READ | FD_ACCEPT;
+	  if (FD_ISSET ((SOCKET) h, &wfds))
+	    ev.lNetworkEvents |= FD_WRITE | FD_CONNECT;
+	  if (FD_ISSET ((SOCKET) h, &xfds))
+	    ev.lNetworkEvents |= FD_OOB;
+	     
           happened = win32_compute_revents_socket ((SOCKET) h, pfd[i].events,
 						   ev.lNetworkEvents);
         }
@@ -519,11 +559,8 @@ poll (pfd, nfd, timeout)
           happened = win32_compute_revents (h, pfd[i].events);
         }
 
-       if (happened)
-        {
-          pfd[i].revents = happened;
-          rc++;
-        }
+       if ((pfd[i].revents |= happened) != 0)
+        rc++;
     }
 
   return rc;
