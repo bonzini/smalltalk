@@ -1,3 +1,7 @@
+2009-02-19  Paolo Bonzini  <bonzini@gnu.org>
+
+	* kernel/CompildCode.st: Add #method.
+
 2009-02-19  Derek Zhou  <agonyzhou@comcast.net>
             Paolo Bonzini  <bonzini@gnu.org>
 
