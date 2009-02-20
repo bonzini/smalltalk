@@ -160,7 +160,10 @@
 #define GET_CONTEXT_IP(ctx) 	TO_INT((ctx)->ipOffset)
 
 #define SET_THIS_METHOD(method, ipOffset) do {				\
-  gst_compiled_method _method = (gst_compiled_method)			\
+  gst_compiled_method _method;                                          \
+  if UNCOMMON (_gst_raw_profile)                                        \
+    _gst_record_profile (method, ipOffset);                             \
+  _method = (gst_compiled_method)	                 		\
     OOP_TO_OBJ (_gst_this_method = (method));				\
 									\
   method_base = _method->bytecodes;					\

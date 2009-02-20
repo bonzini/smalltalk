@@ -171,6 +171,12 @@ unsigned long _gst_cache_misses = 0;
 /* The number of cache lookups - either hits or misses */
 unsigned long _gst_sample_counter = 0;
 
+/* The OOP for an IdentityDictionary that stores the raw profile.  */
+OOP _gst_raw_profile = NULL;
+
+/* A bytecode counter value used while profiling. */
+unsigned long _gst_saved_bytecode_counter = 0;
+
 #ifdef ENABLE_JIT_TRANSLATION
 #define method_base		0
 char *native_ip = NULL;

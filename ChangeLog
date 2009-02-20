@@ -1,3 +1,8 @@
+2009-02-19  Derek Zhou  <agonyzhou@comcast.net>
+            Paolo Bonzini  <bonzini@gnu.org>
+
+	* kernel/SysDict.st: Add profiling primitive.
+
 2009-03-08  Nicolas Petton  <petton.nicolas@gmail.com>
 
 	* scripts/GenDoc.st: Use FilePath>>#readStream where appropriate.

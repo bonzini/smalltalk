@@ -1,3 +1,13 @@
+2009-02-19  Derek Zhou  <agonyzhou@comcast.net>
+            Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/dict.c: Add profiling callback.
+	* libgst/dict.h: Add profiling callback.
+	* libgst/interp-bc.inl: Call it.
+	* libgst/interp.c: Declare variables.
+	* libgst/interp.h: Declare variables.
+	* libgst/prims.def: Add profiling primitive.
+
 2009-03-05  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/files.c: Load RecursionLock.st before Transcript.st.
