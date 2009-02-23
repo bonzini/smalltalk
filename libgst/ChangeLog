@@ -1,3 +1,7 @@
+2009-02-22  Paolo Bonzini  <bonzini@gnu.org>
+
+        * libgst/comp.c: Do not reset counters if profiling is on.
+
 2009-03-26  Derek Zhou  <agonyzhou@comcast.net>
 
 	* libgst/dict.c (_gst_record_file): Use an argument for the old method.
