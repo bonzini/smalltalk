@@ -2197,14 +2197,21 @@ _gst_set_file_stream_file (OOP fileStreamOOP,
    is the accumulative cost for this method.  */
 
 void 
-_gst_record_profile (OOP newMethod, int ipOffset)
+_gst_record_profile (OOP oldMethod, OOP newMethod, int ipOffset)
 {
-  OOP profile = _gst_identity_dictionary_at (_gst_raw_profile, 
-                                             _gst_this_method);
+  OOP profile;
+  inc_ptr incPtr;
+
+  /* Protect oldMethod from GC here to avoid complicating the fast path
+     in interp-bc.inl.  */
+  incPtr = INC_SAVE_POINTER ();
+  INC_ADD_OOP (oldMethod);
+
+  profile = _gst_identity_dictionary_at (_gst_raw_profile, oldMethod);
   if UNCOMMON (IS_NIL (profile))
     {
       profile = identity_dictionary_new (_gst_identity_dictionary_class, 6);
-      _gst_identity_dictionary_at_put (_gst_raw_profile, _gst_this_method, 
+      _gst_identity_dictionary_at_put (_gst_raw_profile, oldMethod, 
                                        profile);
     }
 
@@ -2217,6 +2224,8 @@ _gst_record_profile (OOP newMethod, int ipOffset)
      the call.  */
   if (ipOffset == 0) 
     _gst_identity_dictionary_at_inc (profile, newMethod, 1);
+
+  INC_RESTORE_POINTER (incPtr);
 }
 
 /* Assume the value for KEYOOP is an integer already or the key does not exist;

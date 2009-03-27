@@ -1342,8 +1342,8 @@ resume_suspended_context (OOP oop)
 
   _gst_this_context_oop = oop;
   thisContext = (gst_method_context) OOP_TO_OBJ (oop);
-  SET_THIS_METHOD (thisContext->method, GET_CONTEXT_IP (thisContext));
   sp = thisContext->contextStack + TO_INT (thisContext->spOffset);
+  SET_THIS_METHOD (thisContext->method, GET_CONTEXT_IP (thisContext));
 
 #if ENABLE_JIT_TRANSLATION
   ip = TO_INT (thisContext->ipOffset);
