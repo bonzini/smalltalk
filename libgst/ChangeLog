@@ -1,22 +1,12 @@
-2009-02-22  Paolo Bonzini  <bonzini@gnu.org>
+2009-03-30  Derek Zhou  <agonyzhou@comcast.net>
+	    Paolo Bonzini  <bonzini@gnu.org>
 
-        * libgst/comp.c: Do not reset counters if profiling is on.
+	* libgst/comp.c: Do not reset counters if profiling is on.
 
-2009-03-26  Derek Zhou  <agonyzhou@comcast.net>
-
-	* libgst/dict.c (_gst_record_file): Use an argument for the old method.
-	Protect it from GC.
-	* libgst/dict.h (_gst_record_file): Adjust prototype.
-	* libgst/interp-bc.inl (SET_THIS_METHOD, _gst_send_message_internal,
-	_gst_send_method, send_block_value): Make state consistent when
+	* libgst/interp-bc.inl: Make state consistent when
 	profiling callbacks might be called.
-	* libgst/interp.c (resume_suspended_context): Likewise.
-	* libgst/prims.def (VMpr_SystemDictionary_rawProfile): Adjust call to
-	_gst_record_file.
+	* libgst/interp.c: Likewise.
  
-2009-02-19  Derek Zhou  <agonyzhou@comcast.net>
-            Paolo Bonzini  <bonzini@gnu.org>
-
 	* libgst/dict.c: Add profiling callback.
 	* libgst/dict.h: Add profiling callback.
 	* libgst/interp-bc.inl: Call it.
