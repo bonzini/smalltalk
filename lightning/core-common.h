@@ -365,6 +365,11 @@ typedef union jit_code {
 #define jit_ldxr_p(rd, s1, s2)		jit_ldxr_l((rd), (s1), (s2))
 #define jit_ldxi_p(rd, rs, is)		jit_ldxi_l((rd), (rs), (is))
 
+#define jit_ldr_ul(d, rs)		jit_ldr_l((d), (rs))
+#define jit_ldi_ul(d, is)		jit_ldi_l((d), (is))
+#define jit_ldxr_ul(d, s1, s2)		jit_ldxr_l((d), (s1), (s2))
+#define jit_ldxi_ul(d, rs, is)		jit_ldxi_l((d), (rs), (is))
+
 
 /* Boolean & branch synonyms */
 #define jit_eqr_ui(d, s1, s2)		jit_eqr_i((d), (s1), (s2))
@@ -396,30 +401,30 @@ typedef union jit_code {
 #define jit_bmsi_ul(label, rs, is)	jit_bmsi_l((label), (rs), (is))
 
 #define jit_ltr_p(d, s1, s2)		jit_ltr_ul((d), (s1), (s2))
-#define jit_lti_p(d, rs, is)		jit_lti_ul((d), (rs), (is))
+#define jit_lti_p(d, rs, is)		jit_lti_ul((d), (rs), (long)(is))
 #define jit_ler_p(d, s1, s2)		jit_ler_ul((d), (s1), (s2))
-#define jit_lei_p(d, rs, is)		jit_lei_ul((d), (rs), (is))
+#define jit_lei_p(d, rs, is)		jit_lei_ul((d), (rs), (long)(is))
 #define jit_gtr_p(d, s1, s2)		jit_gtr_ul((d), (s1), (s2))
-#define jit_gti_p(d, rs, is)		jit_gti_ul((d), (rs), (is))
+#define jit_gti_p(d, rs, is)		jit_gti_ul((d), (rs), (long)(is))
 #define jit_ger_p(d, s1, s2)		jit_ger_ul((d), (s1), (s2))
-#define jit_gei_p(d, rs, is)		jit_gei_ul((d), (rs), (is))
+#define jit_gei_p(d, rs, is)		jit_gei_ul((d), (rs), (long)(is))
 #define jit_eqr_p(d, s1, s2)		jit_eqr_ul((d), (s1), (s2))
-#define jit_eqi_p(d, rs, is)		jit_eqi_ul((d), (rs), (is))
+#define jit_eqi_p(d, rs, is)		jit_eqi_ul((d), (rs), (long)(is))
 #define jit_ner_p(d, s1, s2)		jit_ner_ul((d), (s1), (s2))
-#define jit_nei_p(d, rs, is)		jit_nei_ul((d), (rs), (is))
+#define jit_nei_p(d, rs, is)		jit_nei_ul((d), (rs), (long)(is))
 
 #define jit_bltr_p(label, s1, s2)	jit_bltr_ul((label), (s1), (s2))
-#define jit_blti_p(label, rs, is)	jit_blti_ul((label), (rs), (is))
+#define jit_blti_p(label, rs, is)	jit_blti_ul((label), (rs), (long)(is))
 #define jit_bler_p(label, s1, s2)	jit_bler_ul((label), (s1), (s2))
-#define jit_blei_p(label, rs, is)	jit_blei_ul((label), (rs), (is))
+#define jit_blei_p(label, rs, is)	jit_blei_ul((label), (rs), (long)(is))
 #define jit_bgtr_p(label, s1, s2)	jit_bgtr_ul((label), (s1), (s2))
-#define jit_bgti_p(label, rs, is)	jit_bgti_ul((label), (rs), (is))
+#define jit_bgti_p(label, rs, is)	jit_bgti_ul((label), (rs), (long)(is))
 #define jit_bger_p(label, s1, s2)	jit_bger_ul((label), (s1), (s2))
-#define jit_bgei_p(label, rs, is)	jit_bgei_ul((label), (rs), (is))
+#define jit_bgei_p(label, rs, is)	jit_bgei_ul((label), (rs), (long)(is))
 #define jit_beqr_p(label, s1, s2)	jit_beqr_ul((label), (s1), (s2))
-#define jit_beqi_p(label, rs, is)	jit_beqi_ul((label), (rs), (is))
+#define jit_beqi_p(label, rs, is)	jit_beqi_ul((label), (rs), (long)(is))
 #define jit_bner_p(label, s1, s2)	jit_bner_ul((label), (s1), (s2))
-#define jit_bnei_p(label, rs, is)	jit_bnei_ul((label), (rs), (is))
+#define jit_bnei_p(label, rs, is)	jit_bnei_ul((label), (rs), (long)(is))
 
 #define jit_retval_ui(rd)		jit_retval_i((rd))
 #define jit_retval_uc(rd)		jit_retval_i((rd))
@@ -449,7 +454,7 @@ typedef union jit_code {
 #endif
 
 #ifndef jit_getarg_c
-#ifndef JIT_FP
+#ifndef JIT_AP
 #define jit_getarg_c(reg, ofs)		jit_extr_c_i  ((reg), (ofs))
 #define jit_getarg_i(reg, ofs)		jit_movr_i    ((reg), (ofs))
 #define jit_getarg_l(reg, ofs)		jit_movr_l    ((reg), (ofs))
@@ -460,15 +465,15 @@ typedef union jit_code {
 #define jit_getarg_ul(reg, ofs)		jit_extr_uc_ul((reg), (ofs))
 #define jit_getarg_us(reg, ofs)		jit_extr_us_ul((reg), (ofs))
 #else
-#define jit_getarg_c(reg, ofs)		jit_ldxi_c((reg), JIT_FP, (ofs));
-#define jit_getarg_uc(reg, ofs)		jit_ldxi_uc((reg), JIT_FP, (ofs));
-#define jit_getarg_s(reg, ofs)		jit_ldxi_s((reg), JIT_FP, (ofs));
-#define jit_getarg_us(reg, ofs)		jit_ldxi_us((reg), JIT_FP, (ofs));
-#define jit_getarg_i(reg, ofs)		jit_ldxi_i((reg), JIT_FP, (ofs));
-#define jit_getarg_ui(reg, ofs)		jit_ldxi_ui((reg), JIT_FP, (ofs));
-#define jit_getarg_l(reg, ofs)		jit_ldxi_l((reg), JIT_FP, (ofs));
-#define jit_getarg_ul(reg, ofs)		jit_ldxi_ul((reg), JIT_FP, (ofs));
-#define jit_getarg_p(reg, ofs)		jit_ldxi_p((reg), JIT_FP, (ofs));
+#define jit_getarg_c(reg, ofs)		jit_ldxi_c((reg), JIT_AP, (ofs));
+#define jit_getarg_uc(reg, ofs)		jit_ldxi_uc((reg), JIT_AP, (ofs));
+#define jit_getarg_s(reg, ofs)		jit_ldxi_s((reg), JIT_AP, (ofs));
+#define jit_getarg_us(reg, ofs)		jit_ldxi_us((reg), JIT_AP, (ofs));
+#define jit_getarg_i(reg, ofs)		jit_ldxi_i((reg), JIT_AP, (ofs));
+#define jit_getarg_ui(reg, ofs)		jit_ldxi_ui((reg), JIT_AP, (ofs));
+#define jit_getarg_l(reg, ofs)		jit_ldxi_l((reg), JIT_AP, (ofs));
+#define jit_getarg_ul(reg, ofs)		jit_ldxi_ul((reg), JIT_AP, (ofs));
+#define jit_getarg_p(reg, ofs)		jit_ldxi_p((reg), JIT_AP, (ofs));
 #endif
 #endif
 
@@ -500,7 +505,9 @@ typedef union jit_code {
 #define jit_modr_l(d, s1, s2)		jit_modr_i((d), (s1), (s2))
 #define jit_muli_l(d, rs, is)		jit_muli_i((d), (rs), (is))	
 #define jit_mulr_l(d, s1, s2)		jit_mulr_i((d), (s1), (s2))
+#ifndef jit_negr_l
 #define jit_negr_l(d, s1)		jit_negr_i((d), (s1))
+#endif
 #define jit_ori_l(d, rs, is)		jit_ori_i((d), (rs), (is))	
 #define jit_orr_l(d, s1, s2)		jit_orr_i((d), (s1), (s2))
 #define jit_rshi_l(d, rs, is)		jit_rshi_i((d), (rs), (is))	
@@ -552,8 +559,6 @@ typedef union jit_code {
 #define jit_sti_l(d, is)		jit_sti_i((d), (is))
 #define jit_ldr_ui(d, rs)		jit_ldr_i((d), (rs))
 #define jit_ldi_ui(d, is)		jit_ldi_i((d), (is))
-#define jit_ldr_ul(d, rs)		jit_ldr_ui((d), (rs))
-#define jit_ldi_ul(d, is)		jit_ldi_ui((d), (is))
 #endif
 
 #define jit_ldxr_l(d, s1, s2)		jit_ldxr_i((d), (s1), (s2))
@@ -562,8 +567,6 @@ typedef union jit_code {
 #define jit_stxi_l(d, rs, is)		jit_stxi_i((d), (rs), (is))
 #define jit_ldxr_ui(d, s1, s2)		jit_ldxr_i((d), (s1), (s2))
 #define jit_ldxi_ui(d, rs, is)		jit_ldxi_i((d), (rs), (is))
-#define jit_ldxr_ul(d, s1, s2)		jit_ldxr_ui((d), (s1), (s2))
-#define jit_ldxi_ul(d, rs, is)		jit_ldxi_ui((d), (rs), (is))
 
 
 /* Boolean */

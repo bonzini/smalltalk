@@ -1,13 +1,13 @@
 /******************************** -*- C -*- ****************************
  *
- *	Run-time assembler & support macros for the i386 math coprocessor
+ *	Support macros for the i386 math coprocessor
  *
  ***********************************************************************/
 
 
 /***********************************************************************
  *
- * Copyright 2000, 2001, 2002, 2004 Free Software Foundation, Inc.
+ * Copyright 2000, 2001, 2002, 2004, 2008 Free Software Foundation, Inc.
  * Written by Paolo Bonzini.
  *
  * This file is part of GNU lightning.
@@ -30,8 +30,8 @@
  ***********************************************************************/
 
 
-#ifndef __lightning_asm_fp_h
-#define __lightning_asm_fp_h
+#ifndef __lightning_fp_h
+#define __lightning_fp_h
 
 /* We really must map the x87 stack onto a flat register file.  In practice,
    we can provide something sensible and make it work on the x86 using the
@@ -47,6 +47,7 @@
    Here are the macros that actually do the trick.  */
 
 #define JIT_FPR_NUM	       6
+#define JIT_FPRET	       0
 #define JIT_FPR(i)	       (i)
 
 #define jit_fxch(rs, op)       (((rs) != 0 ? FXCHr(rs) : 0),   \
@@ -55,15 +56,17 @@
 #define jit_fp_unary(rd, s1, op)                       \
        ((rd) == (s1) ? jit_fxch ((rd), op)             \
         : (rd) == 0 ? (FSTPr (0), FLDr ((s1)-1), op)   \
-        : (FLDr ((s1)), op, FSTPr ((rd))))
+        : (FLDr ((s1)), op, FSTPr ((rd) + 1)))
 
 #define jit_fp_binary(rd, s1, s2, op, opr)             \
        ((rd) == (s1) ?                                 \
           ((s2) == 0 ? opr(0, (rd))                    \
            : (s2) == (s1) ? jit_fxch((rd), op(0, 0))   \
            : jit_fxch((rd), op((s2), 0)))              \
-        : (rd) == (s2) ? jit_fxch((s1), opr(0, (rd) == 0 ? (s1) : (rd)))       \
-        : (FLDr (s1), op(0, (s2)+1), FSTPr((rd)+1)))
+        : (rd) == (s2) ?			       \
+	  ((s1) == 0 ? op(0, (rd))		       \
+	   : jit_fxch((rd), opr((s1), 0)))	       \
+        : (FLDr (s1), op((s2)+1, 0), FSTPr((rd)+1)))
 
 #define jit_addr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FADDrr,FADDrr)
 #define jit_subr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FSUBrr,FSUBRrr)
@@ -85,13 +88,13 @@
 
 	move FPR3 to FPR1
                 FLD  ST3
-                FST  ST2   Stack is rotated, so FPRn becomes STn+1 */
+                FSTP ST2   Stack is rotated, so FPRn becomes STn+1 */
 
 #define jit_movr_d(rd,s1)                              \
        ((s1) == (rd) ? 0                               \
         : (s1) == 0 ? FSTr ((rd))                      \
         : (rd) == 0 ? (FXCHr ((s1)), FSTr ((s1)))      \
-        : (FLDr ((s1)), FSTr ((rd)+1)))
+        : (FLDr ((s1)), FSTPr ((rd)+1)))
 
 /* - loads:
 
@@ -173,6 +176,9 @@ union jit_double_imm {
 #define jit_sti_d(id, rs)      jit_fxch ((rs), FSTLm((id), 0,    0, 0))
 #define jit_str_d(rd, rs)      jit_fxch ((rs), FSTLm(0,    (rd), 0, 0))
 
+/* ABI */
+#define jit_retval_d(rd)		FSTPr((rd) + 1)
+
 /* Assume round to near mode */
 #define jit_floorr_d_i(rd, rs) \
        (FLDr (rs), jit_floor2((rd), ((rd) == _EDX ? _EAX : _EDX)))
@@ -222,10 +228,10 @@ union jit_double_imm {
 	POPLr(rd),				\
 	TESTLrr(aux, aux),			\
 	POPLr(aux),				\
-	JSSm(_jit.x.pc + 11, 0, 0, 0),		\
+	JSSm(_jit.x.pc + 11),			\
 	ADDLir(0x7FFFFFFF, aux),	/* 6 */	\
 	SBBLir(0, rd),			/* 3 */ \
-	JMPSm(_jit.x.pc + 10, 0, 0, 0),	/* 2 */ \
+	JMPSm(_jit.x.pc + 10),		/* 2 */ \
 	TESTLrr(aux, aux),		/* 2 */ \
 	SETGr(jit_reg8(aux)),		/* 3 */ \
 	SHRLir(1, aux),			/* 2 */ \
@@ -235,7 +241,7 @@ union jit_double_imm {
 /* the easy one */
 #define jit_roundr_d_i(rd, rs)                         \
         (PUSHLr(_EAX),                                 \
-        jit_fxch ((rs), FISTPLm(0, _ESP, 0, 0)),       \
+        jit_fxch ((rs), FISTLm(0, _ESP, 0, 0)),       \
 	POPLr((rd)))
 
 #define jit_fp_test(d, s1, s2, n, _and, res)           \
@@ -255,7 +261,8 @@ union jit_double_imm {
         ((_and) ? ANDLir ((_and), _EAX) : 0),                  \
         ((cmp) ? CMPLir ((cmp), _AL) : 0),                     \
         POPLr(_EAX),                                           \
-        res ((d), 0, 0, 0))
+        res ((d)),					       \
+	_jit.x.pc)
 
 #define jit_nothing_needed(x)
 
@@ -314,11 +321,8 @@ union jit_double_imm {
 #define jit_bordr_d(d, s1, s2)          jit_fp_btest((d), (s1), (s2), 11, 0, 0, JNCm)
 #define jit_bunordr_d(d, s1, s2)        jit_fp_btest((d), (s1), (s2), 11, 0, 0, JCm)
 
-#define jit_getarg_f(rd, ofs)        jit_ldxi_f((rd), JIT_FP,(ofs))
-#define jit_getarg_d(rd, ofs)        jit_ldxi_d((rd), JIT_FP,(ofs))
 #define jit_pusharg_d(rs)            (jit_subi_i(JIT_SP,JIT_SP,sizeof(double)), jit_str_d(JIT_SP,(rs)))
 #define jit_pusharg_f(rs)            (jit_subi_i(JIT_SP,JIT_SP,sizeof(float)), jit_str_f(JIT_SP,(rs)))
-#define jit_retval_d(op1)            jit_movr_d(0, (op1))
 
 
 #if 0
@@ -344,4 +348,9 @@ union jit_double_imm {
 			 _OO(0xd9f1))			/* fyl2x */
 #endif
 
-#endif /* __lightning_asm_h */
+#define jit_prepare_f(nf)       (_jitl.argssize += (nf))
+#define jit_prepare_d(nd)       (_jitl.argssize += 2 * (nd))
+#define jit_arg_f()             ((_jitl.framesize += sizeof(float)) - sizeof(float))
+#define jit_arg_d()             ((_jitl.framesize += sizeof(double)) - sizeof(double))
+
+#endif /* __lightning_fp_h */

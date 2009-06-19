@@ -7,6 +7,7 @@
 
 /***********************************************************************
  *
+ * Copyright 2003 Gwenole Beauchesne
  * Copyright 2006 Free Software Foundation, Inc.
  *
  * This file is part of GNU lightning.
@@ -34,28 +35,43 @@
 #ifndef __lightning_asm_h
 #define __lightning_asm_h
 
+#ifndef LIGHTNING_DEBUG
+
 /*	OPCODE	+ i		= immediate operand
  *		+ r		= register operand
  *		+ m		= memory operand (disp,base,index,scale)
  *		+ sr/sm		= a star preceding a register or memory
  */
 
-#include "asm-i386.h"
+#if defined(_ASM_SAFETY)
+#define _r1(R)          ( ((R) & ~3) == _AL || ((R) & ~3) == _AH ? _rN(R) : JITFAIL( "8-bit register required"))
+#endif
 
-#ifndef LIGHTNING_DEBUG
+#define _rA(R)          _r4(R)
 
-#define _r_D(	R, D	  )	(_Mrm(_b00,_rN(R),_b101 )		             ,_jit_I((long)(D)))
+/* Use RIP-addressing in 64-bit mode, if possible */
+#define _r_X(   R, D,B,I,S,O)	(_r0P(I) ? (_r0P(B)    ? _r_D   (R,D                ) : \
+				           (_rsp12P(B) ? _r_DBIS(R,D,_ESP,_ESP,1)   : \
+						         _r_DB  (R,D,     B       )))  : \
+				 (_r0P(B)	       ? _r_4IS (R,D,	         I,S)   : \
+				 (!_rspP(I)            ? _r_DBIS(R,D,     B,     I,S)   : \
+						         JITFAIL("illegal index register: %esp"))))
+#define _m32only(X)		(X)
+#define _m64only(X)		JITFAIL("invalid instruction in 32-bit mode")
+#define _m64(X)			((void)0)
 
-#define CALLm(D,B,I,S)			((_r0P(B) && _r0P(I)) ? _O_D32	(0xe8			,(long)(D)		) : \
-								JITFAIL("illegal mode in direct jump"))
+#define _AH		0x24
+#define _CH		0x25
+#define _DH		0x26
+#define _BH		0x27
 
-#define JCCim(CC,D,B,I,S)		((_r0P(B) && _r0P(I)) ? _OO_D32	(0x0f80|(CC)		,(long)(D)		) : \
-								JITFAIL("illegal mode in conditional jump"))
+#define CALLsr(R)			CALLLsr(R)
+#define JMPsr(R)			JMPLsr(R)
 
-#define JMPm(D,B,I,S)			((_r0P(B) && _r0P(I)) ? _O_D32	(0xe9			,(long)(D)		) : \
-								JITFAIL("illegal mode in direct jump"))
+#define DECWr(RD)	(_d16(),	_Or		(0x48,_r2(RD)							))
+#define DECLr(RD)		 	_Or		(0x48,_r4(RD)							)
+#define INCWr(RD)	(_d16(),	_Or		(0x40,_r2(RD)							))
+#define INCLr(RD)	 		_Or		(0x40,_r4(RD)							)
 
 #endif
 #endif /* __lightning_asm_h */
-
-

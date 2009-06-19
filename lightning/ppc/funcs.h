@@ -7,7 +7,7 @@
 
 /***********************************************************************
  *
- * Copyright 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
+ * Copyright 2000, 2001, 2002, 2003, 2004, 2006 Free Software Foundation, Inc.
  * Written by Paolo Bonzini.
  *
  * This file is part of GNU lightning.
@@ -67,8 +67,11 @@ jit_flush_code(void *start, void *end)
         break;
   }
 
-  start -= ((long) start) & (cache_line_size - 1);
-  end -= ((long) end) & (cache_line_size - 1);
+  /* Point end to the last byte being flushed.  */
+  end   =(void*)( (long)(end - 1));
+
+  start =(void*)( (long)start - (((long) start) & (cache_line_size - 1)));
+  end   =(void*)( (long)end   - (((long) end) & (cache_line_size - 1)));
 
   /* Force data cache write-backs */
   for (ddest = (char *) start; ddest <= (char *) end; ddest += cache_line_size) {
@@ -91,34 +94,22 @@ static void
 _jit_epilog(jit_state *jit)
 {
   int n = _jitl.nbArgs;
-  int frame_size, ofs;
   int first_saved_reg = JIT_AUX - n;
-  int num_saved_regs = 32 - first_saved_reg;
-
-  frame_size = 24 + 32 + num_saved_regs * 4;	/* r24..r31 + args		   */
-  frame_size += 15;			/* the stack must be quad-word     */
-  frame_size &= ~15;			/* aligned			   */
+  int frame_size = (_jitl.frame_size + 15) & ~15;
 
 #ifdef __APPLE__
-  LWZrm(0, frame_size + 8, 1);	/* lwz   r0, x+8(r1)  (ret.addr.)  */
+  LWZrm(0, frame_size + 8, 1);		/* lwz   r0, x+8(r1)  (ret.addr.)  */
 #else
-  LWZrm(0, frame_size + 4, 1);	/* lwz   r0, x+4(r1)  (ret.addr.)  */
+  LWZrm(0, frame_size + 4, 1);		/* lwz   r0, x+4(r1)  (ret.addr.)  */
 #endif
   MTLRr(0);				/* mtspr LR, r0			   */
 
-  ofs = frame_size - num_saved_regs * 4;
-  LMWrm(first_saved_reg, ofs, 1);	/* lmw   rI, ofs(r1)		   */
+  LMWrm(first_saved_reg, 24 + 32, 1);	/* lmw   rI, ofs(r1)		   */
   ADDIrri(1, 1, frame_size);		/* addi  r1, r1, x		   */
   BLR();				/* blr				   */
 }
 
 /* Emit a prolog for a function.
-   Upon entrance to the trampoline:
-     - LR      = address where the real code for the function lies
-     - R3-R8   = parameters
-   Upon finishing the trampoline:
-     - R0      = return address for the function
-     - R25-R20 = parameters (order is reversed, 1st argument is R25)
   
    The +32 in frame_size computation is to accound for the parameter area of
    a function frame. 
@@ -126,7 +117,7 @@ _jit_epilog(jit_state *jit)
    On PPC the frame must have space to host the arguments of any callee.
    However, as it currently stands, the argument to jit_trampoline (n) is
    the number of arguments of the caller we generate. Therefore, the
-   callee can overwrite a part of the stack (saved register area when it
+   callee can overwrite a part of the stack (saved register area) when it
    flushes its own parameter on the stack. The addition of a constant 
    offset = 32 is enough to hold eight 4 bytes arguments.  This is less
    than perfect but is a reasonable work around for now. 
@@ -135,7 +126,7 @@ static void
 _jit_prolog(jit_state *jit, int n)
 {
   int frame_size;
-  int ofs, i;
+  int i;
   int first_saved_reg = JIT_AUX - n;
   int num_saved_regs = 32 - first_saved_reg;
 
@@ -143,20 +134,31 @@ _jit_prolog(jit_state *jit, int n)
   _jitl.nextarg_getd = 1;
   _jitl.nbArgs = n;
 
-  frame_size = 24 + 32 + num_saved_regs * 4;	/* r27..r31 + args		   */
-  frame_size += 15;			/* the stack must be quad-word     */
-  frame_size &= ~15;			/* aligned			   */
-
   MFLRr(0);
-  STWUrm(1, -frame_size, 1);		/* stwu  r1, -x(r1)		   */
 
-  ofs = frame_size - num_saved_regs * 4;
-  STMWrm(first_saved_reg, ofs, 1);		/* stmw  rI, ofs(r1)		   */
 #ifdef __APPLE__
-  STWrm(0, frame_size + 8, 1);		/* stw   r0, x+8(r1)		   */
+  STWrm(0, 8, 1);			/* stw   r0, 8(r1)	   */
 #else
-  STWrm(0, frame_size + 4, 1);		/* stw   r0, x+4(r1)		   */
+  STWrm(0, 4, 1);			/* stw   r0, 4(r1)	   */
 #endif
+
+  /* 0..55 -> frame data
+     56..frame_size -> saved registers
+
+     The STMW instruction is patched by jit_allocai, thus leaving
+     the space for the allocai above the 56 bytes.  jit_allocai is
+     also able to reuse the slack space needed to keep the stack
+     quadword-aligned.  */
+
+  _jitl.frame_size = 24 + 32 + num_saved_regs * 4;	/* r27..r31 + args */
+
+  /* The stack must be quad-word aligned.  */
+  frame_size = (_jitl.frame_size + 15) & ~15;
+  _jitl.slack = frame_size - _jitl.frame_size;
+  _jitl.stwu = _jit.x.pc;
+  STWUrm(1, -frame_size, 1);		/* stwu  r1, -x(r1)	   */
+
+  STMWrm(first_saved_reg, 24 + 32, 1);		/* stmw  rI, ofs(r1)	   */
   for (i = 0; i < n; i++)
     MRrr(JIT_AUX-1-i, 3+i);		/* save parameters below r24	   */
 }

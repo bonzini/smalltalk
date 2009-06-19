@@ -61,8 +61,8 @@
 #define jit_abs_f(rd,rs)		jit_abs_d(rd,rs)
 #define jit_negr_f(rd,rs)		jit_negr_d(rd,rs)
 #define jit_sqrt_f(rd,rs)		jit_sqrt_d(rd,rs)
-#define jit_extr_f_d(rs, rd)
-#define jit_extr_d_f(rs, rd)
+#define jit_extr_f_d(rs, rd)		jit_movr_d(rd, rs)
+#define jit_extr_d_f(rs, rd)		jit_movr_d(rd, rs)
 #define jit_extr_i_f(rd, rs)		jit_extr_i_d(rd, rs)
 #define jit_roundr_f_i(rd, rs)		jit_roundr_d_i(rd, rs)
 #define jit_floorr_f_i(rd, rs)		jit_floorr_d_i(rd, rs)
@@ -84,3 +84,39 @@
 #define jit_unordr_f(d, s1, s2)		jit_unordr_d(d, s1, s2)
 #define jit_retval_f(rs)		jit_retval_d(rs)
 #endif
+
+#ifndef jit_beqr_f
+#define jit_beqr_f(lab, a, b)		jit_beqr_d(lab, a, b)
+#define jit_bner_f(lab, a, b)		jit_bner_d(lab, a, b)
+#define jit_bgtr_f(lab, a, b)		jit_bgtr_d(lab, a, b)
+#define jit_bger_f(lab, a, b)		jit_bger_d(lab, a, b)
+#define jit_bltr_f(lab, a, b)		jit_bltr_d(lab, a, b)
+#define jit_bler_f(lab, a, b)		jit_bler_d(lab, a, b)
+#define jit_buneqr_f(lab, a, b)		jit_buneqr_d(lab, a, b)
+#define jit_bltgtr_f(lab, a, b)		jit_bltgtr_d(lab, a, b)
+#define jit_bungtr_f(lab, a, b)		jit_bungtr_d(lab, a, b)
+#define jit_bunger_f(lab, a, b)		jit_bunger_d(lab, a, b)
+#define jit_bunltr_f(lab, a, b)		jit_bunltr_d(lab, a, b)
+#define jit_bunler_f(lab, a, b)		jit_bunler_d(lab, a, b)
+#define jit_bordr_f(lab, a, b)		jit_bordr_d(lab, a, b)
+#define jit_bunordr_f(lab, a, b)	jit_bunordr_d(lab, a, b)
+#endif
+
+#ifndef jit_retval_f
+#define jit_retval_f(op1)            jit_movr_f((op1), JIT_FPRET)
+#endif
+
+#ifndef jit_retval_d
+#define jit_retval_d(op1)            jit_movr_d((op1), JIT_FPRET)
+#endif
+ 
+#ifndef jit_getarg_f
+#ifndef JIT_AP
+#define jit_getarg_f(reg, ofs)         jit_movr_f    ((reg), (ofs))
+#define jit_getarg_d(reg, ofs)         jit_movr_d    ((reg), (ofs))
+#else  
+#define jit_getarg_f(reg, ofs)         jit_ldxi_f((reg), JIT_AP, (ofs));
+#define jit_getarg_d(reg, ofs)         jit_ldxi_d((reg), JIT_AP, (ofs));
+#endif
+#endif
+
