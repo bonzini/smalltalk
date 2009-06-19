@@ -38,6 +38,7 @@
 #include <float.h>
 
 #define JIT_FPR_NUM	6
+#define JIT_FPRET	0
 #define JIT_FPR(i)	(30-(i)*2)
 #define JIT_FPTMP	18
 
@@ -59,8 +60,8 @@
 #define jit_abs_f(rd,rs)	FABSDrr((rs), (rd))
 #define jit_negr_f(rd,rs)	FNEGDrr((rs), (rd))
 #define jit_sqrt_f(rd,rs)	FSQRTDrr((rs), (rd))
-#define jit_extr_f_d(rs, rd)	FSTODrr((rs), (rd))
-#define jit_extr_d_f(rs, rd)	FDTOSrr((rs), (rd))
+#define jit_extr_f_d(rd, rs)	FSTODrr((rs), (rd))
+#define jit_extr_d_f(rd, rs)	FDTOSrr((rs), (rd))
 
 #define jit_movi_f(rd,immf)			  \
     do {					  \
@@ -188,7 +189,7 @@
 #define jit_gtr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
 #define jit_gtr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
 #define jit_unltr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBULi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unltr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULi(_jit.x.pc + 3), MOVir (1, (d), MOVir (0, (d)))
+#define jit_unltr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
 #define jit_unler_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBULEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
 #define jit_unler_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
 #define jit_uneqr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
@@ -215,8 +216,5 @@
 
 #define jit_pusharg_f(rs)               (STFrm((rs), _Ri(6), -24), --_jitl.nextarg_put, LDmr (_Ri(6), -24, _Ro(_jitl.nextarg_put)))
 #define jit_pusharg_d(rs)               (STDFrm((rs), _Ri(6), -24), _jitl.nextarg_put -= 2, LDmr (_Ri(6), -24, _Ro(_jitl.nextarg_put)))
-
-#define jit_retval_f(rs)	        jit_movr_f(0, rs)
-#define jit_retval_d(rs)	        jit_movr_d(0, rs)
 
 #endif /* __lightning_asm_fp_h */

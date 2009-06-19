@@ -42,18 +42,33 @@ struct jit_local_state {
    int	nextarg_geti;  /* Next r20-r25 reg. to be read */
    int	nextarg_getd;  /* The FP args are picked up from FPR1 -> FPR10 */
    int  nbArgs;        /* Number of arguments for the prolog */
+
+   int  frame_size, slack;
+   jit_insn *stwu;
 };
 
+/* Patch a `stwu' instruction (with immediate operand) so that it decreases
+   r1 by AMOUNT.  AMOUNT should already be rounded so that %sp remains quadword
+   aligned.  */
+#define jit_patch_stwu(amount)                               \
+  (*(_jitl.stwu) &= ~_MASK (16),                               \
+   *(_jitl.stwu) |= _s16 ((amount)))
+
+#define jit_allocai(n)							  \
+   (_jitl.frame_size += (n),						  \
+    ((n) <= _jitl.slack							  \
+     ? 0 : jit_patch_stwu (-((_jitl.frame_size + 15) & ~15))),		  \
+    _jitl.slack = ((_jitl.frame_size + 15) & ~15) - _jitl.frame_size,	  \
+    _jitl.frame_size - (n))
+
 #define JIT_SP			1
+#define JIT_FP			1
 #define JIT_RET			3
 #define JIT_R_NUM		3
 #define JIT_V_NUM		7
 #define JIT_R(i)		(9+(i))
 #define JIT_V(i)		(31-(i))
 #define JIT_AUX			JIT_V(JIT_V_NUM)  /* for 32-bit operands & shift counts */
-
-#define jit_pfx_start()   (_jit.jitl.trampolines)
-#define jit_pfx_end()     (_jit.jitl.free)
 
 /* If possible, use the `small' instruction (rd, rs, imm)
  * else load imm into r26 and use the `big' instruction (rd, rs, r26)
@@ -181,7 +196,7 @@ struct jit_local_state {
 #define jit_bosubi_ui(label, rs, is)	(jit_chk_ims ((is), SUBICri((rs), (rs), is), SUBCrr((rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit.x.pc)
 #define jit_boaddr_ui(label, s1, s2)	(		  			     ADDCrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit.x.pc)
 #define jit_bosubr_ui(label, s1, s2)	(		  			     SUBCrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit.x.pc)
-#define jit_calli(label)	        (jit_movi_p(JIT_AUX, (label)), MTCTRr(JIT_AUX), BCTRL(), _jitl.nextarg_puti = _jitl.nextarg_putf = _jitl.nextarg_putd = 0, _jit.x.pc)
+#define jit_calli(label)	        ((void)jit_movi_p(JIT_AUX, (label)), MTCTRr(JIT_AUX), BCTRL(), _jitl.nextarg_puti = _jitl.nextarg_putf = _jitl.nextarg_putd = 0, _jit.x.pc)
 #define jit_callr(reg)			(MTCTRr(reg), BCTRL())
 #define jit_divi_i(d, rs, is)		jit_big_ims((is), DIVWrrr ((d), (rs), JIT_AUX))
 #define jit_divi_ui(d, rs, is)	jit_big_imu((is), DIVWUrrr((d), (rs), JIT_AUX))
@@ -242,12 +257,16 @@ struct jit_local_state {
 #define jit_nop()			NOP()
 #define jit_ori_i(d, rs, is)		jit_chk_imu((is), ORIrri((d), (rs), (is)), ORrrr((d), (rs), JIT_AUX))
 #define jit_orr_i(d, s1, s2)				  ORrrr((d), (s1), (s2))
-#define jit_popr_i(rs)			(LWZrm((rs), 0, 1), ADDIrri(1, 1, 4))
+
+#ifdef JIT_NEED_PUSH_POP
+#define jit_popr_i(rs)			(LWZrm((rs),  0, 1), ADDIrri(1, 1, 4))
+#define jit_pushr_i(rs)			(STWrm((rs), -4, 1), ADDIrri (1, 1, -4))
+#endif
+
 #define jit_prepare_i(numi)		(_jitl.nextarg_puti = numi)
 #define jit_prepare_f(numf)		(_jitl.nextarg_putf = numf)
 #define jit_prepare_d(numd)		(_jitl.nextarg_putd = numd)
 #define jit_prolog(n)			_jit_prolog(&_jit, (n))
-#define jit_pushr_i(rs)			STWUrm((rs), -4, 1)
 #define jit_pusharg_i(rs)		(--_jitl.nextarg_puti, MRrr((3 + _jitl.nextarg_putd * 2 + _jitl.nextarg_putf + _jitl.nextarg_puti), (rs)))
 #define jit_ret()			_jit_epilog(&_jit)
 #define jit_retval_i(rd)		MRrr((rd), 3)

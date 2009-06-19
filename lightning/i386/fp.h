@@ -1,20 +1,20 @@
 /******************************** -*- C -*- ****************************
  *
- *	lightning main include file
+ *	Floating-point support (i386)
  *
  ***********************************************************************/
 
 
 /***********************************************************************
  *
- * Copyright 2000 Free Software Foundation, Inc.
+ * Copyright 2008 Free Software Foundation, Inc.
  * Written by Paolo Bonzini.
  *
  * This file is part of GNU lightning.
  *
  * GNU lightning is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation; either version 2.1, or (at your option)
+ * by the Free Software Foundation; either version 3, or (at your option)
  * any later version.
  * 
  * GNU lightning is distributed in the hope that it will be useful, but 
@@ -31,32 +31,15 @@
 
 
 
-#ifndef __lightning_h
-#define __lightning_h
+#ifndef __lightning_fp_i386_h
+#define __lightning_fp_i386_h
 
-#ifdef __cplusplus
-extern "C" {
+#if LIGHTNING_CROSS \
+	? LIGHTNING_TARGET == LIGHTNING_X86_64 \
+	: defined (__x86_64__)
+#include "fp-64.h"
+#else
+#include "fp-32.h"
 #endif
 
-#include <lightning/asm-common.h>
-
-#ifndef LIGHTNING_DEBUG
-#include <lightning/asm.h>
-#endif
-
-#include <lightning/core.h>
-#include <lightning/core-common.h>
-#include <lightning/funcs.h>
-#include <lightning/funcs-common.h>
-#include <lightning/fp.h>
-#include <lightning/fp-common.h>
-
-#ifndef JIT_R0
-#error GNU lightning does not support the current target
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __lightning_h */
+#endif /* __lightning_fp_i386_h */
