@@ -33,7 +33,7 @@ Object subclass: SwazooResource [
     | enabled uriPattern parent |
     
     <category: 'Swazoo-Core'>
-    <comment: 'SwazooResource is an abstract class for all so called web resources. Such resource has its url address and can serve with responding to web requests. Every resource need to #answerTo: aHTTPRequest with aHTTPResponse. SwazooSite is a subclass of a SwazooResource. You can subclass it with your own implementation. There is also a CompositeResource, which can hold many subresources. SwazooSite is also aCopmpositeResource and therefore you can add your own resources to your site.'>
+    <comment: 'Resource is an abstract class for all so called web resources. Such resource has its url address and can serve with responding to web requests. Every resource need to #answerTo: aHTTPRequest with aHTTPResponse. Site is a subclass of a Resource. You can subclass it with your own implementation. There is also a CompositeResource, which can hold many subresources. Site is also aCopmpositeResource and therefore you can add your own resources to your site.'>
 
     SwazooResource class >> new [
 	<category: 'instance creation'>
@@ -46,7 +46,7 @@ Object subclass: SwazooResource [
     ]
 
     answerTo: aRequest [
-	"override in your SwazooResource and return a HTTPResponse"
+	"override in your Resource and return a HTTPResponse"
 
 	<category: 'serving'>
 	^nil
@@ -164,7 +164,7 @@ Object subclass: SwazooResource [
     ]
 
     unauthorizedResponse [
-	"SwazooResource should call this method and return its result immediately, if request is not authorized
+	"Resource should call this method and return its result immediately, if request is not authorized
 	 to access that resource and a HTTP authorization is needed"
 
 	"^HTTPAuthenticationChallenge newForResource: self"
@@ -174,7 +174,7 @@ Object subclass: SwazooResource [
     ]
 
     unauthorizedResponsePage [
-	"SwazooResource should override this method with it's own html message"
+	"Resource should override this method with it's own html message"
 
 	<category: 'authentication'>
 	^'<HTML>
@@ -283,7 +283,7 @@ CompositeResource subclass: SwazooSite [
     | name serving |
     
     <category: 'Swazoo-Core'>
-    <comment: 'SwazooSite : Swazoo can serve many sites at once (virtual sites). Class SwazooSite is therefore a main class to start configuring your server. It holds an IP, port and hostname of your site.'>
+    <comment: 'Site : Swazoo can serve many sites at once (virtual sites). Class Site is therefore a main class to start configuring your server. It holds an IP, port and hostname of your site.'>
 
     SwazooSite class >> named: aString [
 	"return a website with that name"
@@ -551,12 +551,8 @@ CompositeResource subclass: SwazooSite [
 	[self aliases do: 
 		[:each | 
 		| httpServer |
-		httpServer := swazoo serverFor: each.
-		httpServer addSite: self.
-		(swazoo servers includes: httpServer) 
-		    ifFalse: 
-			[swazoo addServer: httpServer.
-			httpServer isServing ifFalse: [httpServer start]]]] 
+		httpServer := swazoo serverFor: each.	"it will also create and start it if needed"
+		httpServer addSite: self]] 
 		ifCurtailed: [self stop].
 	self serving: true
     ]
@@ -585,8 +581,11 @@ CompositeResource subclass: SwazooSite [
 	^uriPattern
     ]
 
-    watchdogEvent [
-	<category: 'start/stop'>
+    watchdogAction [
+	"override in your subclass"
+
+	<category: 'private'>
+	
     ]
 ]
 
@@ -678,6 +677,13 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	^sites
     ]
 
+    SwazooServer class >> restart [
+	<category: 'start/stop'>
+	self
+	    stop;
+	    start
+    ]
+
     SwazooServer class >> singleton [
 	<category: 'accessing'>
 	Singleton isNil ifTrue: [self initSingleton].
@@ -739,12 +745,12 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
     SwazooServer class >> swazooVersion [
 	<category: 'accessing'>
-	^'Swazoo 2.1 Smalltalk Web Server'
+	^'Swazoo 2.2 Smalltalk Web Server'
     ]
 
     addServer: aHTTPServer [
 	<category: 'private-servers'>
-	self servers add: aHTTPServer
+	^self servers add: aHTTPServer
     ]
 
     addSite: aSite [
@@ -832,6 +838,13 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	self initServers
     ]
 
+    isServing [
+	"any site running currently?"
+
+	<category: 'testing'>
+	^self servers notEmpty
+    ]
+
     isWatchdogRunning [
 	<category: 'private-watchdog'>
 	^self watchdog notNil	"and: [self watchdog is not].  ?!!?"
@@ -878,13 +891,20 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
     removeServer: aHTTPServer [
 	<category: 'private-servers'>
-	self servers remove: aHTTPServer
+	^self servers remove: aHTTPServer
     ]
 
     removeSite: aSite [
 	<category: 'adding/removing'>
 	aSite stop.
 	self sites remove: aSite
+    ]
+
+    restart [
+	<category: 'start/stop'>
+	self
+	    stop;
+	    start
     ]
 
     restartServers [
@@ -896,9 +916,15 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
     serverFor: aSiteIdentifier [
 	<category: 'private-servers'>
+	| httpServer |
+	aSiteIdentifier isEmpty ifTrue: [^nil].	"in case of new one  initializing"
 	^self servers 
 	    detect: [:each | each ip = aSiteIdentifier ip & (each port = aSiteIdentifier port)]
-	    ifNone: [self newServerFor: aSiteIdentifier]
+	    ifNone: 
+		[httpServer := self newServerFor: aSiteIdentifier.
+		self addServer: httpServer.
+		httpServer start.
+		^httpServer]
     ]
 
     servers [
@@ -986,8 +1012,8 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	self 
 	    watchdog: (
 		[[true] whileTrue: 
-			[self watchdogSites.
-			self watchdogOther.	"if any"
+			[(self respondsTo: #watchdogSites) ifTrue: [self watchdogSites].
+			(self respondsTo: #watchdogOther) ifTrue: [self watchdogOther].	"if any"
 			(Delay forSeconds: self watchdogPeriod) wait]] 
 			forkAt: Processor lowIOPriority)
     ]
@@ -1044,10 +1070,6 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	watchdog := aProcess
     ]
 
-    watchdogOther [
-	<category: 'private-watchdog'>
-    ]
-
     watchdogPeriod [
 	<category: 'private-watchdog'>
 	^10	"seconds"
@@ -1055,9 +1077,7 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
     watchdogSites [
 	<category: 'private-watchdog'>
-	self sites do: 
-		[:each | 
-		each isServing ifTrue: [each watchdogEvent]]
+	self sites do: [:each | each isServing ifTrue: [each watchdogAction]]
     ]
 ]
 

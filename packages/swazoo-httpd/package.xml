@@ -63,4 +63,5 @@
   <file>HTTP.st</file>
   <file>Extensions.st</file>
   <file>Tests.st</file>
+  <file>PORTING</file>
 </package>

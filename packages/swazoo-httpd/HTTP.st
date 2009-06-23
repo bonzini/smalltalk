@@ -80,12 +80,15 @@ Object subclass: HTTPConnection [
 	<category: 'serving'>
 	| interactionBlock |
 	interactionBlock := 
+		[
 		[[[true] whileTrue: 
-				[self getAndDispatchMessages.
-				Processor yield]]
-		    ifCurtailed: 
-			[(Delay forMilliseconds: 50) wait.	"to finish sending, if any"
-			self close]].
+			[self getAndDispatchMessages.
+			Processor yield]] 
+		    on: Error
+		    do: [:ex | ]] 
+			ifCurtailed: 
+			    [(Delay forMilliseconds: 50) wait.	"to finish sending, if any"
+			    self close]].
 	self server isMultiThreading 
 	    ifTrue: 
 		[self loop: (interactionBlock forkAt: Processor userBackgroundPriority)]
@@ -130,6 +133,7 @@ Object subclass: HTTPConnection [
 	<category: 'serving-responses'>
 	aResponse informConnectionClose.
 	aResponse writeTo: self stream.
+	self stream closeResponse
     ]
 
     nextPutResponse: aMessage toRequest: aRequest [
@@ -137,6 +141,7 @@ Object subclass: HTTPConnection [
 	aRequest isHead 
 	    ifTrue: [aMessage writeHeaderTo: self stream]
 	    ifFalse: [aMessage writeTo: self stream].
+	self stream closeResponse
     ]
 
     produceResponseFor: aSwazooTask [
@@ -486,8 +491,8 @@ Object subclass: HTTPString [
 		char := sourceStream next.
 		char = $% 
 		    ifTrue: 
-			[targetStream 
-			    nextPut: (Character value: (SpEnvironment integerFromString: '16r' , (sourceStream next: 2)))]
+			[targetStream nextPut: (Character 
+				    value: (SpEnvironment integerFromString: '16r' , (sourceStream next: 2)))]
 		    ifFalse: 
 			[char == $+ 
 			    ifTrue: [targetStream nextPut: Character space]
@@ -529,7 +534,8 @@ Object subclass: HTTPString [
     HTTPString class >> newRandomString: anInteger [
 	<category: 'instance creation'>
 	| numbersThroughAlphas targetStream char random |
-	numbersThroughAlphas := (48 to: 122) collect: [:each | each asCharacter].
+	numbersThroughAlphas := (48 to: 122) 
+		    collect: [:each | Character value: each].
 	targetStream := WriteStream on: (String new: anInteger).
 	random := Random new.
 	[targetStream contents size < anInteger] whileTrue: 
@@ -550,7 +556,7 @@ Object subclass: HTTPString [
 	<category: 'decoding'>
 	| targetStream |
 	targetStream := WriteStream on: String new.
-	aByteArray do: [:aByte | targetStream nextPut: aByte asCharacter].
+	aByteArray do: [:aByte | targetStream nextPut: (Character value: aByte)].
 	^targetStream contents
     ]
 
@@ -847,7 +853,7 @@ Object subclass: SwazooStream [
 
     next [
 	<category: 'accessing-reading'>
-	^self nextByte asCharacter
+	^Character value: self nextByte
     ]
 
     next: anInteger [
@@ -941,7 +947,7 @@ Object subclass: SwazooStream [
 	<category: 'accessing-reading'>
 	| byte |
 	byte := self peekByte.
-	^byte notNil ifTrue: [byte asCharacter] ifFalse: [nil]
+	^byte notNil ifTrue: [Character value: byte] ifFalse: [nil]
     ]
 
     peekByte [
@@ -1460,6 +1466,16 @@ URIIdentifier subclass: SiteIdentifier [
 	otherIP := SpIPAddress hostName: aSiteIdentifier ip
 		    port: aSiteIdentifier port.
 	^myIP hostAddress = otherIP hostAddress
+    ]
+
+    isEmpty [
+	"host ip port empty or nil"
+
+	<category: 'testing'>
+	(host isNil or: [host isEmpty]) ifTrue: [^true].
+	(ip isNil or: [ip isEmpty]) ifTrue: [^true].
+	port isNil ifTrue: [^true].
+	^false
     ]
 
     newServer [
