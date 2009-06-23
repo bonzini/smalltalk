@@ -29,7 +29,7 @@
  ======================================================================"
 
 
-Resource subclass: FileMappingResource [
+SwazooResource subclass: FileMappingResource [
     | directoryIndex filePath |
     
     <category: 'Swazoo-Resources'>
@@ -210,7 +210,7 @@ FileResource subclass: HomeResource [
 
 
 
-Resource subclass: HelloWorldResource [
+SwazooResource subclass: HelloWorldResource [
     
     <category: 'Swazoo-Resources'>
     <comment: nil>
@@ -228,7 +228,7 @@ Resource subclass: HelloWorldResource [
 
 
 
-Resource subclass: RedirectionResource [
+SwazooResource subclass: RedirectionResource [
     | targetUri |
     
     <category: 'Swazoo-Resources'>

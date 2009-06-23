@@ -38,7 +38,7 @@ TestCase subclass: CompositeResourceTest [
     sampleInSite [
 	<category: 'testing'>
 	| site |
-	site := Site new.
+	site := SwazooSite new.
 	site 
 	    host: 'swazoo.org'
 	    ip: '127.0.0.1'
@@ -792,7 +792,7 @@ TestCase subclass: ResourceTest [
 
     setUp [
 	<category: 'running'>
-	resource := Resource uriPattern: 'foo'
+	resource := SwazooResource uriPattern: 'foo'
     ]
 
     testEmptyURIPatternInvalid [
@@ -916,7 +916,7 @@ TestCase subclass: SiteTest [
     setUp [
 	<category: 'running'>
 	super setUp.
-	site := Site new.
+	site := SwazooSite new.
 	site addAlias: (SiteIdentifier 
 		    host: 'swazoo.org'
 		    ip: '127.0.0.1'
@@ -933,7 +933,7 @@ TestCase subclass: SiteTest [
     testCurrentUrl80 [
 	<category: 'testing'>
 	| aSite |
-	aSite := Site new.
+	aSite := SwazooSite new.
 	aSite addAlias: (SiteIdentifier 
 		    host: 'swazoo.org'
 		    ip: '127.0.0.1'
@@ -1150,7 +1150,7 @@ TestCase subclass: SwazooConfigurationTest [
   </CompositeResource>
  </CompositeResource>
 </Site>'.
-	site := Site new readFrom: rs.
+	site := SwazooSite new readFrom: rs.
 	self assert: site children size = 1.
 	composite := site children first.
 	self assert: composite class == CompositeResource.
@@ -1179,7 +1179,7 @@ TestCase subclass: SwazooConfigurationTest [
 		    on: '<Site>
  <SiteIdentifier ip: ''192.168.1.66'' port: 80 host: ''swazoo.org''>
 </Site>'.
-	site := Site new readFrom: rs.
+	site := SwazooSite new readFrom: rs.
 	self assert: site aliases size = 1.
 	self assert: site currentUrl = 'http://swazoo.org/'.
 	alias := site aliases first.
@@ -1196,7 +1196,7 @@ TestCase subclass: SwazooConfigurationTest [
 <SiteIdentifier ip: ''192.168.1.66'' port: 80 host: ''swazoo.org''>
  <FileResource uriPattern: ''/'' filePath: ''files''>
 </Site>'.
-	site := Site new readFrom: rs.
+	site := SwazooSite new readFrom: rs.
 	self assert: site children size = 1.
 	resource := site children first.
 	self assert: resource class == FileResource.
@@ -1214,7 +1214,7 @@ TestCase subclass: SwazooConfigurationTest [
  <HelloWorldResource uriPattern: ''/''>
  <HelloWorldResource uriPattern: ''/''>
 </Site>'.
-	site := Site new readFrom: rs.
+	site := SwazooSite new readFrom: rs.
 	self assert: site children size = 2.
 	resource1 := site children first.
 	self assert: resource1 class == HelloWorldResource.
@@ -1256,7 +1256,7 @@ TestCase subclass: SwazooConfigurationTest [
 <SiteIdentifier ip: ''192.168.1.66'' port: 80 host: ''swazoo.org''>
  <HelloWorldResource uriPattern: ''/''>
 </Site>'.
-	site := Site new readFrom: rs.
+	site := SwazooSite new readFrom: rs.
 	self assert: site children size = 1.
 	resource := site children first.
 	self assert: resource class == HelloWorldResource.
@@ -1271,7 +1271,7 @@ TestCase subclass: SwazooConfigurationTest [
 	rs := ReadStream on: '  <Site>  
 
 </Site>   '.
-	config := Site new.
+	config := SwazooSite new.
 	tag := config nextTagFrom: rs.
 	self assert: tag = 'Site'.
 	tag := config nextTagFrom: rs.
@@ -1290,7 +1290,7 @@ TestCase subclass: SwazooServerTest [
     testAccessingSite [
 	<category: 'testing'>
 	| site |
-	site := (Site new)
+	site := (SwazooSite new)
 		    name: 'aabbcc';
 		    host: 'test.org'
 			ip: 'localhost'
@@ -1313,7 +1313,7 @@ TestCase subclass: SwazooServerTest [
 	| site server |
 	server := SwazooServer singleton.
 	self assert: (server siteNamed: 'allInterfaces') isNil.
-	site := (Site new)
+	site := (SwazooSite new)
 		    name: 'allInterfaces';
 		    host: '*'
 			ip: '*'
@@ -1331,7 +1331,7 @@ TestCase subclass: SwazooServerTest [
 	nrSites := server sites size.
 	self assert: (server siteNamed: 'aabbcc') isNil.
 	self assert: (server siteHostnamed: 'test.org') isNil.
-	site := (Site new)
+	site := (SwazooSite new)
 		    name: 'aabbcc';
 		    host: 'test.org'
 			ip: 'localhost'
@@ -1349,12 +1349,12 @@ TestCase subclass: SwazooServerTest [
 	<category: 'testing-adding sites'>
 	| server site1 site2 |
 	server := SwazooServer singleton.
-	site1 := (Site new)
+	site1 := (SwazooSite new)
 		    name: 'allInterfaces1';
 		    host: '*'
 			ip: '*'
 			port: 7261.
-	site2 := (Site new)
+	site2 := (SwazooSite new)
 		    name: 'allInterfaces2';
 		    host: '*'
 			ip: '*'
@@ -1374,12 +1374,12 @@ TestCase subclass: SwazooServerTest [
 	<category: 'testing-adding sites'>
 	| server site1 site2 |
 	server := SwazooServer singleton.
-	site1 := (Site new)
+	site1 := (SwazooSite new)
 		    name: 'allInterfaces1';
 		    host: '*'
 			ip: '*'
 			port: 7261.
-	site2 := (Site new)
+	site2 := (SwazooSite new)
 		    name: 'allInterfaces2';
 		    host: '*'
 			ip: '*'
@@ -1394,7 +1394,7 @@ TestCase subclass: SwazooServerTest [
 	<category: 'testing-adding sites'>
 	| site server |
 	server := SwazooServer singleton.
-	site := (Site new)
+	site := (SwazooSite new)
 		    name: 'aabbcc';
 		    host: 'test.org'
 			ip: 'localhost'
@@ -1404,7 +1404,7 @@ TestCase subclass: SwazooServerTest [
 	self should: [site name: 'aabbcc'] raise: Error.
 	self shouldnt: [site host: 'test.org'] raise: Error.
 	self should: 
-		[(Site new)
+		[(SwazooSite new)
 		    name: 'aabbcc';
 		    host: 'test.org'
 			ip: 'localhost'
@@ -1463,7 +1463,7 @@ TestCase subclass: SwazooServerTest [
 	| site server nrServers |
 	server := SwazooServer singleton.
 	nrServers := server servers size.
-	site := (Site new)
+	site := (SwazooSite new)
 		    name: 'aabbcc';
 		    host: 'test.org'
 			ip: 'localhost'
@@ -1919,7 +1919,7 @@ TestCase subclass: URIResolutionTest [
     testSiteAnswer [
 	<category: 'testing'>
 	| resource request response |
-	resource := Site new 
+	resource := SwazooSite new 
 		    host: 'foo.com'
 		    ip: '1.2.3.4'
 		    port: 80.
@@ -1942,7 +1942,7 @@ TestCase subclass: URIResolutionTest [
 		    from: 'myhosthost:1234'
 		    at: '1.2.3.4'.
 	visitor := URIResolution new initializeRequest: request.
-	site := Site new 
+	site := SwazooSite new 
 		    host: 'myhosthost'
 		    ip: '1.2.3.4'
 		    port: 1234.
@@ -1957,7 +1957,7 @@ TestCase subclass: URIResolutionTest [
 		    from: 'localhost:1234'
 		    at: '1.2.3.4'.
 	visitor := URIResolution new initializeRequest: request.
-	site := Site new 
+	site := SwazooSite new 
 		    host: 'remotehost'
 		    ip: '1.2.3.4'
 		    port: 1234.

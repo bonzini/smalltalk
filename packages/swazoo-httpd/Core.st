@@ -29,24 +29,24 @@
  ======================================================================"
 
 
-Object subclass: Resource [
+Object subclass: SwazooResource [
     | enabled uriPattern parent |
     
     <category: 'Swazoo-Core'>
-    <comment: 'Resource is an abstract class for all so called web resources. Such resource has its url address and can serve with responding to web requests. Every resource need to #answerTo: aHTTPRequest with aHTTPResponse. Site is a subclass of a Resource. You can subclass it with your own implementation. There is also a CompositeResource, which can hold many subresources. Site is also aCopmpositeResource and therefore you can add your own resources to your site.'>
+    <comment: 'SwazooResource is an abstract class for all so called web resources. Such resource has its url address and can serve with responding to web requests. Every resource need to #answerTo: aHTTPRequest with aHTTPResponse. SwazooSite is a subclass of a SwazooResource. You can subclass it with your own implementation. There is also a CompositeResource, which can hold many subresources. SwazooSite is also aCopmpositeResource and therefore you can add your own resources to your site.'>
 
-    Resource class >> new [
+    SwazooResource class >> new [
 	<category: 'instance creation'>
 	^super new initialize
     ]
 
-    Resource class >> uriPattern: aString [
+    SwazooResource class >> uriPattern: aString [
 	<category: 'instance creation'>
 	^self new uriPattern: aString
     ]
 
     answerTo: aRequest [
-	"override in your Resource and return a HTTPResponse"
+	"override in your SwazooResource and return a HTTPResponse"
 
 	<category: 'serving'>
 	^nil
@@ -164,7 +164,7 @@ Object subclass: Resource [
     ]
 
     unauthorizedResponse [
-	"Resource should call this method and return its result immediately, if request is not authorized
+	"SwazooResource should call this method and return its result immediately, if request is not authorized
 	 to access that resource and a HTTP authorization is needed"
 
 	"^HTTPAuthenticationChallenge newForResource: self"
@@ -174,7 +174,7 @@ Object subclass: Resource [
     ]
 
     unauthorizedResponsePage [
-	"Resource should override this method with it's own html message"
+	"SwazooResource should override this method with it's own html message"
 
 	<category: 'authentication'>
 	^'<HTML>
@@ -201,7 +201,7 @@ Object subclass: Resource [
 
 
 
-Resource subclass: CompositeResource [
+SwazooResource subclass: CompositeResource [
     | children |
     
     <category: 'Swazoo-Core'>
@@ -279,20 +279,20 @@ Resource subclass: CompositeResource [
 
 
 
-CompositeResource subclass: Site [
+CompositeResource subclass: SwazooSite [
     | name serving |
     
     <category: 'Swazoo-Core'>
-    <comment: 'Site : Swazoo can serve many sites at once (virtual sites). Class Site is therefore a main class to start configuring your server. It holds an IP, port and hostname of your site.'>
+    <comment: 'SwazooSite : Swazoo can serve many sites at once (virtual sites). Class SwazooSite is therefore a main class to start configuring your server. It holds an IP, port and hostname of your site.'>
 
-    Site class >> named: aString [
+    SwazooSite class >> named: aString [
 	"return a website with that name"
 
 	<category: 'accessing'>
 	^SwazooServer singleton siteNamed: aString
     ]
 
-    Site class >> newNamed: aString [
+    SwazooSite class >> newNamed: aString [
 	<category: 'instance creation'>
 	| site |
 	site := self new name: aString.
@@ -672,7 +672,7 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	| sites instance |
 	sites := OrderedCollection new.
 	
-	[instance := Site new readFrom: aStream.
+	[instance := SwazooSite new readFrom: aStream.
 	instance notNil] 
 		whileTrue: [sites add: instance].
 	^sites
@@ -847,7 +847,7 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
 	<category: 'private'>
 	| site |
-	site := Site newNamed: 'swazoodemo'.	"which is now also added to SwazoServer"
+	site := SwazooSite newNamed: 'swazoodemo'.	"which is now also added to SwazoServer"
 	site 
 	    host: '*'
 	    ip: '*'
@@ -862,7 +862,7 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	<category: 'private'>
 	| name site |
 	name := 'port' , aNumber printString.
-	site := Site newNamed: name.	"which is now also added to SwazoServer"
+	site := SwazooSite newNamed: name.	"which is now also added to SwazoServer"
 	site 
 	    host: '*'
 	    ip: '*'
