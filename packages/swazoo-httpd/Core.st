@@ -573,8 +573,235 @@ CompositeResource subclass: SwazooSite [
 
 
 
+Object subclass: HTTPConnectionPool [
+    | reapers pool prev next first last firstFree mutex reapDone |
+
+    <comment: 'HTTPConnectionPool is a helper class that manages all the
+connections of a SwazooServer.  The number of available connections
+is limited, so the pool is always kept sorted by first request and
+more ancient connections are dropped if there is a request from
+somewhere else.
+
+In addition, this class implements a backoff policy that should help in
+case limited resources prevent acceptance of new connections.
+'>
+
+    HTTPConnectionPool class >> new: size [
+	<category: 'instance creation'>
+	^self new initialize: size
+    ]
+
+    reaperForIndex: i [
+	<category: 'private-initialize'>
+
+	| block s |
+	s := Semaphore new.
+
+	"We need a separate process because Smalltalk Semaphores
+	 do not portably provide a 'try to lock' method.  We store
+	 a semaphore in an array and use the semaphore to wake up
+	 the process."
+	block := [
+	    | sem doIt conn |
+	    [s wait.
+	    (sem := reapDone) notNil ifTrue: [
+		conn := pool at: i.
+		conn isNil
+		    ifTrue: [
+			reapDone := nil.
+			sem signal]
+		    ifFalse: [
+			conn whenNotServingDo: [
+			    "Run under mutex to ensure only one connection
+			     is reaped."
+			    mutex critical: [
+		                doIt := reapDone == sem.
+			        doIt ifTrue: [reapDone := nil]]].
+
+			doIt ifTrue: [
+			    conn close.
+			    sem signal]]]]
+		repeat].
+
+	block forkAt: Processor userInterruptPriority.
+	^s
+    ]
+
+    initialize: size [
+	<category: 'private-initialize'>
+
+	"Free list."
+	firstFree := size.
+	next := (0 to: size - 1) asArray.
+
+	"Actual connection pool."
+	first := last := 0.
+	pool := Array new: size.
+	prev := Array new: size.
+
+	mutex := Semaphore forMutualExclusion.
+	reapers := (1 to: size) collect: [ :i | self reaperForIndex: i ].
+    ]
+
+    size [
+	<category: 'accessing'>
+	^pool size
+    ]
+
+    acceptConnectionForServer: aServer [
+	"Ask aServer for an HTTPConnection object, put it into the pool,
+	 and return it."
+	<category: 'serving'>
+
+	| connection time |
+	time := 10.
+	[connection := SpExceptionContext 
+		    for: [aServer acceptConnectionFromSocket]
+		    on: SpError
+		    do: [:ex |
+			Transcript
+			    show: 'Socket accept error: ' , ex errorString;
+			    cr.
+			ex return].
+
+	connection isNil] whileTrue: [
+	     "Trying immediately would just cause another failure.
+	      Try freeing a connection's resources first, otherwise wait
+	      for connections to finish in 10, 30, 70, 150, 250 ms."
+	     self tryToReapConnection ifFalse: [
+		(Delay forMilliseconds: time) wait.
+		time := (time + 5) * 2 min: 250]].
+
+	^self addConnection: connection
+    ]
+
+    addConnection: aConnection [
+	<category: 'private'>
+
+	mutex critical: [
+	    firstFree = 0 ifTrue: [self reapConnection].
+	    aConnection id: firstFree.
+
+	    "Add to the list and update the free list."
+	    pool at: firstFree put: aConnection.
+	    prev at: firstFree put: last.
+	    last = 0
+		ifTrue: [ first := last := firstFree ]
+		ifFalse: [ last := next at: last put: firstFree ].
+
+	    firstFree := next at: firstFree.
+	    next at: last put: 0].
+
+	^aConnection
+    ]
+
+    removeConnection: aConnection [
+	<category: 'accessing'>
+
+	| index |
+	index := aConnection id.
+	aConnection id: 0.
+	index = 0 ifTrue: [ ^self ].
+	mutex critical: [
+	    "Remove from the list..."
+	    | itsPrev itsNext |
+	    itsPrev := prev at: index.
+	    itsNext := next at: index.
+	    pool at: index put: nil.
+	    itsNext = 0
+		ifTrue: [ last := itsPrev ]
+		ifFalse: [ prev at: itsNext put: itsPrev ].
+	    itsPrev = 0
+		ifTrue: [ first := itsNext ]
+		ifFalse: [ next at: itsPrev put: itsNext ].
+
+	    "... and put back into the free list."
+	    next at: index put: firstFree.
+	    firstFree := index].
+    ]
+
+    connections [
+	<category: 'accessing'>
+
+	| oc |
+	oc := OrderedCollection new.
+	mutex critical: [
+	    self walk: [:each | oc add: each]].
+	^oc
+    ]
+
+    walk: aBlock [
+	<category: 'private'>
+
+	"Must be called within mutex."
+	| i |
+	i := first.
+	[i = 0] whileFalse: [
+	    aBlock value: (pool at: i). 
+	    i := next at: i]
+    ]
+
+    tryToReap: i [
+	"Start a process that will wait for connection i to finish
+	 serving a response and, if no other connection has been reaped
+	 yet, will forcibly close connection i."
+	<category: 'reaping'>
+
+	"Must be called within mutex."
+	(reapers at: i) signal.
+    ]
+ 
+    reapConnections: block [
+	<category: 'reaping'>
+
+	"Must be called within mutex."
+	| i sem prev |
+
+	"First the easy case, see if some Keep-Alive connection has
+	 timed out."
+	self walk: [ :conn |
+	    conn keepAliveTimeout ifTrue: [conn close. ^self]].
+
+	"Else wake up the reaper processes.  They will find the first
+	 connection that finishes serving a response and forcibly close
+	 it."
+	i := first.
+	sem := reapDone := Semaphore new.
+	[reapDone notNil and: [i > 0]] whileTrue: [
+	    prev := i.
+	    i := next at: i.
+	    mutex signal.
+	    self tryToReap: prev.
+	    mutex wait].
+
+	"Wait for the processes to do their job if called because of
+	 excessive loads."
+	block ifTrue: [sem wait].
+	reapDone := nil.
+    ]
+
+    tryToReapConnection [
+	"Look for dormient connections and kill one of them.  Return whether
+	 one was found."
+	<category: 'reaping'>
+
+	^mutex critical: [
+	    self reapConnections: false.
+	    firstFree > 0]
+    ]
+
+    reapConnection [
+	"Kill one dormient connection, possibly sleeping until one is found."
+	<category: 'reaping'>
+
+	self reapConnections: true
+    ]
+
+]
+
+
 Object subclass: SwazooServer [
-    | sites servers watchdog |
+    | connectionPool sites servers watchdog |
     
     <category: 'Swazoo-Core'>
     <comment: 'SwazooServer is where all begins in Swazoo!
@@ -632,7 +859,7 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
     SwazooServer class >> initSingleton [
 	<category: 'private'>
-	Singleton := super new
+	Singleton := super new initialize
     ]
 
     SwazooServer class >> initialize [
@@ -641,6 +868,11 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	<category: 'initialize'>
 	SpEnvironment addImageStartupTask: [self singleton restartServers]
 	    for: self singleton
+    ]
+
+    SwazooServer class >> defaultConnectionPoolSize [
+	<category: 'parameters'>
+	^15
     ]
 
     SwazooServer class >> new [
@@ -804,6 +1036,27 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 	^self sites contains: [:each | each port = aNumber]
     ]
 
+    connectionPool [
+	<category: 'accessing'>
+	^connectionPool
+    ]
+
+    connectionPoolSize [
+	<category: 'accessing'>
+	^connectionPool size
+    ]
+
+    connectionPoolSize: anInteger [
+	| active |
+	active := self servers isNil
+	    ifTrue: [ #() ]
+	    ifFalse: [ self servers copy ].
+
+	active do: [ :each | each stop ].
+	connectionPool := HTTPConnectionPool new: anInteger.
+	active do: [ :each | each start ]
+    ]
+
     initServers [
 	<category: 'initialize-release'>
 	servers := Set new
@@ -816,6 +1069,7 @@ SwazooServer demoStart  will create and run a demo site on http://localhost:8888
 
     initialize [
 	<category: 'initialize-release'>
+	self connectionPoolSize: self class defaultConnectionPoolSize.
 	self initSites.
 	self initServers
     ]

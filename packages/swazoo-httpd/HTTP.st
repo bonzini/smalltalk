@@ -30,14 +30,14 @@
 
 
 Object subclass: HTTPConnection [
-    | stream loop server timeout |
+    | stream loop id server timeout mutex |
     
     <category: 'Swazoo-HTTP'>
     <comment: nil>
 
     HTTPConnection class >> socket: aSocket [
 	<category: 'instance creation'>
-	^self new stream: aSocket stream
+	^self new initializeStream: aSocket stream
     ]
 
     close [
@@ -53,46 +53,51 @@ Object subclass: HTTPConnection [
 		self loop: nil]
     ]
 
-    getAndDispatchMessages [
-	"^self
-	 The HTTPRequest is read from my socket stream.  I then pass this request to my server
-	 to get a response."
-
-	<category: 'serving'>
-	| task |
-	self stream anyDataReady 
-	    ifTrue: 
-		["wait for data and if anything read, proceed"
-
-		task := SwazooTask newOn: self.
-		self readRequestFor: task.
-		timeout := task request timestamp asSeconds + task request keepAlive.
-		self produceResponseFor: task.
-		task request wantsConnectionClose ifTrue: [self close].
-		task request isHttp10 ifTrue: [self close]	"well, we won't complicate here"]
-	    ifFalse: 
-		[self keepAliveTimeout ifTrue: [^self close].
-		(Delay forMilliseconds: 100) wait.	"to finish sending, if any"
-		self close]
+    whenNotServingDo: aBlock [
+	mutex critical: aBlock
     ]
 
-    interact [
+    getAndDispatchRequest [
+	"^SwazooTask
+	 The HTTPRequest is read from my socket stream.  I then pass this request to my server
+	 to get a response.  I return the associated SwazooTask"
+
+	<category: 'serving'>
+	| task request |
+	task := SwazooTask newOn: self.
+	self readRequestFor: task.
+	timeout := task request timestamp asSeconds + task request keepAlive.
+
+	mutex critical: [
+	    self isOpen ifFalse: [^self].
+	    self produceResponseFor: task].
+
+	^task
+    ]
+
+    anyDataReady [
+	"wait for data and if anything read, proceed"
+	| theStream |
+	theStream := self stream.
+	^self isOpen and: [theStream anyDataReady]
+    ]
+
+    interact: multiThreaded [
 	"longer description is below method"
 
 	<category: 'serving'>
 	| interactionBlock |
 	interactionBlock := 
-		[
-		[[[true] whileTrue: 
-			[self getAndDispatchMessages.
-			Processor yield]] 
-			    ifCurtailed: 
+		[[[[self anyDataReady
+		    and: [self getAndDispatchRequest wantsConnectionClose not]]
+			whileTrue: [Processor yield]] 
+			    ensure: 
 			        [self loop: nil; close]]
 		    on: Error
 		    do: [:ex |
 			(Delay forMilliseconds: 50) wait.	"to finish sending, if any"
 			self loop: nil; close]].
-	self server isMultiThreading 
+	multiThreaded 
 	    ifTrue: 
 		[self loop: (interactionBlock forkAt: Processor userBackgroundPriority)]
 	    ifFalse: [interactionBlock value].
@@ -198,6 +203,16 @@ Object subclass: HTTPConnection [
 		self close]
     ]
 
+    id [
+	<category: 'private'>
+	^id
+    ]
+
+    id: anInteger [
+	<category: 'private'>
+	id := anInteger
+    ]
+
     requestReaderClass [
 	<category: 'private'>
 	^server requestReaderClass
@@ -228,8 +243,9 @@ Object subclass: HTTPConnection [
 	^stream
     ]
 
-    stream: aSwazooStream [
+    initializeStream: aSwazooStream [
 	<category: 'private'>
+	mutex := Semaphore forMutualExclusion.
 	stream := aSwazooStream
     ]
 ]
@@ -237,7 +253,7 @@ Object subclass: HTTPConnection [
 
 
 Object subclass: AbstractHTTPServer [
-    | connections sites socket loop isMultiThreading |
+    | sites socket loop isMultiThreading |
     
     <category: 'Swazoo-HTTP'>
     <comment: nil>
@@ -262,28 +278,18 @@ Object subclass: AbstractHTTPServer [
 
     acceptConnection [
 	"^self
-	 I accept the next inbound TCP/IP connection.  The operating system libraries queue these up for me, so I can just handle one at a time.  I create an HTTPConnection instance to actually handle the interaction with the client - if I am in single threaded mode, the connection will completely handle the request before returning control to me, but in multi-threaded mode the connection forks the work into a sepparate thread in this image and control is immediately returned to me (the application programmer must worry about thread safety in this case."
+	 I accept the next inbound TCP/IP connection.  The operating system libraries queue these up for me, so I can just handle one at a time.  I create an HTTPConnection instance to actually handle the interaction with the client - if I am in single threaded mode, the connection will completely handle the request before returning control to me, but in multi-threaded mode the connection forks the work into a separate thread in this image and control is immediately returned to me (the application programmer must worry about thread safety in this case."
 
-	<category: 'private'>
-	| clientConnection |
-	clientConnection := SpExceptionContext 
-		    for: [HTTPConnection socket: self socket accept]
-		    on: SpError
-		    do: 
-			[:ex | 
-			Transcript
-			    show: 'Socket accept error: ' , ex errorString;
-			    cr.
-			^self].
-	self addConnection: clientConnection.
-	clientConnection interact.
-	^self
+	(SwazooServer singleton connectionPool acceptConnectionForServer: self)
+	    interact: self isMultiThreading
     ]
 
-    addConnection: aConnection [
+    acceptConnectionFromSocket [
 	<category: 'private'>
-	self connections add: aConnection.
-	aConnection server: self
+	| connection |
+	connection := HTTPConnection socket: self socket accept.
+	connection server: self.
+	^connection
     ]
 
     addSite: aSite [
@@ -299,12 +305,6 @@ Object subclass: AbstractHTTPServer [
 	^response isNil ifTrue: [HTTPResponse notFound] ifFalse: [response]
     ]
 
-    connections [
-	<category: 'private'>
-	connections isNil ifTrue: [self initConnections].
-	^connections
-    ]
-
     createSocket [
 	<category: 'abstract-start/stop'>
 	self subclassResponsibility.
@@ -315,11 +315,6 @@ Object subclass: AbstractHTTPServer [
 	^self sites hasNoResources
     ]
 
-    initConnections [
-	<category: 'private-initialize'>
-	connections := OrderedCollection new
-    ]
-
     initSites [
 	<category: 'private-initialize'>
 	sites := ServerRootComposite new
@@ -327,7 +322,6 @@ Object subclass: AbstractHTTPServer [
 
     initialize [
 	<category: 'private-initialize'>
-	self initConnections.
 	self initSites
     ]
 
@@ -357,7 +351,7 @@ Object subclass: AbstractHTTPServer [
 
     removeConnection: aConnection [
 	<category: 'private'>
-	self connections remove: aConnection ifAbsent: [nil]
+	SwazooServer singleton connectionPool removeConnection: aConnection
     ]
 
     removeSite: aSite [
@@ -403,7 +397,6 @@ Object subclass: AbstractHTTPServer [
 
     sites [
 	<category: 'private'>
-	sites isNil ifTrue: [self initSites].
 	^sites
     ]
 
@@ -430,7 +423,8 @@ Object subclass: AbstractHTTPServer [
 	<category: 'start/stop'>
 	self loop isNil 
 	    ifFalse: 
-		[self connections copy do: [:each | each close].
+		[SwazooServer singleton connectionPool connections
+		    do: [:each | each server == self ifTrue: [each close]].
 		self loop terminate.
 		self loop: nil.
 		self socket close.

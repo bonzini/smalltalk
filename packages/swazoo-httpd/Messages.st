@@ -342,10 +342,13 @@ HTTPMessage subclass: HTTPRequest [
 
     isKeepAlive [
 	<category: 'testing'>
-	| header |
+	| header result |
+	result := self isHttp10 not.
 	header := self connection.
-	header isNil ifTrue: [^false].
-	^'*Keep-Alive*' match: header
+	header isNil ifFalse: [
+	    ('*Keep-Alive*' match: header) ifTrue: [ result := true ].
+	    ('*Close*' match: header) ifTrue: [ result := false ] ].
+	^result
     ]
 
     isOptions [
@@ -369,9 +372,6 @@ HTTPMessage subclass: HTTPRequest [
     ]
 
     keepAlive [
-	"how many seconds a connection must be kept alive"
-
-	<category: 'accessing-headers'>
 	| value |
 	self isKeepAlive ifFalse: [^0].
 	value := (self headers fieldNamed: 'KEEP-ALIVE' ifNone: [^20]) value.
@@ -453,7 +453,7 @@ HTTPMessage subclass: HTTPRequest [
 		    cr;
 		    tab;
 		    nextPutAll: ' keep-alive: ';
-		    nextPutAll: self keepAlive].
+		    nextPutAll: (self headers fieldNamed: 'KEEP-ALIVE') value].
 	^self
     ]
 
@@ -2317,6 +2317,12 @@ Object subclass: SwazooTask [
 	response := aHTTPResponse.
 	aHTTPResponse notNil ifTrue: [aHTTPResponse task: self]
     ]
+
+    wantsConnectionClose [
+	<category: 'accessing'>
+	^request wantsConnectionClose
+    ]
+
 ]
 
 
