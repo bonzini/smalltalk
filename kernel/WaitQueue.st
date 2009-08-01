@@ -74,24 +74,121 @@ SmallInteger register.  I am the fundamental synchronization primitive.'>
 	^value
     ]
 
-    semaphoreNotify [
+    atomicFetchAndDecrement [
+	^self atomicFetchAndAdd: -1
+    ]
+
+    atomicFetchAndIncrement [
+	^self atomicFetchAndAdd: 1
+    ]
+
+    atomicFetchAndSet: n [
+	self notYetImplemented
+    ]
+
+    atomicFetchAndAdd: n [
+	self notYetImplemented
+    ]
+
+    atomicFetchAndAnd: n [
+	self notYetImplemented
+    ]
+
+    atomicFetchAndClear: n [
+	self notYetImplemented
+    ]
+
+    atomicFetchAndOr: n [
+	self notYetImplemented
+    ]
+
+    atomicFetchAndXor: n [
+	self notYetImplemented
+    ]
+
+    atomicTest: oldValue andSet: newValue [
+	self notYetImplemented
+    ]
+
+    atomicAddAndFetch: n [
+	^(self atomicFetchAndAdd: n) + n
+    ]
+
+    atomicAndAndFetch: n [
+	^(self atomicFetchAndAnd: n) bitAnd: n
+    ]
+
+    atomicClearAndFetch: n [
+	^(self atomicFetchAndClear: n) bitAnd: n bitInvert
+    ]
+
+    atomicOrAndFetch: n [
+	^(self atomicFetchAndOr: n) bitOr: n
+    ]
+
+    atomicXorAndFetch: n [
+	^(self atomicFetchAndXor: n) bitXor: n
+    ]
+
+    testAndTest: oldValue andSet: newValue [
+	| v |
+	^(v := value) = oldValue
+	    ifTrue: [ self atomicTest: oldValue andSet: newValue ]
+	    ifFalse: [ v ]
+    ]
+
+    requeueTo: waitQueue [
+	[self wake: 0 if: value requeueTo: waitQueue] whileFalse
+    ]
+
+    if: oldValue requeueTo: waitQueue [
+	^self wake: 0 if: oldValue requeueTo: waitQueue
+    ]
+
+    waitIf: oldValue [
+	self notYetImplemented
+    ]
+
+    waitIf: n atomicAdd: val to: aQueue wake: nQueue ifHasBits: mask [
+	self notYetImplemented
+    ]
+
+    waitIf: n atomicAnd: val to: aQueue wake: nQueue ifHasBits: mask [
+	self notYetImplemented
+    ]
+
+    waitIf: n atomicOr: val to: aQueue wake: nQueue ifHasBits: mask [
+	self notYetImplemented
+    ]
+
+    waitIf: n atomicClear: val to: aQueue wake: nQueue ifHasBits: mask [
+	self notYetImplemented
+    ]
+
+    waitIf: n atomicXor: val to: aQueue wake: nQueue ifHasBits: mask [
+	self notYetImplemented
+    ]
+
+    wake: num if: oldValue andRequeueTo: waitQueue [
+	self notYetImplemented
+    ]
+
+    notify [
 	"Resume one of the processes that were waiting on the semaphore if
 	 there were any.  Do not leave a signal on the semaphore if no
 	 process is waiting."
 
 	<category: 'builtins'>
-	<primitive: VMpr_Semaphore_notify>
-	^self primitiveFailed
+	^self wake: 1 if: nil andRequeueTo: nil
     ]
 
-    semaphoreNotifyAll [
+    notifyAll [
 	"Resume all the processes that were waiting on the semaphore if there
 	 were any.  Do not leave a signal on the semaphore if no process is
 	 waiting."
 
 	<category: 'builtins'>
-	<primitive: VMpr_Semaphore_notifyAll>
-	^self primitiveFailed
+	^self wake: -1 if: nil andRequeueTo: nil
     ]
 
     semaphoreSignal [
@@ -111,26 +208,5 @@ SmallInteger register.  I am the fundamental synchronization primitive.'>
 	^self primitiveFailed
     ]
 
-    semaphoreWaitAfterSignalling: aSemaphore [
-	"Signal aSemaphore then, atomically, wait for the receiver to be
-	 signalled, suspending the executing process if it is not yet.  This
-	 is needed to avoid race conditions when the #notify and #notifyAll
-	 are used before waiting on receiver: otherwise, if a process sends
-	 any of the two between the time aSemaphore is signaled and the time
-	 the process starts waiting on the receiver, the notification is lost."
-
-	<category: 'builtins'>
-	<primitive: VMpr_Semaphore_waitAfterSignalling>
-	^self primitiveFailed
-    ]
-
-    semaphoreLock [
-	"Without putting the receiver to sleep, force processes that try to wait
-	 on the semaphore to block.  Answer whether this was the case even before."
-
-	<category: 'builtins'>
-	<primitive: VMpr_Semaphore_lock>
-	^self primitiveFailed
-    ]
 ]
 

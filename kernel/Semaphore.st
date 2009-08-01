@@ -68,8 +68,7 @@ I also provide some methods for implementing critical sections.'>
 	caught := false.
 	^[
 	    [
-		"The VM will not preempt the process between the two statements.
-		 Note that it is *wrong* to set the variable to true before
+		"Note that it is *wrong* to set the variable to true before
 		 obtaining the semaphore, but the exception handler straightens
 		 that.  On the other hand, setting the variable to true after the
 		 wait would be wrong if the process was preempted and terminated
@@ -101,14 +100,14 @@ I also provide some methods for implementing critical sections.'>
 	"Answer an Array of processes currently waiting on the receiver."
 
 	<category: 'accessing'>
-	^self asArray
+	^waitQueue waitingProcesses
     ]
 
     wouldBlock [
 	"Answer whether waiting on the receiver would suspend the current process."
 
 	<category: 'accessing'>
-	^waitQueue value = 0
+	^waitQueue value <= 0
     ]
 
     printOn: aStream [
@@ -130,61 +129,65 @@ I also provide some methods for implementing critical sections.'>
     ]
 
     signals [
-	"Answer the number of processes that can be accomodated or (if negative
+	"Answer the number of processes that can be accomodated or if negative
 	 the number of waiting processes."
 
-	"signals never goes below 0, even if there are waiting process. So
-	 - if 0 and 0 processes are waiting, the signal count is 0
-	 - if 0 and k processes are waiting, the signal count is -k
-	 - if >0, no processes must be waiting and the signal count is signals"
-
 	<category: 'private'>
-	^(waitQueue value max: 0) - self size
-    ]
-
-    notify [
-	"Resume one of the processes that were waiting on the semaphore if
-	 there were any.  Do not leave a signal on the semaphore if no
-	 process is waiting."
-
-	<category: 'builtins'>
-	waitQueue semaphoreNotify
-    ]
-
-    notifyAll [
-	"Resume all the processes that were waiting on the semaphore if there
-	 were any.  Do not leave a signal on the semaphore if no process is
-	 waiting."
-
-	<category: 'builtins'>
-	waitQueue semaphoreNotifyAll
+	| oldV v |
+	v := waitQueue value.
+	v <= 0 ifTrue: [ ^waitQueue size negated ].
+	^v
     ]
 
     signal [
 	"Signal the receiver, resuming a waiting process' if there is one"
 
 	<category: 'builtins'>
-	waitQueue semaphoreSignal
+	| v |
+	waitQueue atomicFetchAndIncrement = 0 ifTrue: [
+	    "Free the semaphore.  Let other processes reset to -1 in #wait."
+	    waitQueue value: 1.
+	    waitQueue wake: 1 ]
     ]
 
     wait [
 	"Wait for the receiver to be signalled, suspending the executing process
-	 if it is not yet"
+	 if it is not yet."
 
 	<category: 'builtins'>
-	waitQueue semaphoreWait
-    ]
+	| oldV |
+	"This is an extension of class mutex3 presented in `Futexes are tricky'
+	 by Ulrich Drepper.  Instead of using values 0 (unlocked), 1 (locked
+	 without waiters), 2 (locked possibly with waiters) I use >0 for extra
+	 signals, 0 for locked without waiters, -1 for locked possibly with
+	 waiters."
+	[
+	    oldV := waitQueue value.
+	    oldV <= 0 ifTrue: [
+		"Mark that the semaphore is not free and has waiters."
+		oldV = -1 ifFalse: [ oldV := waitQueue fetchAndSet: -1 ].
+		"Even if there were waiters, the semaphore might have been
+		 freed exactly during the #fetchAndSet:.  So check oldV again."
 
-    waitAfterSignalling: aSemaphore [
-	"Signal aSemaphore then, atomically, wait for the receiver to be
-	 signalled, suspending the executing process if it is not yet.  This
-	 is needed to avoid race conditions when the #notify and #notifyAll
-	 are used before waiting on receiver: otherwise, if a process sends
-	 any of the two between the time aSemaphore is signaled and the time
-	 the process starts waiting on the receiver, the notification is lost."
+		[ oldV <= 0 ] whileTrue: [
+		    "Seems to be busy, but wait only if the semaphore hasn't
+		     been freed in the meanwhile."
+		    waitQueue wait: -1.
+		    "We are (trying to) take ownership, so try to set the value
+		     to -1."
+		    oldV := waitQueue fetchAndSet: -1.
 
-	<category: 'builtins'>
-	waitQueue semaphoreWaitAfterSignalling: aSemaphore
+		    "The semaphore might have been taken by someone else between
+		     the wait and the #fetchAndSet:, so loop." ].
+
+		"Done."
+		^self]
+
+	    "There were excess signals, try to remove one and exit if the
+	     value hasn't changed."
+	    (waitQueue atomicTest: oldV andSet: oldV - 1) == oldV
+		ifTrue: [^self].
+	] repeat
     ]
 
     lock [
@@ -192,7 +195,7 @@ I also provide some methods for implementing critical sections.'>
 	 on the semaphore to block.  Answer whether this was the case even before."
 
 	<category: 'builtins'>
-	waitQueue semaphoreLock
+	^(waitQueue fetchAndOr: -1) < 1
     ]
 ]
 
