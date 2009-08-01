@@ -119,7 +119,7 @@ can suspend themselves and resume themselves however they wish.'>
     ]
 
     finalize [
-	"Terminate processes that are GCed while waiting on a dead semaphore."
+	"Terminate processes that are GCed while waiting on a dead wait queue."
 
 	<category: 'basic'>
 	^self terminate
@@ -131,15 +131,15 @@ can suspend themselves and resume themselves however they wish.'>
 	 a ProcessBeingTerminated notification."
 
 	<category: 'basic'>
-	| semaphore |
+	| waitQueue |
 
 	[self isTerminated ifTrue: [^self].
 	Processor activeProcess == self 
 	    ifFalse: 
-		[semaphore := self isWaiting ifTrue: [myList].
+		[waitQueue := self isWaiting ifTrue: [myList].
 		self queueInterrupt:
 		    [SystemExceptions.ProcessBeingTerminated new
-			semaphore: semaphore;
+			waitQueue: waitQueue;
 			signal].
 		^self]] 
 		valueWithoutPreemption.
@@ -195,7 +195,7 @@ can suspend themselves and resume themselves however they wish.'>
 		^self].
 	self isWaiting 
 	    ifTrue: 
-		[aStream nextPutAll: ' waiting on a semaphore)'.
+		[aStream nextPutAll: ' waiting)'.
 		^self].
 	self isSuspended 
 	    ifTrue: 
@@ -279,29 +279,29 @@ can suspend themselves and resume themselves however they wish.'>
     queueInterrupt: aBlock [
 	"Force the receiver to be interrupted and to evaluate aBlock as soon as it
 	 becomes the active process (this could mean NOW if the receiver is active).
-	 If the process is temporarily suspended or waiting on a semaphore, it is
+	 If the process is temporarily suspended or waiting on a WaitQueue, it is
 	 temporarily woken up so that the interrupt is processed as soon as the
 	 process priority allows to do.  Answer the receiver."
 
 	<category: 'accessing'>
 	self interruptLock critical: 
-		[| block suspended semaphore |
+		[| block suspended waitQueue |
 		self isActive 
 		    ifTrue: 
 			[aBlock value.
 			^self].
 		self isTerminated 
 		    ifTrue: [^SystemExceptions.ProcessTerminated signalOn: self].
-		semaphore := myList.
+		waitQueue := myList.
 		suspended := self isReady not.
 		block := suspended
 			    ifFalse: 
 				[self suspend.
 				aBlock]
 			    ifTrue: 
-				[semaphore isNil 
+				[waitQueue isNil 
 				    ifTrue: [[self evaluate: aBlock ifNotTerminated: [self suspend]]]
-				    ifFalse: [[self evaluate: aBlock ifNotTerminated: [semaphore wait]]]].
+				    ifFalse: [[self evaluate: aBlock ifNotTerminated: [waitQueue wait]]]].
 		suspendedContext := block asContext: suspendedContext.
 		self resume]
     ]
@@ -412,7 +412,7 @@ can suspend themselves and resume themselves however they wish.'>
 
     isReady [
 	"Answer whether the receiver is not suspended nor waiting on a
-	 semaphore (maybe it is active, maybe it is not, though)"
+	 wait queue (maybe it is active, maybe it is not, though)"
 
 	<category: 'private'>
 	^myList == (Processor processesAt: priority)
@@ -433,7 +433,7 @@ can suspend themselves and resume themselves however they wish.'>
     ]
 
     isWaiting [
-	"Answer whether the receiver is wating on a semaphore"
+	"Answer whether the receiver is wating on a wait queue"
 
 	<category: 'private'>
 	^self isReady not & self isSuspended not

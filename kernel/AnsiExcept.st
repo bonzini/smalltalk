@@ -450,7 +450,7 @@ Notification subclass: ProcessBeingTerminated [
     <category: 'Language-Exceptions'>
     <comment: 'I am raised when a process is terminated.'>
 
-    | semaphore |
+    | waitQueue |
 
     ProcessBeingTerminated class >> initialize [
 	(UndefinedObject>>#'__terminate')
@@ -481,18 +481,18 @@ Notification subclass: ProcessBeingTerminated [
 	^'the current process is being terminated'
     ]
 
-    semaphore [
-	"If the process was waiting on a semaphore, answer it."
+    waitQueue [
+	"If the process was waiting on a WaitQueue, answer it."
 
 	<category: 'accessing'>
-	^semaphore
+	^waitQueue
     ]
 
-    semaphore: aSemaphore [
-	"If the process was waiting on a semaphore, answer it."
+    waitQueue: aWaitQueue [
+	"If the process was waiting on a wait queue, answer it."
 
 	<category: 'accessing'>
-	semaphore := aSemaphore
+	waitQueue := aWaitQueue
     ]
 ]
 
