@@ -88,6 +88,7 @@
   <file>CompiledBlk.st</file>
   <file>Magnitude.st</file>
   <file>Semaphore.st</file>
+  <file>WaitQueue.st</file>
   <file>DeferBinding.st</file>
   <file>Association.st</file>
   <file>HomedAssoc.st</file>

@@ -303,16 +303,16 @@ static OOP highest_priority_process (void);
 
 /* Remove the head of the given list (a Semaphore is a subclass of
    LinkedList) and answer it.  */
-static OOP remove_first_link (OOP semaphoreOOP);
+static OOP remove_first_link (OOP waitQueueOOP);
 
 /* Add PROCESSOOP as the head of the given list (a Semaphore is a
    subclass of LinkedList) and answer it.  */
-static void add_first_link (OOP semaphoreOOP,
+static void add_first_link (OOP waitQueueOOP,
 			   OOP processOOP);
 
 /* Add PROCESSOOP as the tail of the given list (a Semaphore is a
    subclass of LinkedList) and answer it.  */
-static void add_last_link (OOP semaphoreOOP,
+static void add_last_link (OOP waitQueueOOP,
 			   OOP processOOP);
 
 /* Answer the highest priority process different from the current one.
@@ -399,8 +399,8 @@ static inline OOP get_scheduled_process (void) ATTRIBUTE_PURE;
    the last bytecode.  */
 static inline OOP get_active_process (void) ATTRIBUTE_PURE;
 
-/* Create a new Semaphore OOP with SIGNALS signals on it and return it.  */
-static inline OOP semaphore_new (int signals);
+/* Create a new WaitQueue OOP and return it.  */
+static inline OOP wait_queue_new (void);
 
 /* Pop NUMARGS items from the stack and put them into a newly
    created Array object, which is them returned.  */
@@ -1377,54 +1377,54 @@ get_scheduled_process (void)
 }
 
 void
-add_first_link (OOP semaphoreOOP,
+add_first_link (OOP waitQueueOOP,
 		OOP processOOP)
 {
-  gst_semaphore sem;
+  gst_wait_queue wq;
   gst_process process, lastProcess;
   OOP lastProcessOOP;
 
   process = (gst_process) OOP_TO_OBJ (processOOP);
   if (!IS_NIL (process->myList))
     {
-      sem = (gst_semaphore) OOP_TO_OBJ (process->myList);
-      if (sem->firstLink == processOOP)
+      wq = (gst_wait_queue) OOP_TO_OBJ (process->myList);
+      if (wq->firstLink == processOOP)
 	{
-	  sem->firstLink = process->nextLink;
-	  if (sem->lastLink == processOOP)
+	  wq->firstLink = process->nextLink;
+	  if (wq->lastLink == processOOP)
 	    {
 	      /* It was the only process in the list */
-	      sem->lastLink = _gst_nil_oop;
+	      wq->lastLink = _gst_nil_oop;
 	    }
 	}
-      else if (sem->lastLink == processOOP)
+      else if (wq->lastLink == processOOP)
 	{
 	  /* Find the new last link */
-	  lastProcessOOP = sem->firstLink;
+	  lastProcessOOP = wq->firstLink;
 	  lastProcess = (gst_process) OOP_TO_OBJ (lastProcessOOP);
 	  while (lastProcess->nextLink != processOOP)
 	    {
 	      lastProcessOOP = lastProcess->nextLink;
 	      lastProcess = (gst_process) OOP_TO_OBJ (lastProcessOOP);
 	    }
-	  sem->lastLink = lastProcessOOP;
+	  wq->lastLink = lastProcessOOP;
 	  lastProcess->nextLink = _gst_nil_oop;
 	}
     }
 
-  sem = (gst_semaphore) OOP_TO_OBJ (semaphoreOOP);
-  process->myList = semaphoreOOP;
-  process->nextLink = sem->firstLink;
+  wq = (gst_wait_queue) OOP_TO_OBJ (waitQueueOOP);
+  process->myList = waitQueueOOP;
+  process->nextLink = wq->firstLink;
 
-  sem->firstLink = processOOP;
-  if (IS_NIL (sem->lastLink))
-    sem->lastLink = processOOP;
+  wq->firstLink = processOOP;
+  if (IS_NIL (wq->lastLink))
+    wq->lastLink = processOOP;
 }
 
 static void
 remove_process_from_list (OOP processOOP)
 {
-  gst_semaphore sem;
+  gst_wait_queue wq;
   gst_process process, lastProcess;
   OOP lastProcessOOP;
 
@@ -1435,18 +1435,18 @@ remove_process_from_list (OOP processOOP)
   if (!IS_NIL (process->myList))
     {
       /* Disconnect the process from its list.  */
-      sem = (gst_semaphore) OOP_TO_OBJ (process->myList);
-      if (sem->firstLink == processOOP)
+      wq = (gst_wait_queue) OOP_TO_OBJ (process->myList);
+      if (wq->firstLink == processOOP)
         {
-          sem->firstLink = process->nextLink;
-          if (sem->lastLink == processOOP)
+          wq->firstLink = process->nextLink;
+          if (wq->lastLink == processOOP)
             /* It was the only process in the list */
-            sem->lastLink = _gst_nil_oop;
+            wq->lastLink = _gst_nil_oop;
         }
       else
         {
           /* Find the new last link */
-          lastProcessOOP = sem->firstLink;
+          lastProcessOOP = wq->firstLink;
           lastProcess = (gst_process) OOP_TO_OBJ (lastProcessOOP);
           while (lastProcess->nextLink != processOOP)
             {
@@ -1455,8 +1455,8 @@ remove_process_from_list (OOP processOOP)
             }
 
           lastProcess->nextLink = process->nextLink;
-	  if (sem->lastLink == processOOP)
-            sem->lastLink = lastProcessOOP;
+	  if (wq->lastLink == processOOP)
+            wq->lastLink = lastProcessOOP;
         }
 
       process->myList = _gst_nil_oop;
@@ -1484,62 +1484,62 @@ _gst_terminate_process (OOP processOOP)
 }
 
 void
-add_last_link (OOP semaphoreOOP,
+add_last_link (OOP waitQueueOOP,
 	       OOP processOOP)
 {
-  gst_semaphore sem;
+  gst_wait_queue wq;
   gst_process process, lastProcess;
   OOP lastProcessOOP;
 
   process = (gst_process) OOP_TO_OBJ (processOOP);
   if (!IS_NIL (process->myList))
     {
-      sem = (gst_semaphore) OOP_TO_OBJ (process->myList);
-      if (sem->firstLink == processOOP)
+      wq = (gst_wait_queue) OOP_TO_OBJ (process->myList);
+      if (wq->firstLink == processOOP)
 	{
-	  sem->firstLink = process->nextLink;
-	  if (sem->lastLink == processOOP)
+	  wq->firstLink = process->nextLink;
+	  if (wq->lastLink == processOOP)
 	    {
 	      /* It was the only process in the list */
-	      sem->lastLink = _gst_nil_oop;
+	      wq->lastLink = _gst_nil_oop;
 	    }
 	}
-      else if (sem->lastLink == processOOP)
+      else if (wq->lastLink == processOOP)
 	{
 	  /* Find the new last link */
-	  lastProcessOOP = sem->firstLink;
+	  lastProcessOOP = wq->firstLink;
 	  lastProcess = (gst_process) OOP_TO_OBJ (lastProcessOOP);
 	  while (lastProcess->nextLink != processOOP)
 	    {
 	      lastProcessOOP = lastProcess->nextLink;
 	      lastProcess = (gst_process) OOP_TO_OBJ (lastProcessOOP);
 	    }
-	  sem->lastLink = lastProcessOOP;
+	  wq->lastLink = lastProcessOOP;
 	  lastProcess->nextLink = _gst_nil_oop;
 	}
     }
 
-  sem = (gst_semaphore) OOP_TO_OBJ (semaphoreOOP);
-  process->myList = semaphoreOOP;
+  wq = (gst_wait_queue) OOP_TO_OBJ (waitQueueOOP);
+  process->myList = waitQueueOOP;
   process->nextLink = _gst_nil_oop;
 
-  if (IS_NIL (sem->lastLink))
-    sem->firstLink = sem->lastLink = processOOP;
+  if (IS_NIL (wq->lastLink))
+    wq->firstLink = wq->lastLink = processOOP;
   else
     {
-      lastProcessOOP = sem->lastLink;
+      lastProcessOOP = wq->lastLink;
       lastProcess = (gst_process) OOP_TO_OBJ (lastProcessOOP);
       lastProcess->nextLink = processOOP;
-      sem->lastLink = processOOP;
+      wq->lastLink = processOOP;
     }
 }
 
 mst_Boolean
 is_empty (OOP processListOOP)
 {
-  gst_semaphore processList;
+  gst_wait_queue processList;
 
-  processList = (gst_semaphore) OOP_TO_OBJ (processListOOP);
+  processList = (gst_wait_queue) OOP_TO_OBJ (processListOOP);
   return (IS_NIL (processList->firstLink));
 }
 
@@ -1548,20 +1548,24 @@ mst_Boolean
 _gst_sync_signal (OOP semaphoreOOP, mst_Boolean incr_if_empty)
 {
   gst_semaphore sem;
+  gst_wait_queue wq;
+  OOP waitQueueOOP;
   OOP freedOOP;
 
   sem = (gst_semaphore) OOP_TO_OBJ (semaphoreOOP);
+  waitQueueOOP = sem->waitQueue;
+  wq = (gst_wait_queue) OOP_TO_OBJ (waitQueueOOP);
   for (;;)
     {
-      /* printf ("signal %O %O\n", semaphoreOOP, sem->firstLink); */
-      if (is_empty (semaphoreOOP))
+      /* printf ("signal %O %O\n", semaphoreOOP, wq->firstLink); */
+      if (is_empty (waitQueueOOP))
 	{
 	  if (incr_if_empty)
-	    sem->signals = INCR_INT (sem->signals);
+	    wq->value = INCR_INT (wq->value);
 	  return false;
 	}
 
-      freedOOP = remove_first_link (semaphoreOOP);
+      freedOOP = remove_first_link (waitQueueOOP);
 
       /* If they terminated this process, well, try another */
       if (resume_process (freedOOP, false))
@@ -1635,12 +1639,14 @@ void
 _gst_sync_wait (OOP semaphoreOOP)
 {
   gst_semaphore sem;
+  gst_wait_queue wq;
 
   sem = (gst_semaphore) OOP_TO_OBJ (semaphoreOOP);
-  if (TO_INT (sem->signals) <= 0)
+  wq = (gst_wait_queue) OOP_TO_OBJ (sem->waitQueue);
+  if (TO_INT (wq->value) <= 0)
     {
       /* have to suspend, move this to the end of the list */
-      add_last_link (semaphoreOOP, get_active_process ());
+      add_last_link (waitQueueOOP, get_active_process ());
       if (IS_NIL (ACTIVE_PROCESS_YIELD ()))
         {
 	  printf ("No runnable process");
@@ -1648,26 +1654,26 @@ _gst_sync_wait (OOP semaphoreOOP)
 	}
     }
   else
-    sem->signals = DECR_INT (sem->signals);
+    wq->value = DECR_INT (wq->value);
 
-  /* printf ("wait %O %O\n", semaphoreOOP, sem->firstLink); */
+  /* printf ("wait %O %O\n", semaphoreOOP, wq->firstLink); */
 }
 
 OOP
-remove_first_link (OOP semaphoreOOP)
+remove_first_link (OOP waitQueueOOP)
 {
-  gst_semaphore sem;
+  gst_wait_queue wq;
   gst_process process;
   OOP processOOP;
 
-  sem = (gst_semaphore) OOP_TO_OBJ (semaphoreOOP);
-  processOOP = sem->firstLink;
+  wq = (gst_wait_queue) OOP_TO_OBJ (waitQueueOOP);
+  processOOP = wq->firstLink;
   process = (gst_process) OOP_TO_OBJ (processOOP);
 
-  sem = (gst_semaphore) OOP_TO_OBJ (semaphoreOOP);
-  sem->firstLink = process->nextLink;
-  if (IS_NIL (sem->firstLink))
-    sem->lastLink = _gst_nil_oop;
+  wq = (gst_wait_queue) OOP_TO_OBJ (waitQueueOOP);
+  wq->firstLink = process->nextLink;
+  if (IS_NIL (wq->firstLink))
+    wq->lastLink = _gst_nil_oop;
 
   /* Unlink the process from any list it was in! */
   process->myList = _gst_nil_oop;
@@ -1825,7 +1831,7 @@ highest_priority_process (void)
   OOP processLists, processListOOP;
   int priority;
   OOP processOOP;
-  gst_semaphore processList;
+  gst_wait_queue processList;
 
   processLists = GET_PROCESS_LISTS ();
   priority = NUM_OOPS (OOP_TO_OBJ (processLists));
@@ -1842,7 +1848,7 @@ highest_priority_process (void)
 
 	      /* If there's only one element in the list, discard this
 	         priority.  */
-	      processList = (gst_semaphore) OOP_TO_OBJ (processListOOP);
+	      processList = (gst_wait_queue) OOP_TO_OBJ (processListOOP);
 	      if (processList->firstLink == processList->lastLink)
 		continue;
 
@@ -1880,7 +1886,7 @@ _gst_check_process_state (void)
 {
   OOP processLists, processListOOP, processOOP;
   int priority, n;
-  gst_semaphore processList;
+  gst_wait_queue processList;
   gst_process process;
 
   processLists = GET_PROCESS_LISTS ();
@@ -1888,7 +1894,7 @@ _gst_check_process_state (void)
   for (n = 0; priority > 0; --priority)
     {
       processListOOP = ARRAY_AT (processLists, priority);
-      processList = (gst_semaphore) OOP_TO_OBJ (processListOOP);
+      processList = (gst_wait_queue) OOP_TO_OBJ (processListOOP);
 
       if (IS_NIL (processList->firstLink) && IS_NIL (processList->lastLink))
         continue;
@@ -1925,7 +1931,7 @@ _gst_print_process_state (void)
 {
   OOP processLists, processListOOP, processOOP;
   int priority;
-  gst_semaphore processList;
+  gst_wait_queue processList;
   gst_process process;
 
   processLists = GET_PROCESS_LISTS ();
@@ -1943,7 +1949,7 @@ _gst_print_process_state (void)
   for (; priority > 0; priority--)
     {
       processListOOP = ARRAY_AT (processLists, priority);
-      processList = (gst_semaphore) OOP_TO_OBJ (processListOOP);
+      processList = (gst_wait_queue) OOP_TO_OBJ (processListOOP);
 
       if (IS_NIL (processList->firstLink))
         continue;
@@ -1967,15 +1973,15 @@ _gst_print_process_state (void)
 }
 
 OOP
-semaphore_new (int signals)
+wait_queue_new (void)
 {
-  gst_semaphore sem;
-  OOP semaphoreOOP;
+  gst_wait_queue wq;
+  OOP waitQueueOOP;
 
-  sem = (gst_semaphore) instantiate (_gst_semaphore_class, &semaphoreOOP);
-  sem->signals = FROM_INT (signals);
+  wq = (gst_wait_queue) instantiate (_gst_wait_queue_class, &waitQueueOOP);
+  wq->value = FROM_INT (0);
 
-  return (semaphoreOOP);
+  return (waitQueueOOP);
 }
 
 void
@@ -1993,7 +1999,7 @@ _gst_init_process_system (void)
 				       &processor->processLists);
 
       for (i = 0; i < NUM_PRIORITIES; i++)
-	processLists->data[i] = semaphore_new (0);
+	processLists->data[i] = wait_queue_new ();
     }
 
   if (IS_NIL (processor->processTimeslice))

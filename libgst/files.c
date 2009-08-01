@@ -192,7 +192,7 @@ static const char standard_files[] = {
   "Collection.st\0"
   "SeqCollect.st\0"
   "LinkedList.st\0"
-  "Semaphore.st\0"
+  "WaitQueue.st\0"
   "ArrayColl.st\0"
   "CompildCode.st\0"
   "CompildMeth.st\0"

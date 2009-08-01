@@ -2785,11 +2785,11 @@ primitive VMpr_Semaphore_signalNotify :
 primitive VMpr_Semaphore_lock [succeed,check_interrupt]
 {
   OOP oop1;
-  gst_semaphore sem;
+  gst_wait_queue sem;
   _gst_primitives_executed++;
 
   oop1 = STACKTOP ();
-  sem = (gst_semaphore) OOP_TO_OBJ (oop1);
+  sem = (gst_wait_queue) OOP_TO_OBJ (oop1);
   SET_STACKTOP_BOOLEAN (TO_INT (sem->signals) > 0);
   sem->signals = FROM_INT (0);
   PRIM_SUCCEEDED;

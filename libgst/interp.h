@@ -192,12 +192,20 @@ typedef struct gst_continuation
 typedef struct gst_semaphore
 {
   OBJ_HEADER;
-  OOP firstLink;
-  OOP lastLink;
-  OOP signals;
+  OOP waitQueue;
   OOP name;
 }
  *gst_semaphore;
+
+/* The structure of various objects related to the process system.  */
+typedef struct gst_wait_queue
+{
+  OBJ_HEADER;
+  OOP firstLink;
+  OOP lastLink;
+  OOP value;
+}
+ *gst_wait_queue;
 
 #define PROCESS_HEADER \
   OBJ_HEADER; \

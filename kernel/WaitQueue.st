@@ -1,15 +1,14 @@
 "======================================================================
 |
-|   Semaphore Method Definitions
+|   WaitQueue Method Definitions
 |
 |
  ======================================================================"
 
 "======================================================================
 |
-| Copyright 1988,92,94,95,99,2000,2001,2002,2008
-| Free Software Foundation, Inc.
-| Written by Steve Byrne.
+| Copyright 2009 Free Software Foundation, Inc.
+| Written by Paolo Bonzini.
 |
 | This file is part of the GNU Smalltalk class library.
 |
@@ -32,69 +31,18 @@
 
 
 
-Object subclass: Semaphore [
-    | waitQueue name |
+LinkedList subclass: WaitQueue [
+    | value |
     
     <category: 'Language-Processes'>
-    <comment: 'My instances represent counting semaphores.  I provide methods for signalling
-the semaphore''s availability, and methods for waiting for its availability.
-I also provide some methods for implementing critical sections.'>
+    <comment: 'My instances represent a wait queue with an attached
+SmallInteger register.  I am the fundamental synchronization primitive.'>
 
-    Semaphore class >> new [
+    WaitQueue class >> new [
 	"Answer a new semaphore"
 
 	<category: 'instance creation'>
 	^self basicNew initialize
-    ]
-
-    Semaphore class >> forMutualExclusion [
-	"Answer a new semaphore with a signal on it. These semaphores are a useful
-	 shortcut when you use semaphores as critical sections."
-
-	<category: 'instance creation'>
-	^(self new)
-	    signal;
-	    yourself
-    ]
-
-    critical: aBlock [
-	"Wait for the receiver to be free, execute aBlock and signal the receiver
-	 again. Return the result of evaluating aBlock."
-
-	"Look out for race conditions!"
-
-	<category: 'mutual exclusion'>
-	| caught |
-	caught := false.
-	^[
-	    [
-		"The VM will not preempt the process between the two statements.
-		 Note that it is *wrong* to set the variable to true before
-		 obtaining the semaphore, but the exception handler straightens
-		 that.  On the other hand, setting the variable to true after the
-		 wait would be wrong if the process was preempted and terminated
-		 after the wait (hence, with `caught' still set to false and the
-	         semaphore obtained)."
-	        caught := true.
-	        self wait ] on: ProcessBeingTerminated do: [ :ex |
-		    ex semaphore isNil ifFalse: [ caught := false ].
-		    ex pass ].
-	    aBlock value ]
-		ensure: [caught ifTrue: [self signal] ]
-    ]
-
-    name [
-	"Answer a user-friendly name for the receiver"
-
-	<category: 'accessing'>
-	^name
-    ]
-
-    name: aString [
-	"Answer a user-friendly name for the receiver"
-
-	<category: 'accessing'>
-	name := aString
     ]
 
     waitingProcesses [
@@ -104,78 +52,66 @@ I also provide some methods for implementing critical sections.'>
 	^self asArray
     ]
 
-    wouldBlock [
-	"Answer whether waiting on the receiver would suspend the current process."
-
-	<category: 'accessing'>
-	^waitQueue value = 0
-    ]
-
     printOn: aStream [
 	"Print a human-readable represention of the receiver on aStream."
 
 	<category: 'printing'>
 	aStream
 	    nextPutAll: self class name;
-	    nextPutAll: '(%1: %<free|held>2, %3 %<available signals|waiting processes>2)' 
+	    nextPutAll: '(%1: value=%2, %3 waiting processes)' 
 			% 
 			    {self name printString.
-			    self signals > 0.
-			    self signals abs}
+			    value. self size}
     ]
 
     initialize [
 	<category: 'private'>
-	waitQueue := WaitQueue new
+	value := 0
     ]
 
-    signals [
-	"Answer the number of processes that can be accomodated or (if negative
-	 the number of waiting processes."
-
-	"signals never goes below 0, even if there are waiting process. So
-	 - if 0 and 0 processes are waiting, the signal count is 0
-	 - if 0 and k processes are waiting, the signal count is -k
-	 - if >0, no processes must be waiting and the signal count is signals"
-
-	<category: 'private'>
-	^(waitQueue value max: 0) - self size
+    value [
+	<category: 'accessing'>
+	^value
     ]
 
-    notify [
+    semaphoreNotify [
 	"Resume one of the processes that were waiting on the semaphore if
 	 there were any.  Do not leave a signal on the semaphore if no
 	 process is waiting."
 
 	<category: 'builtins'>
-	waitQueue semaphoreNotify
+	<primitive: VMpr_Semaphore_notify>
+	^self primitiveFailed
     ]
 
-    notifyAll [
+    semaphoreNotifyAll [
 	"Resume all the processes that were waiting on the semaphore if there
 	 were any.  Do not leave a signal on the semaphore if no process is
 	 waiting."
 
 	<category: 'builtins'>
-	waitQueue semaphoreNotifyAll
+	<primitive: VMpr_Semaphore_notifyAll>
+	^self primitiveFailed
     ]
 
-    signal [
+    semaphoreSignal [
 	"Signal the receiver, resuming a waiting process' if there is one"
 
 	<category: 'builtins'>
-	waitQueue semaphoreSignal
+	<primitive: VMpr_Semaphore_signal>
+	^self primitiveFailed
     ]
 
-    wait [
+    semaphoreWait [
 	"Wait for the receiver to be signalled, suspending the executing process
 	 if it is not yet"
 
 	<category: 'builtins'>
-	waitQueue semaphoreWait
+	<primitive: VMpr_Semaphore_wait>
+	^self primitiveFailed
     ]
 
-    waitAfterSignalling: aSemaphore [
+    semaphoreWaitAfterSignalling: aSemaphore [
 	"Signal aSemaphore then, atomically, wait for the receiver to be
 	 signalled, suspending the executing process if it is not yet.  This
 	 is needed to avoid race conditions when the #notify and #notifyAll
@@ -184,15 +120,17 @@ I also provide some methods for implementing critical sections.'>
 	 the process starts waiting on the receiver, the notification is lost."
 
 	<category: 'builtins'>
-	waitQueue semaphoreWaitAfterSignalling: aSemaphore
+	<primitive: VMpr_Semaphore_waitAfterSignalling>
+	^self primitiveFailed
     ]
 
-    lock [
+    semaphoreLock [
 	"Without putting the receiver to sleep, force processes that try to wait
 	 on the semaphore to block.  Answer whether this was the case even before."
 
 	<category: 'builtins'>
-	waitQueue semaphoreLock
+	<primitive: VMpr_Semaphore_lock>
+	^self primitiveFailed
     ]
 ]
 

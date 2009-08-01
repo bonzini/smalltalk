@@ -710,11 +710,11 @@ fixup_object (OOP oop, gst_object dest, gst_object src, int numBytes)
       destProcess->nextLink = next->nextLink;
     }
 
-  else if (class_oop == _gst_semaphore_class)
+  else if (class_oop == _gst_wait_queue_class)
     {
       /* Find the new first and last link.  */
-      gst_semaphore destSem = (gst_semaphore) dest;
-      gst_semaphore srcSem = (gst_semaphore) src;
+      gst_wait_queue destSem = (gst_wait_queue) dest;
+      gst_wait_queue srcSem = (gst_wait_queue) src;
       OOP linkOOP = srcSem->firstLink;
 
       destSem->firstLink = _gst_nil_oop;

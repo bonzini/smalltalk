@@ -150,7 +150,6 @@ OOP _gst_read_stream_class = NULL;
 OOP _gst_read_write_stream_class = NULL;
 OOP _gst_root_namespace_class = NULL;
 OOP _gst_security_policy_class = NULL;
-OOP _gst_semaphore_class = NULL;
 OOP _gst_sequenceable_collection_class = NULL;
 OOP _gst_set_class = NULL;
 OOP _gst_small_integer_class = NULL;
@@ -167,6 +166,7 @@ OOP _gst_undefined_object_class = NULL;
 OOP _gst_unicode_character_class = NULL;
 OOP _gst_unicode_string_class = NULL;
 OOP _gst_variable_binding_class = NULL;
+OOP _gst_wait_queue_class = NULL;
 OOP _gst_weak_array_class = NULL;
 OOP _gst_weak_set_class = NULL;
 OOP _gst_weak_key_dictionary_class = NULL;
@@ -452,9 +452,9 @@ static const class_definition class_info[] = {
    GST_ISP_FIXED, false, 2,
    "LinkedList", "firstLink lastLink", NULL, NULL },
 
-  {&_gst_semaphore_class, &_gst_linked_list_class,
-   GST_ISP_FIXED, true, 2,
-   "Semaphore", "signals name", NULL, NULL },
+  {&_gst_wait_queue_class, &_gst_linked_list_class,
+   GST_ISP_FIXED, true, 1,
+   "WaitQueue", "value", NULL, NULL },
 
   {&_gst_arrayed_collection_class, &_gst_sequenceable_collection_class,
    GST_ISP_POINTER, false, 0,
