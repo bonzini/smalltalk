@@ -7,58 +7,13 @@ Error subclass: XPPStructureException [
 
 
 
-Object subclass: XMLPullParser [
-    | stream current nestedStreams entities externalEntities parameterEntities parsingMarkup markedPosition peekChar nameBuffer attributeBuffer eventQueue |
-    
+Stream subclass: XMLAbstractPullParser [
     <category: 'XMLPullParser'>
     <comment: 'This is based on Antony Blakey''s XMLPullParser.'>
 
-    NameDelimiters := nil.
-    DigitTable := nil.
-    CharEscapes := nil.
-    SeparatorTable := nil.
-    LiteralChars := nil.
-
-    XMLPullParser class >> initialize [
-	"XMLPullParser initialize"
-
+    XMLAbstractPullParser class >> parse: source [
 	<category: 'instance creation'>
-	| nameDelimiters |
-	CharEscapes := #($& $" $' $> $<) asSet.
-	SeparatorTable := Array new: 256.
-	SeparatorTable atAllPut: true.
-	#(9 10 12 13 32) do: [:each | SeparatorTable at: each + 1 put: false].
-	LiteralChars := Array new: 256.
-	LiteralChars atAllPut: false.
-	':-_.' do: [:each | LiteralChars at: each asciiValue put: true].
-	1 to: 256
-	    do: 
-		[:i | 
-		((Character value: i - 1) isDigit or: [(Character value: i - 1) isLetter]) 
-		    ifTrue: [LiteralChars at: i put: true]].
-	nameDelimiters := #(9 10 12 13 32 61 62 47).	"$= asInteger 61"	"$> asInteger"	"$/ asInteger"
-	NameDelimiters := Array new: 256.
-	NameDelimiters atAllPut: false.
-	nameDelimiters do: [:each | NameDelimiters at: each put: true].
-	DigitTable := Array new: 256.
-	DigitTable atAllPut: -1.
-	0 to: 15
-	    do: [:each | DigitTable at: (Character digitValue: each) asciiValue put: each].
-    ]
-
-    XMLPullParser class >> new [
-	<category: 'instance creation'>
-	^super new initialize
-    ]
-	
-    XMLPullParser class >> isCharEscape: aChar [
-	<category: 'accessing'>
-	^CharEscapes includes: aChar
-    ]
-
-    XMLPullParser class >> parse: source [
-	<category: 'instance creation'>
-	^self new parse: source
+	self subclassResponsibility
     ]
 
     at: attName [
@@ -77,16 +32,6 @@ Object subclass: XMLPullParser [
     at: attName ifNone: aBlock [
 	<category: 'delegating accessors'>
 	^self current at: attName ifNone: aBlock
-    ]
-
-    atEnd [
-	<category: 'streaming'>
-	nestedStreams == nil ifTrue: [^peekChar == nil and: [stream atEnd]].
-	^stream atEnd 
-	    ifTrue: 
-		[self popNestingLevel.
-		self atEnd]
-	    ifFalse: [false]
     ]
 
     collect: tagName peek: aBlock [
@@ -165,24 +110,7 @@ Object subclass: XMLPullParser [
 
     current [
 	<category: 'core api'>
-	^current
-    ]
-
-    entities [
-	<category: 'entities'>
-	entities ifNil: [entities := self initEntities].
-	^entities
-    ]
-
-    entity: refName [
-	<category: 'entities'>
-	^self entities at: refName
-	    ifAbsentPut: [self parseError: 'XML undefined entity ' , refName printString]
-    ]
-
-    fastStreamStringContents: writeStream [
-	<category: 'private'>
-	^writeStream contents
+	self subclassResponsibility
     ]
 
     if: tagName peek: aBlock [
@@ -231,27 +159,6 @@ Object subclass: XMLPullParser [
 	^self isStartTag 
 	    ifTrue: [self matchAnyTake: aBlock]
 	    ifFalse: [elseBlock value]
-    ]
-
-    initEntities [
-	<category: 'entities'>
-	| ents |
-	ents := Dictionary new.
-	ents
-	    at: 'amp' put: $&;
-	    at: 'quot' put: $";
-	    at: 'apos' put: $';
-	    at: 'gt' put: $>;
-	    at: 'lt' put: $<.
-	^ents
-    ]
-
-    initialize [
-	<category: 'initialize-release'>
-	parsingMarkup := false.
-	attributeBuffer := WriteStream on: (String new: 128).
-	nameBuffer := WriteStream on: (String new: 128).
-	eventQueue := OrderedCollection new
     ]
 
     is: tagName [
@@ -369,6 +276,315 @@ Object subclass: XMLPullParser [
     mustBeText [
 	<category: 'asserting event types'>
 	self isText ifFalse: [XPPStructureException signal: 'Expected text']
+    ]
+
+    serializeTagContentsTo: serializer [
+	<category: 'serializing'>
+	self consumeStartTag.
+	self serializeUntilEndTagTo: serializer.
+	self consumeEndTag
+    ]
+
+    serializeTagTo: serializer [
+	<category: 'serializing'>
+	self mustBeStartTag.
+	self current serializeTo: serializer.
+	self consumeStartTag.
+	self serializeUntilEndTagTo: serializer.
+	self current serializeTo: serializer.
+	self consumeEndTag
+    ]
+
+    serializeUntilEndTagTo: serializer [
+	<category: 'serializing'>
+	[self isEndTag] whileFalse: 
+		[| event |
+		event := self current.
+		event isText 
+		    ifTrue: 
+			[event serializeTo: serializer.
+			self next]
+		    ifFalse: 
+			[event isStartTag 
+			    ifTrue: [self serializeTagTo: serializer]
+			    ifFalse: [XPPStructureException signal: 'Unexpected element']]]
+    ]
+
+    skip: tagName [
+	<category: 'tag-based api'>
+	self consumeStartTag: tagName.
+	[self isEndTag] whileFalse: 
+		[| event |
+		event := self current.
+		event isText 
+		    ifTrue: [self next]
+		    ifFalse: 
+			[event isStartTag 
+			    ifTrue: [self skipAny]
+			    ifFalse: [XPPStructureException signal: 'Unexpected element']]].
+	self consumeEndTag: tagName
+    ]
+
+    skipAny [
+	<category: 'tag-based api'>
+	self consumeStartTag.
+	[self isEndTag] whileFalse: 
+		[| event |
+		event := self current.
+		event isText 
+		    ifTrue: [self next]
+		    ifFalse: 
+			[event isStartTag 
+			    ifTrue: [self skipAny]
+			    ifFalse: [XPPStructureException signal: 'Unexpected element']]].
+	self consumeEndTag
+    ]
+
+    skipIf: tagName [
+	<category: 'tag-based api'>
+	(self is: tagName) ifTrue: [self skipAny]
+    ]
+
+    skipIfAny [
+	<category: 'tag-based api'>
+	self isStartTag ifTrue: [self skipAny]
+    ]
+
+    skipWhile: tagName [
+	<category: 'tag-based api'>
+	[self is: tagName] whileTrue: [self skipAny]
+    ]
+
+    skipWhileAny [
+	<category: 'tag-based api'>
+	[self isStartTag] whileTrue: [self skipAny]
+    ]
+
+    tag [
+	<category: 'delegating accessors'>
+	^self current tag
+    ]
+
+    text [
+	<category: 'delegating accessors'>
+	^self isText 
+	    ifTrue: 
+		[| text |
+		text := self current text.
+		self next.
+		text]
+	    ifFalse: ['']
+    ]
+
+    textIf: tagName [
+	<category: 'tag-based api'>
+	^self 
+	    if: tagName
+	    take: [self text]
+	    else: ['']
+    ]
+
+    textIf: tagName else: aBlock [
+	<category: 'tag-based api'>
+	^self 
+	    if: tagName
+	    take: [self text]
+	    else: [aBlock value]
+    ]
+
+    textIfAny [
+	<category: 'tag-based api'>
+	^self ifAnyTake: [self text] else: ['']
+    ]
+
+    textIfAnyElse: aBlock [
+	<category: 'tag-based api'>
+	^self ifAnyTake: [self text] else: [aBlock value]
+    ]
+
+    textOf: tagName [
+	<category: 'tag-based api'>
+	^self match: tagName take: [self text]
+    ]
+
+    textOfAny [
+	<category: 'tag-based api'>
+	^self matchAnyTake: [self text]
+    ]
+
+    while: tagName peek: aBlock [
+	<category: 'tag-based api'>
+	[self is: tagName] whileTrue: [self matchAnyPeek: aBlock]
+    ]
+
+    while: tagName peek: aBlock separatedBy: sepBlock [
+	<category: 'tag-based api'>
+	| doneFirst |
+	doneFirst := false.
+	[self is: tagName] whileTrue: 
+		[doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
+		self matchAnyPeek: aBlock]
+    ]
+
+    while: tagName take: aBlock [
+	<category: 'tag-based api'>
+	[self is: tagName] whileTrue: [self matchAnyTake: aBlock]
+    ]
+
+    while: tagName take: aBlock separatedBy: sepBlock [
+	<category: 'tag-based api'>
+	| doneFirst |
+	doneFirst := false.
+	[self is: tagName] whileTrue: 
+		[| tag |
+		tag := self current.
+		self consumeStartTag.
+		doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
+		aBlock numArgs = 1 ifTrue: [aBlock value: tag] ifFalse: [aBlock value].
+		self consumeEndTag]
+    ]
+
+    whileAnyPeek: aBlock [
+	<category: 'tag-based api'>
+	[self isStartTag] whileTrue: [self matchAnyPeek: aBlock]
+    ]
+
+    whileAnyPeek: aBlock separatedBy: sepBlock [
+	<category: 'tag-based api'>
+	| doneFirst |
+	doneFirst := false.
+	[self isStartTag] whileTrue: 
+		[| tag |
+		tag := self current.
+		doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
+		aBlock numArgs = 1 ifTrue: [aBlock value: tag] ifFalse: [aBlock value]]
+    ]
+
+    whileAnyTake: aBlock [
+	<category: 'tag-based api'>
+	[self isStartTag] whileTrue: [self matchAnyTake: aBlock]
+    ]
+
+    whileAnyTake: aBlock separatedBy: sepBlock [
+	<category: 'tag-based api'>
+	| doneFirst |
+	doneFirst := false.
+	[self isStartTag] whileTrue: 
+		[| tag |
+		tag := self current.
+		self consumeStartTag.
+		doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
+		aBlock numArgs = 1 ifTrue: [aBlock value: tag] ifFalse: [aBlock value].
+		self consumeEndTag]
+    ]
+]
+
+
+
+
+XMLAbstractPullParser subclass: XMLPullParser [
+    | stream current nestedStreams entities externalEntities parameterEntities parsingMarkup peekChar nameBuffer attributeBuffer eventQueue |
+    
+    <category: 'XMLPullParser'>
+    <comment: 'This is based on Antony Blakey''s XMLPullParser.'>
+
+    NameDelimiters := nil.
+    DigitTable := nil.
+    CharEscapes := nil.
+    SeparatorTable := nil.
+    LiteralChars := nil.
+
+    XMLPullParser class >> initialize [
+	"XMLPullParser initialize"
+
+	<category: 'instance creation'>
+	| nameDelimiters |
+	CharEscapes := #($& $" $' $> $<) asSet.
+	SeparatorTable := Array new: 256.
+	SeparatorTable atAllPut: true.
+	#(9 10 12 13 32) do: [:each | SeparatorTable at: each + 1 put: false].
+	LiteralChars := Array new: 256.
+	LiteralChars atAllPut: false.
+	':-_.' do: [:each | LiteralChars at: each asciiValue put: true].
+	1 to: 256
+	    do: 
+		[:i | 
+		((Character value: i - 1) isDigit or: [(Character value: i - 1) isLetter]) 
+		    ifTrue: [LiteralChars at: i put: true]].
+	nameDelimiters := #(9 10 12 13 32 61 62 47).	"$= asInteger 61"	"$> asInteger"	"$/ asInteger"
+	NameDelimiters := Array new: 256.
+	NameDelimiters atAllPut: false.
+	nameDelimiters do: [:each | NameDelimiters at: each put: true].
+	DigitTable := Array new: 256.
+	DigitTable atAllPut: -1.
+	0 to: 15
+	    do: [:each | DigitTable at: (Character digitValue: each) asciiValue put: each].
+    ]
+
+    XMLPullParser class >> isCharEscape: aChar [
+	<category: 'accessing'>
+	^CharEscapes includes: aChar
+    ]
+
+    XMLPullParser class >> on: source [
+	<category: 'instance creation'>
+	^self new initialize: source
+    ]
+
+    atEnd [
+	<category: 'streaming'>
+	nestedStreams == nil ifTrue: [^peekChar == nil and: [stream atEnd]].
+	^stream atEnd 
+	    ifTrue: 
+		[self popNestingLevel.
+		self atEnd]
+	    ifFalse: [false]
+    ]
+
+    current [
+	<category: 'core api'>
+	^current
+    ]
+
+    entities [
+	<category: 'entities'>
+	entities ifNil: [entities := self initEntities].
+	^entities
+    ]
+
+    entity: refName [
+	<category: 'entities'>
+	^self entities at: refName
+	    ifAbsentPut: [self parseError: 'XML undefined entity ' , refName printString]
+    ]
+
+    fastStreamStringContents: writeStream [
+	<category: 'private'>
+	^writeStream contents
+    ]
+
+
+    initEntities [
+	<category: 'entities'>
+	| ents |
+	ents := Dictionary new.
+	ents
+	    at: 'amp' put: $&;
+	    at: 'quot' put: $";
+	    at: 'apos' put: $';
+	    at: 'gt' put: $>;
+	    at: 'lt' put: $<.
+	^ents
+    ]
+
+    initialize: source [
+	<category: 'initialize-release'>
+	parsingMarkup := false.
+	attributeBuffer := WriteStream on: (String new: 128).
+	nameBuffer := WriteStream on: (String new: 128).
+	eventQueue := OrderedCollection new.
+	stream := source readStream.
+	current := XPPStartDocument new
     ]
 
     next [
@@ -707,12 +923,6 @@ Object subclass: XMLPullParser [
 	"self handleXMLDecl: attributes namespaces: namespaces"
     ]
 
-    parse: source [
-	<category: 'initialize-release'>
-	stream := source readStream.
-	current := XPPStartDocument new
-    ]
-
     parsingMarkup [
 	<category: 'private'>
 	^parsingMarkup
@@ -756,78 +966,6 @@ Object subclass: XMLPullParser [
 	^value
     ]
 
-    serializeTagContentsTo: serializer [
-	<category: 'serializing'>
-	self consumeStartTag.
-	self serializeUntilEndTagTo: serializer.
-	self consumeEndTag
-    ]
-
-    serializeTagTo: serializer [
-	<category: 'serializing'>
-	self mustBeStartTag.
-	self current serializeTo: serializer.
-	self consumeStartTag.
-	self serializeUntilEndTagTo: serializer.
-	self current serializeTo: serializer.
-	self consumeEndTag
-    ]
-
-    serializeUntilEndTagTo: serializer [
-	<category: 'serializing'>
-	[self isEndTag] whileFalse: 
-		[| event |
-		event := self current.
-		event isText 
-		    ifTrue: 
-			[event serializeTo: serializer.
-			self next]
-		    ifFalse: 
-			[event isStartTag 
-			    ifTrue: [self serializeTagTo: serializer]
-			    ifFalse: [XPPStructureException signal: 'Unexpected element']]]
-    ]
-
-    skip: tagName [
-	<category: 'tag-based api'>
-	self consumeStartTag: tagName.
-	[self isEndTag] whileFalse: 
-		[| event |
-		event := self current.
-		event isText 
-		    ifTrue: [self next]
-		    ifFalse: 
-			[event isStartTag 
-			    ifTrue: [self skipAny]
-			    ifFalse: [XPPStructureException signal: 'Unexpected element']]].
-	self consumeEndTag: tagName
-    ]
-
-    skipAny [
-	<category: 'tag-based api'>
-	self consumeStartTag.
-	[self isEndTag] whileFalse: 
-		[| event |
-		event := self current.
-		event isText 
-		    ifTrue: [self next]
-		    ifFalse: 
-			[event isStartTag 
-			    ifTrue: [self skipAny]
-			    ifFalse: [XPPStructureException signal: 'Unexpected element']]].
-	self consumeEndTag
-    ]
-
-    skipIf: tagName [
-	<category: 'tag-based api'>
-	(self is: tagName) ifTrue: [self skipAny]
-    ]
-
-    skipIfAny [
-	<category: 'tag-based api'>
-	self isStartTag ifTrue: [self skipAny]
-    ]
-
     skipSeparators [
 	<category: 'streaming'>
 	| nextChar |
@@ -851,16 +989,6 @@ Object subclass: XMLPullParser [
 		[self parseError: 'XML no delimiting ' , delimiter printString , ' found']
     ]
 
-    skipWhile: tagName [
-	<category: 'tag-based api'>
-	[self is: tagName] whileTrue: [self skipAny]
-    ]
-
-    skipWhileAny [
-	<category: 'tag-based api'>
-	[self isStartTag] whileTrue: [self skipAny]
-    ]
-
     streamEncoding: encodingString [
 	<category: 'streaming'>
 	| converterClass |
@@ -874,58 +1002,6 @@ Object subclass: XMLPullParser [
 			converterClass ifNotNil: [stream converter: converterClass new]]]
     ]
 
-    tag [
-	<category: 'delegating accessors'>
-	^self current tag
-    ]
-
-    text [
-	<category: 'delegating accessors'>
-	^self isText 
-	    ifTrue: 
-		[| text |
-		text := self current text.
-		self next.
-		text]
-	    ifFalse: ['']
-    ]
-
-    textIf: tagName [
-	<category: 'tag-based api'>
-	^self 
-	    if: tagName
-	    take: [self text]
-	    else: ['']
-    ]
-
-    textIf: tagName else: aBlock [
-	<category: 'tag-based api'>
-	^self 
-	    if: tagName
-	    take: [self text]
-	    else: [aBlock value]
-    ]
-
-    textIfAny [
-	<category: 'tag-based api'>
-	^self ifAnyTake: [self text] else: ['']
-    ]
-
-    textIfAnyElse: aBlock [
-	<category: 'tag-based api'>
-	^self ifAnyTake: [self text] else: [aBlock value]
-    ]
-
-    textOf: tagName [
-	<category: 'tag-based api'>
-	^self match: tagName take: [self text]
-    ]
-
-    textOfAny [
-	<category: 'tag-based api'>
-	^self matchAnyTake: [self text]
-    ]
-
     unpeek [
 	<category: 'streaming'>
 	peekChar ifNotNil: 
@@ -936,72 +1012,6 @@ Object subclass: XMLPullParser [
     usesNamespaces [
 	<category: 'private'>
 	^true
-    ]
-
-    while: tagName peek: aBlock [
-	<category: 'tag-based api'>
-	[self is: tagName] whileTrue: [self matchAnyPeek: aBlock]
-    ]
-
-    while: tagName peek: aBlock separatedBy: sepBlock [
-	<category: 'tag-based api'>
-	| doneFirst |
-	doneFirst := false.
-	[self is: tagName] whileTrue: 
-		[doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
-		self matchAnyPeek: aBlock]
-    ]
-
-    while: tagName take: aBlock [
-	<category: 'tag-based api'>
-	[self is: tagName] whileTrue: [self matchAnyTake: aBlock]
-    ]
-
-    while: tagName take: aBlock separatedBy: sepBlock [
-	<category: 'tag-based api'>
-	| doneFirst |
-	doneFirst := false.
-	[self is: tagName] whileTrue: 
-		[| tag |
-		tag := self current.
-		self consumeStartTag.
-		doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
-		aBlock numArgs = 1 ifTrue: [aBlock value: tag] ifFalse: [aBlock value].
-		self consumeEndTag]
-    ]
-
-    whileAnyPeek: aBlock [
-	<category: 'tag-based api'>
-	[self isStartTag] whileTrue: [self matchAnyPeek: aBlock]
-    ]
-
-    whileAnyPeek: aBlock separatedBy: sepBlock [
-	<category: 'tag-based api'>
-	| doneFirst |
-	doneFirst := false.
-	[self isStartTag] whileTrue: 
-		[| tag |
-		tag := self current.
-		doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
-		aBlock numArgs = 1 ifTrue: [aBlock value: tag] ifFalse: [aBlock value]]
-    ]
-
-    whileAnyTake: aBlock [
-	<category: 'tag-based api'>
-	[self isStartTag] whileTrue: [self matchAnyTake: aBlock]
-    ]
-
-    whileAnyTake: aBlock separatedBy: sepBlock [
-	<category: 'tag-based api'>
-	| doneFirst |
-	doneFirst := false.
-	[self isStartTag] whileTrue: 
-		[| tag |
-		tag := self current.
-		self consumeStartTag.
-		doneFirst ifTrue: [sepBlock value] ifFalse: [doneFirst := true].
-		aBlock numArgs = 1 ifTrue: [aBlock value: tag] ifFalse: [aBlock value].
-		self consumeEndTag]
     ]
 ]
 
