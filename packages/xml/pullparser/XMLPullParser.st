@@ -11,9 +11,19 @@ Stream subclass: XMLAbstractPullParser [
     <category: 'XMLPullParser'>
     <comment: 'This is based on Antony Blakey''s XMLPullParser.'>
 
-    XMLAbstractPullParser class >> parse: source [
+    XMLAbstractPullParser class >> on: source [
 	<category: 'instance creation'>
 	self subclassResponsibility
+    ]
+
+    XMLAbstractPullParser class >> onFile: aFilename [
+        <category: 'instance creation'>
+        ^self on: (FileStream open: aFilename mode: FileStream read)
+    ]
+
+    XMLAbstractPullParser class >> onString: aString [
+        <category: 'instance creation'>
+        ^self on: aString readStream
     ]
 
     at: attName [

@@ -1,3 +1,9 @@
+XMLPullParser extend [
+    XMLPullParser class >> parse: source [
+	<category: 'instance creation'>
+	^self onString: source
+    ]
+]
 
 
 
