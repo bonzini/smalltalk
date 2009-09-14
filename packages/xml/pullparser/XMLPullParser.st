@@ -7,23 +7,37 @@ Error subclass: XPPStructureException [
 
 
 
-Stream subclass: XMLAbstractPullParser [
+SAXParser class extend [
+    pullParserFactory [
+	<category: 'pull parsing'>
+	^XMLGenerativePullParser
+    ]
+]
+
+
+
+Stream subclass: XMLPullParser [
     <category: 'XMLPullParser'>
     <comment: 'This is based on Antony Blakey''s XMLPullParser.'>
 
-    XMLAbstractPullParser class >> on: source [
-	<category: 'instance creation'>
-	self subclassResponsibility
-    ]
-
-    XMLAbstractPullParser class >> onFile: aFilename [
+    XMLPullParser class >> onFile: aFilename [
         <category: 'instance creation'>
         ^self on: (FileStream open: aFilename mode: FileStream read)
     ]
 
-    XMLAbstractPullParser class >> onString: aString [
+    XMLPullParser class >> onString: aString [
         <category: 'instance creation'>
         ^self on: aString readStream
+    ]
+
+    XMLPullParser class >> on: source [
+	<category: 'instance creation'>
+	^self defaultParserClass pullParserFactory on: source
+    ]
+
+    XMLPullParser class >> defaultParserClass [
+	<category: 'accessing'>
+	^SAXParser defaultParserClass
     ]
 
     at: attName [
@@ -288,6 +302,11 @@ Stream subclass: XMLAbstractPullParser [
 	self isText ifFalse: [XPPStructureException signal: 'Expected text']
     ]
 
+    pastEnd [
+	<category: 'core api'>
+	^self current
+    ]
+
     serializeTagContentsTo: serializer [
 	<category: 'serializing'>
 	self consumeStartTag.
@@ -488,556 +507,144 @@ Stream subclass: XMLAbstractPullParser [
 		self consumeEndTag]
     ]
 ]
+
 
+
+SAXDriver subclass: SAXEventGenerator [
+    | generator |
+
+    SAXEventGenerator class >> on: aGenerator [
+	<category: 'instance creation'>
+	^super new generator: aGenerator
+    ]
+
+    comment: data from: start to: stop [
+        <category: 'other'>
+
+    ]
+
+    characters: aString [
+        <category: 'content handler'>
+
+	generator yield: (XPPText text: aString)
+    ]
+
+    endDocument [
+        <category: 'content handler'>
+
+	generator yield: XPPEndDocument new
+    ]
+
+    endElement: namespaceURI localName: localName qName: name [
+        "indicates the end of an element. See startElement"
+
+        <category: 'content handler'>
+	| tag |
+        tag := NodeTag name: name ns: namespaceURI type: localName.
+	generator yield: (XPPEndTag tag: tag)
+
+    ]
+
+    endPrefixMapping: prefix [
+        <category: 'content handler'>
+        ^self
+    ]
+
+    processingInstruction: targetString data: dataString [
+        <category: 'content handler'>
+
+    ]
+
+    startDocument [
+        <category: 'content handler'>
+
+	generator yield: XPPStartDocument new
+    ]
+
+    startElement: namespaceURI localName: localName qName: name attributes: attrArray [
+	| tag attributes |
+        tag := NodeTag name: name ns: namespaceURI type: localName.
+	generator yield: (XPPStartTag tag: tag attributesArray: attrArray)
+    ]
+
+    startPrefixMapping: prefix uri: uri [
+        <category: 'content handler'>
+        ^self
+    ]
+
+    notationDecl: nameString publicID: publicIDString systemID: systemIDString [
+        <category: 'DTD handler'>
+
+    ]
+
+    unparsedEntityDecl: name publicID: publicID systemID: systemID notationName: notation [
+        <category: 'DTD handler'>
+        ^self
+    ]
+
+    resolveEntity: publicID systemID: systemID [
+        <category: 'entity resolver'>
+        ^nil
+    ]
+
+    generator: aGenerator [
+	<category: 'initialize'>
+	generator := aGenerator
+    ]
+]
 
 
 
-XMLAbstractPullParser subclass: XMLPullParser [
-    | stream current nestedStreams entities externalEntities parameterEntities parsingMarkup peekChar nameBuffer attributeBuffer eventQueue |
+XMLPullParser subclass: XMLGenerativePullParser [
+    | parser generator |
     
     <category: 'XMLPullParser'>
     <comment: 'This is based on Antony Blakey''s XMLPullParser.'>
 
-    NameDelimiters := nil.
-    DigitTable := nil.
-    CharEscapes := nil.
-    SeparatorTable := nil.
-    LiteralChars := nil.
-
-    XMLPullParser class >> initialize [
-	"XMLPullParser initialize"
-
-	<category: 'instance creation'>
-	| nameDelimiters |
-	CharEscapes := #($& $" $' $> $<) asSet.
-	SeparatorTable := Array new: 256.
-	SeparatorTable atAllPut: true.
-	#(9 10 12 13 32) do: [:each | SeparatorTable at: each + 1 put: false].
-	LiteralChars := Array new: 256.
-	LiteralChars atAllPut: false.
-	':-_.' do: [:each | LiteralChars at: each asciiValue put: true].
-	1 to: 256
-	    do: 
-		[:i | 
-		((Character value: i - 1) isDigit or: [(Character value: i - 1) isLetter]) 
-		    ifTrue: [LiteralChars at: i put: true]].
-	nameDelimiters := #(9 10 12 13 32 61 62 47).	"$= asInteger 61"	"$> asInteger"	"$/ asInteger"
-	NameDelimiters := Array new: 256.
-	NameDelimiters atAllPut: false.
-	nameDelimiters do: [:each | NameDelimiters at: each put: true].
-	DigitTable := Array new: 256.
-	DigitTable atAllPut: -1.
-	0 to: 15
-	    do: [:each | DigitTable at: (Character digitValue: each) asciiValue put: each].
+    XMLGenerativePullParser class >> on: source [
+	^self onParser:
+	    (self defaultParserClass on: source)
     ]
 
-    XMLPullParser class >> isCharEscape: aChar [
+    XMLGenerativePullParser class >> onParser: aParser [
+	<category: 'instance creation'>
+	| class |
+	^self new
+	    initialize: aParser;
+	    yourself
+    ]
+
+    XMLGenerativePullParser class >> isCharEscape: aChar [
 	<category: 'accessing'>
 	^CharEscapes includes: aChar
     ]
 
-    XMLPullParser class >> on: source [
-	<category: 'instance creation'>
-	^self new initialize: source
-    ]
-
     atEnd [
 	<category: 'streaming'>
-	nestedStreams == nil ifTrue: [^peekChar == nil and: [stream atEnd]].
-	^stream atEnd 
-	    ifTrue: 
-		[self popNestingLevel.
-		self atEnd]
-	    ifFalse: [false]
+	^self isEndDocument
     ]
 
     current [
 	<category: 'core api'>
-	^current
+	^generator peek
     ]
 
-    entities [
-	<category: 'entities'>
-	entities ifNil: [entities := self initEntities].
-	^entities
-    ]
-
-    entity: refName [
-	<category: 'entities'>
-	^self entities at: refName
-	    ifAbsentPut: [self parseError: 'XML undefined entity ' , refName printString]
-    ]
-
-    fastStreamStringContents: writeStream [
-	<category: 'private'>
-	^writeStream contents
-    ]
-
-
-    initEntities [
-	<category: 'entities'>
-	| ents |
-	ents := Dictionary new.
-	ents
-	    at: 'amp' put: $&;
-	    at: 'quot' put: $";
-	    at: 'apos' put: $';
-	    at: 'gt' put: $>;
-	    at: 'lt' put: $<.
-	^ents
-    ]
-
-    initialize: source [
+    initialize: aParser [
 	<category: 'initialize-release'>
-	parsingMarkup := false.
-	attributeBuffer := WriteStream on: (String new: 128).
-	nameBuffer := WriteStream on: (String new: 128).
-	eventQueue := OrderedCollection new.
-	stream := source readStream.
-	current := XPPStartDocument new
+	parser := aParser.
+	generator := Generator on: [ :g |
+	    parser saxDriver: (SAXEventGenerator on: g).
+	    parser scanDocument ].
+    ]
+
+    validate: aBoolean [
+	<category: 'core api'>
+	parser validate: aBoolean
     ]
 
     next [
 	<category: 'core api'>
-	eventQueue isEmpty ifFalse: [^current := eventQueue removeFirst].
-	self nextWhitespace.
-	self atEnd ifTrue: [^current := XPPEndDocument new].
-	self peek = $< ifTrue: [self nextNode] ifFalse: [self nextPCData].
-	^current := eventQueue isEmpty 
-		    ifTrue: [self next]
-		    ifFalse: [eventQueue removeFirst]
-    ]
-
-    nextAttributeInto: attributes namespaces: namespaces [
-	<category: 'streaming'>
-	| attrName attrValue |
-	attrName := self nextName.
-	self skipSeparators.
-	self nextChar == $= ifFalse: [self errorExpected: '='].
-	self skipSeparators.
-	attrValue := self nextAttributeValue.
-	(self usesNamespaces and: [attrName startsWith: 'xmlns']) 
-	    ifTrue: 
-		[attrName size > 6 
-		    ifTrue: 
-			[namespaces at: (attrName copyFrom: 7 to: attrName size) put: attrValue]
-		    ifFalse: [namespaces at: attrName put: attrValue]]
-	    ifFalse: [attributes at: attrName put: attrValue]
-    ]
-
-    nextAttributeValue [
-	<category: 'streaming'>
-	| delimiterChar attributeValueStream nextChar nextPeek referenceString entityValue |
-	delimiterChar := self nextChar.
-	(delimiterChar == $" or: [delimiterChar == $']) 
-	    ifFalse: [self errorExpected: 'Attribute value delimiter expected.'].
-	attributeValueStream := attributeBuffer reset.
-	
-	[nextPeek := nextChar := self nextChar.
-	nextChar ifNil: [self errorExpected: 'Character expected.'].
-	nextChar == $& 
-	    ifTrue: 
-		[self peek == $# 
-		    ifTrue: 
-			[nextPeek := nil.
-			nextChar := self nextCharReference]
-		    ifFalse: 
-			[referenceString := self nextLiteral.
-			self nextChar == $; ifFalse: [self errorExpected: ';'].
-			entityValue := self entity: referenceString.
-			(self class isCharEscape: entityValue) 
-			    ifTrue: 
-				[nextPeek := nil.
-				nextChar := entityValue]
-			    ifFalse: 
-				[entityValue := entityValue asString.
-				entityValue isEmpty 
-				    ifTrue: [nextPeek := nextChar := nil]
-				    ifFalse: 
-					[self pushStream: (ReadStream on: entityValue asString).
-					nextPeek := nextChar := self nextChar]]]].
-	nextPeek == delimiterChar] 
-		whileFalse: [nextChar ifNotNil: [attributeValueStream nextPut: nextChar]].
-	^self fastStreamStringContents: attributeValueStream
-    ]
-
-    nextCDataContent [
-	"Skip $["
-
-	<category: 'tokenizing'>
-	| cdata |
-	self nextChar.
-	cdata := self nextUpToAll: ']]>'.
-	eventQueue addLast: (XPPText new text: cdata)
-    ]
-
-    nextCDataOrConditional [
-	<category: 'tokenizing'>
-	"Skip ["
-
-	| nextChar conditionalKeyword |
-	self nextChar.
-	self skipSeparators.
-	nextChar := self peek.
-	nextChar == $% 
-	    ifTrue: 
-		[self checkAndExpandReference: (self parsingMarkup 
-			    ifTrue: [#dtd]
-			    ifFalse: [#content]).
-		conditionalKeyword := self nextLiteral.
-		self skipSeparators.
-		^self nextChar == $[ 
-		    ifTrue: 
-			[self skipSeparators.
-			self nextIncludeSection: (self conditionalInclude: conditionalKeyword)]
-		    ifFalse: [self errorExpected: '[']].
-	nextChar == $C 
-	    ifTrue: 
-		[^self nextLiteral = 'CDATA' 
-		    ifTrue: 
-			[self peek == $[ 
-			    ifTrue: [self nextCDataContent]
-			    ifFalse: [self errorExpected: '[']]
-		    ifFalse: [self errorExpected: 'CData']].
-	self errorExpected: 'CData or declaration'
-    ]
-
-    nextChar [
-	"Return the next character from the current input stream. If the current stream is at end pop to next nesting level if there is one.
-	 Due to the potential nesting of original document, included documents and replacment texts the streams are held in a stack representing the nested streams. The current stream is the top one."
-
-	<category: 'streaming'>
-	| nextChar |
-	peekChar ifNil: 
-		[nestedStreams ifNotNil: [self checkNestedStream].
-		^nextChar := stream next]
-	    ifNotNil: 
-		[nextChar := peekChar.
-		peekChar := nil.
-		^nextChar]
-    ]
-
-    nextCharReference [
-	<category: 'tokenizing'>
-	| base charValue |
-	self nextChar == $# ifFalse: [self errorExpected: 'character reference'].
-	base := self peek == $x 
-		    ifTrue: 
-			[self nextChar.
-			16]
-		    ifFalse: [10].
-	charValue := [self readNumberBase: base] on: Error
-		    do: [:ex | self errorExpected: 'Number.'].
-	self nextChar == $; ifFalse: [self errorExpected: '";"'].
-	^Character value: charValue
-    ]
-
-    nextComment [
-	"Skip first -"
-
-	<category: 'tokenizing'>
-	self nextChar.
-	self nextChar == $- ifFalse: [self errorExpected: 'second comment $-'].
-	self nextUpToAll: '-->'
-    ]
-
-    nextEndTag [
-	<category: 'tokenizing'>
-	"Skip /"
-
-	| string |
-	self nextChar.
-	string := self nextTrimmedBlanksUpTo: $>.
-	eventQueue addLast: (XPPEndTag new tag: (NodeTag new type: string))
-    ]
-
-    nextLiteral [
-	<category: 'tokenizing'>
-	| resultStream nextChar resultString |
-	resultStream := (String new: 10) writeStream.
-	((nextChar := self peek) isLetter or: [nextChar == $_]) 
-	    ifFalse: [self errorExpected: 'Name literal.'].
-	
-	[nextChar := self peek.
-	(LiteralChars at: nextChar asciiValue + 1) 
-	    ifTrue: 
-		[nextChar == $& 
-		    ifTrue: 
-			[nextChar := self nextChar.
-			resultStream nextPut: (self peek == $# 
-				    ifTrue: [self nextCharReference]
-				    ifFalse: [^resultStream contents])]
-		    ifFalse: [resultStream nextPut: self nextChar]]
-	    ifFalse: 
-		[resultString := resultStream contents.
-		resultString isEmpty 
-		    ifTrue: [self errorExpected: 'Name literal']
-		    ifFalse: [^resultString]]] 
-		repeat
-    ]
-
-    nextName [
-	<category: 'tokenizing'>
-	| nextChar |
-	nameBuffer reset.
-	self peek == $. ifTrue: [self malformedError: 'Character expected.'].
-	
-	[(nextChar := self peek) ifNil: [self errorExpected: 'Character expected.'].
-	NameDelimiters at: nextChar asciiValue] 
-		whileFalse: [nameBuffer nextPut: self nextChar].
-	^self fastStreamStringContents: nameBuffer
-    ]
-
-    nextNode [
-	<category: 'tokenizing'>
-	"Skip <"
-
-	| nextChar |
-	self nextChar.
-	nextChar := self peek.
-	nextChar == $! 
-	    ifTrue: 
-		["Skip !!"
-
-		self nextChar.
-		nextChar := self peek.
-		nextChar == $- ifTrue: [^self nextComment].
-		nextChar == $[ ifTrue: [^self nextCDataOrConditional].
-		^self parsingMarkup 
-		    ifTrue: [self nextMarkupDeclaration]
-		    ifFalse: [self nextDocType]].
-	nextChar == $? ifTrue: [^self nextPI].
-	^self nextTag
-    ]
-
-    nextPCData [
-	<category: 'tokenizing'>
-	| resultStream nextPeek nextChar referenceString entityValue |
-	resultStream := (String new: 10) writeStream.
-	
-	[nextPeek := nextChar := self peek.
-	nextChar ifNil: [self errorExpected: 'Character expected.'].
-	nextChar == $& 
-	    ifTrue: 
-		[self nextChar.
-		self peek == $# 
-		    ifTrue: 
-			[nextPeek := nil.
-			nextChar := self nextCharReference]
-		    ifFalse: 
-			[referenceString := self nextLiteral.
-			self nextChar == $; ifFalse: [self errorExpected: ';'].
-			entityValue := self entity: referenceString.
-			(self class isCharEscape: entityValue) 
-			    ifTrue: 
-				[nextPeek := nil.
-				nextChar := entityValue]
-			    ifFalse: 
-				[entityValue := entityValue asString.
-				entityValue isEmpty 
-				    ifTrue: [nextPeek := nextChar := nil]
-				    ifFalse: 
-					[self pushStream: (ReadStream on: entityValue asString).
-					nextPeek := nextChar := self peek]]]]
-	    ifFalse: [nextPeek == $< ifFalse: [self nextChar]].
-	nextPeek == $<] 
-		whileFalse: [nextChar ifNotNil: [resultStream nextPut: nextChar]].
-	eventQueue addLast: (XPPText new text: resultStream contents)
-    ]
-
-    nextPI [
-	<category: 'tokenizing'>
-	"Skip ?"
-
-	| piTarget piData |
-	self nextChar.
-	piTarget := self nextLiteral.
-	piTarget asUppercase = 'XML' ifTrue: [^self nextXMLDecl].
-	self skipSeparators.
-	piData := self nextUpToAll: '?>'
-	"self handlePI: piTarget data: piData"
-    ]
-
-    nextTag [
-	<category: 'tokenizing'>
-	| tagName attributes nextChar namespaces |
-	self peek = $/ ifTrue: [^self nextEndTag].
-	tagName := self nextName.
-	self skipSeparators.
-	attributes := Dictionary new: 33.
-	namespaces := Dictionary new: 5.
-	[(nextChar := self peek) == $> or: [nextChar == $/]] whileFalse: 
-		[self nextAttributeInto: attributes namespaces: namespaces.
-		self skipSeparators].
-	eventQueue addLast: ((XPPStartTag new)
-		    tag: (NodeTag new type: tagName);
-		    attributes: attributes).
-	self nextChar == $/ 
-	    ifTrue: 
-		[eventQueue addLast: (XPPEndTag new tag: (NodeTag new type: tagName)).
-		self nextChar]
-    ]
-
-    nextTrimmedBlanksUpTo: delimiter [
-	<category: 'streaming'>
-	| resultStream nextChar |
-	resultStream := WriteStream on: (String new: 10).
-	nextChar := nil.
-	[(nextChar := self nextChar) == delimiter] 
-	    whileFalse: [nextChar == $  ifFalse: [resultStream nextPut: nextChar]].
-	nextChar == delimiter 
-	    ifFalse: 
-		[self parseError: 'XML no delimiting ' , delimiter printString , ' found'].
-	^resultStream contents
-    ]
-
-    nextUpToAll: delimitingString [
-	<category: 'streaming'>
-	| string |
-	self unpeek.
-	string := stream upToAll: delimitingString.
-	stream skip: delimitingString size negated.
-	(stream next: delimitingString size) = delimitingString 
-	    ifFalse: 
-		[self 
-		    parseError: 'XML no delimiting ' , delimitingString printString , ' found'].
-	^string
-    ]
-
-    nextWhitespace [
-	<category: 'tokenizing'>
-	| nextChar |
-	
-	[(nextChar := self peek) == nil 
-	    or: [SeparatorTable at: nextChar asciiValue + 1 ifAbsent: [true]]] 
-		whileFalse: [self nextChar].
-	(nestedStreams == nil or: [self atEnd not]) 
-	    ifFalse: 
-		[self checkNestedStream.
-		self nextWhitespace]
-    ]
-
-    nextXMLDecl [
-	<category: 'tokenizing'>
-	| attributes nextChar namespaces |
-	self skipSeparators.
-	attributes := Dictionary new.
-	namespaces := Dictionary new.
-	[(nextChar := self peek) == $?] whileFalse: 
-		[self nextAttributeInto: attributes namespaces: namespaces.
-		self skipSeparators].
-	self nextChar.
-	self nextChar == $> ifFalse: [self errorExpected: '> expected.'].
-	(attributes includesKey: 'encoding') 
-	    ifTrue: [self streamEncoding: (attributes at: 'encoding')]
-	"self handleXMLDecl: attributes namespaces: namespaces"
-    ]
-
-    parsingMarkup [
-	<category: 'private'>
-	^parsingMarkup
-    ]
-
-    peek [
-	"Return the next character from the current input stream. If the current stream poop to next nesting level if there is one.
-	 Due to the potential nesting of original document, included documents and replacment texts the streams are held in a stack representing the nested streams. The current stream is the top one."
-
-	<category: 'streaming'>
-	peekChar ifNil: 
-		[nestedStreams ifNotNil: [self checkNestedStream].
-		^peekChar := stream atEnd ifTrue: [nil] ifFalse: [stream next]]
-	    ifNotNil: [^peekChar]
-    ]
-
-    readNumberBase: base [
-	"Read a hex number from stream until encountering $;"
-
-	<category: 'private'>
-	| value digit |
-	base = 10 
-	    ifFalse: 
-		[| numberString |
-		numberString := self nextUpTo: $;.
-		self stream skip: -1.
-		^Integer readFrom: numberString asUppercase readStream base: base].
-	value := 0.
-	digit := DigitTable at: self peek asciiValue.
-	digit < 0 ifTrue: [self error: 'At least one digit expected here'].
-	self nextChar.
-	value := digit.
-	
-	[digit := DigitTable at: self peek asciiValue.
-	digit < 0 
-	    ifTrue: [^value]
-	    ifFalse: 
-		[self nextChar.
-		value := value * base + digit]] 
-		repeat.
-	^value
-    ]
-
-    skipSeparators [
-	<category: 'streaming'>
-	| nextChar |
-	
-	[(nextChar := self peek) == nil 
-	    or: [SeparatorTable at: nextChar asciiValue + 1]] 
-		whileFalse: [self nextChar].
-	(nestedStreams == nil or: [self atEnd not]) 
-	    ifFalse: 
-		[self checkNestedStream.
-		self skipSeparators]
-    ]
-
-    skipUpTo: delimiter [
-	<category: 'tokenizing'>
-	| nextChar |
-	self unpeek.
-	[self atEnd or: [(nextChar := self nextChar) == delimiter]] whileFalse: [].
-	nextChar == delimiter 
-	    ifFalse: 
-		[self parseError: 'XML no delimiting ' , delimiter printString , ' found']
-    ]
-
-    streamEncoding: encodingString [
-	<category: 'streaming'>
-	| converterClass |
-	Smalltalk at: #TextConverter
-	    ifPresent: 
-		[:tc | 
-		(stream respondsTo: #converter:) 
-		    ifTrue: 
-			[converterClass := tc 
-				    defaultConverterClassForEncoding: encodingString asLowercase.
-			converterClass ifNotNil: [stream converter: converterClass new]]]
-    ]
-
-    unpeek [
-	<category: 'streaming'>
-	peekChar ifNotNil: 
-		[stream pushBack: (String with: peekChar).
-		peekChar := nil]
-    ]
-
-    usesNamespaces [
-	<category: 'private'>
-	^true
+	self atEnd ifTrue: [ ^self pastEnd ].
+	^generator next; peek
     ]
 ]
-
-
-
-NodeTag extend [
-    type: typeStr [
-	<category: 'initialize'>
-	namespace := ''.
-	type := typeStr.
-	qualifier := ''
-    ]
-]
-
-
-Eval [
-    XMLPullParser initialize
-]
-

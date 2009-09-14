@@ -1,7 +1,10 @@
 XMLPullParser extend [
     XMLPullParser class >> parse: source [
 	<category: 'instance creation'>
-	^self onString: source
+	| pull |
+	pull := self onString: source.
+	pull validate: false.
+	^pull
     ]
 ]
 
@@ -56,9 +59,11 @@ TestCase subclass: XMLPullParserTest [
     testEmpty [
 	<category: 'testing'>
 	| parser |
-	parser := XMLPullParser parse: ''.
-	self assert: parser isStartDocument.
-	self assert: parser next isEndDocument
+	[
+	    parser := XMLPullParser parse: ''.
+	    self assert: parser isStartDocument.
+	    self assert: parser next isEndDocument
+	] on: EmptySignal do: [ :ex | ex resume ]
     ]
 
     testEscapes [
