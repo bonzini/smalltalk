@@ -522,7 +522,7 @@ Object subclass: XMLPullParser [
 	| string |
 	self nextChar.
 	string := self nextTrimmedBlanksUpTo: $>.
-	eventQueue addLast: (XPPEndTag new tag: (XPPTag new name: string))
+	eventQueue addLast: (XPPEndTag new tag: (NodeTag new type: string))
     ]
 
     nextLiteral [
@@ -644,11 +644,11 @@ Object subclass: XMLPullParser [
 		[self nextAttributeInto: attributes namespaces: namespaces.
 		self skipSeparators].
 	eventQueue addLast: ((XPPStartTag new)
-		    tag: (XPPTag new name: tagName);
+		    tag: (NodeTag new type: tagName);
 		    attributes: attributes).
 	self nextChar == $/ 
 	    ifTrue: 
-		[eventQueue addLast: (XPPEndTag new tag: (XPPTag new name: tagName)).
+		[eventQueue addLast: (XPPEndTag new tag: (NodeTag new type: tagName)).
 		self nextChar]
     ]
 
@@ -1007,305 +1007,14 @@ Object subclass: XMLPullParser [
 
 
 
-Object subclass: XPPEvent [
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    isEndDocument [
-	<category: 'testing'>
-	^false
-    ]
-
-    isEndTag [
-	<category: 'testing'>
-	^false
-    ]
-
-    isEndTag: aStringOrNodeTag [
-	<category: 'testing'>
-	^false
-    ]
-
-    isStartDocument [
-	<category: 'testing'>
-	^false
-    ]
-
-    isStartTag [
-	<category: 'testing'>
-	^false
-    ]
-
-    isStartTag: aStringOrNodeTag [
-	<category: 'testing'>
-	^false
-    ]
-
-    isText [
-	<category: 'testing'>
-	^false
+NodeTag extend [
+    type: typeStr [
+	<category: 'initialize'>
+	namespace := ''.
+	type := typeStr.
+	qualifier := ''
     ]
 ]
-
-
-
-XPPEvent subclass: XPPEndDocument [
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    isEndDocument [
-	<category: 'testing'>
-	^true
-    ]
-
-    serializeTo: serializer [
-	<category: 'serializing'>
-	
-    ]
-]
-
-
-
-XPPEvent subclass: XPPStartDocument [
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    isStartDocument [
-	<category: 'testing'>
-	^true
-    ]
-
-    serializeTo: serializer [
-	<category: 'serializing'>
-	serializer startDocument
-    ]
-]
-
-
-
-XPPEvent subclass: XPPTagEvent [
-    | tag |
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    XPPTagEvent class >> tag: tag [
-	<category: 'instance creation'>
-	^self new tag: tag
-    ]
-
-    is: tagName [
-	<category: 'accessing'>
-	^tag isLike: tagName
-    ]
-
-    name [
-	<category: 'accessing'>
-	^tag name
-    ]
-
-    namespace [
-	<category: 'accessing'>
-	^tag namespace
-    ]
-
-    qualifier [
-	<category: 'accessing'>
-	^tag qualifier
-    ]
-
-    tag [
-	<category: 'accessing'>
-	^tag
-    ]
-
-    tag: aNodeTag [
-	<category: 'accessing'>
-	tag := aNodeTag
-    ]
-
-    type [
-	<category: 'accessing'>
-	^tag type
-    ]
-]
-
-
-
-XPPTagEvent subclass: XPPEndTag [
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    isEndTag [
-	<category: 'testing'>
-	^true
-    ]
-
-    isEndTag: aStringOrNodeTag [
-	<category: 'testing'>
-	^tag isLike: aStringOrNodeTag
-    ]
-
-    printOn: aStream [
-	<category: 'printing'>
-	super printOn: aStream.
-	aStream
-	    nextPutAll: ' </';
-	    nextPutAll: tag asString;
-	    nextPutAll: '>'
-    ]
-
-    serializeTo: serializer [
-	<category: 'serializing'>
-	serializer 
-	    endElement: tag namespace
-	    localName: tag type
-	    qName: tag asString
-    ]
-]
-
-
-
-XPPTagEvent subclass: XPPStartTag [
-    | attributes |
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    XPPStartTag class >> tag: tag attributes: a [
-	<category: 'instance creation'>
-	^(super tag: tag) attributes: a
-    ]
-
-    at: attName [
-	<category: 'accessing'>
-	^self at: attName
-	    ifNone: 
-		[XPPStructureException 
-		    signal: 'Expected attribute ' , attName , ' is missing']
-    ]
-
-    at: attName ifFound: aFoundBlock ifNone: aBlock [
-	<category: 'accessing'>
-	attributes 
-	    keysAndValuesDo: [:a :value | a = attName ifTrue: [^aFoundBlock value: value]].
-	^aBlock value
-    ]
-
-    at: attName ifNone: aBlock [
-	<category: 'accessing'>
-	^attributes at: attName asString ifAbsent: [aBlock value]
-    ]
-
-    attributes [
-	<category: 'accessing'>
-	^attributes
-    ]
-
-    attributes: anObject [
-	<category: 'accessing'>
-	attributes := anObject
-    ]
-
-    isStartTag [
-	<category: 'testing'>
-	^true
-    ]
-
-    isStartTag: aStringOrNodeTag [
-	<category: 'testing'>
-	^tag isLike: aStringOrNodeTag
-    ]
-
-    printOn: aStream [
-	<category: 'printing'>
-	super printOn: aStream.
-	aStream
-	    nextPutAll: ' <';
-	    nextPutAll: tag asString;
-	    nextPutAll: '>'
-    ]
-
-    serializeTo: serializer [
-	<category: 'serializing'>
-	serializer 
-	    startElement: tag namespace
-	    localName: tag type
-	    qName: tag asString
-	    attributes: attributes
-    ]
-]
-
-
-
-XPPEvent subclass: XPPText [
-    | text |
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    XPPText class >> text: aString [
-	<category: 'instance creation'>
-	^self new text: aString
-    ]
-
-    isText [
-	<category: 'testing'>
-	^true
-    ]
-
-    serializeTo: serializer [
-	<category: 'serializing'>
-	serializer 
-	    characters: text
-	    from: 1
-	    to: text size
-    ]
-
-    text [
-	<category: 'accessing'>
-	^text
-    ]
-
-    text: aString [
-	<category: 'accessing'>
-	text := aString
-    ]
-]
-
-
-
-Object subclass: XPPTag [
-    | name |
-    
-    <category: 'XMLPullParser'>
-    <comment: nil>
-
-    isLike: aString [
-	<category: 'testing'>
-	^name = aString
-    ]
-
-    name [
-	<category: 'accessing'>
-	^name
-    ]
-
-    name: anObject [
-	<category: 'accessing'>
-	name := anObject
-    ]
-
-    printOn: aStream [
-	<category: 'testing'>
-	aStream nextPutAll: '{' , name , '}'
-    ]
-]
-
 
 
 Eval [
