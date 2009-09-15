@@ -165,10 +165,15 @@ XPPTagEvent subclass: XPPEndTag [
 
 
 XPPTagEvent subclass: XPPStartTag [
-    | attributes |
+    | attributes attrArray |
     
     <category: 'XMLPullParser'>
     <comment: nil>
+
+    XPPStartTag class >> tag: tag attributesArray: a [
+	<category: 'instance creation'>
+	^(super tag: tag) attributesArray: a
+    ]
 
     XPPStartTag class >> tag: tag attributes: a [
 	<category: 'instance creation'>
@@ -185,8 +190,7 @@ XPPTagEvent subclass: XPPStartTag [
 
     at: attName ifFound: aFoundBlock ifNone: aBlock [
 	<category: 'accessing'>
-	attributes 
-	    keysAndValuesDo: [:a :value | a = attName ifTrue: [^aFoundBlock value: value]].
+	attributes at: attName ifPresent: [ :value | ^aFoundBlock value: value].
 	^aBlock value
     ]
 
@@ -195,14 +199,30 @@ XPPTagEvent subclass: XPPStartTag [
 	^attributes at: attName asString ifAbsent: [aBlock value]
     ]
 
+    attributesArray [
+	<category: 'accessing'>
+	^attrArray
+    ]
+
     attributes [
 	<category: 'accessing'>
 	^attributes
     ]
 
+    attributesArray: anObject [
+	<category: 'accessing'>
+	attrArray := anObject.
+	attributes := LookupTable new.
+	attrArray do: [ :each | attributes at: each key name put: each value ].
+
+    ]
+
     attributes: anObject [
 	<category: 'accessing'>
-	attributes := anObject
+	attributes := anObject.
+	attrArray := OrderedCollection new.
+	attributes keysAndValuesDo: [ :key :value |
+	    attrArray add: (Attribute name: key value: value) ].
     ]
 
     isStartTag [
@@ -230,7 +250,7 @@ XPPTagEvent subclass: XPPStartTag [
 	    startElement: tag namespace
 	    localName: tag type
 	    qName: tag asString
-	    attributes: attributes
+	    attributes: attrArray
     ]
 ]
 
