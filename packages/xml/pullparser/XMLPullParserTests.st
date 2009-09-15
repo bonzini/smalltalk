@@ -102,6 +102,21 @@ TestCase subclass: XMLPullParserTest [
 	self assert: parser next isEndDocument
     ]
 
+    testPI [
+	<category: 'testing'>
+	| parser |
+	parser := XMLPullParser parse: '<?xml version="1.0"?><?xsl stylesheet="a"?><test />'.
+	self assert: parser isStartDocument.
+	self assert: (parser next isPI).
+	self deny: (parser isPI: 'xml').
+	self assert: (parser isPI: 'xsl').
+	self assert: (parser current target = 'xsl').
+	self assert: (parser current data = 'stylesheet="a"').
+	self assert: (parser next isStartTag: 'test').
+	self assert: parser next isEndTag.
+	self assert: parser next isEndDocument
+    ]
+
     testSingleSelfClosingTag [
 	<category: 'testing'>
 	| parser |

@@ -205,6 +205,16 @@ Stream subclass: XMLPullParser [
 	^self current isEndTag: aStringOrNodeTag
     ]
 
+    isPI [
+	<category: 'testing event types'>
+	^self current isPI
+    ]
+
+    isPI: aString [
+	<category: 'testing event types'>
+	^self current isPI: aString
+    ]
+
     isStartDocument [
 	<category: 'testing event types'>
 	^self current isStartDocument
@@ -277,6 +287,18 @@ Stream subclass: XMLPullParser [
 	<category: 'asserting event types'>
 	(self isEndTag: tagName) 
 	    ifFalse: [XPPStructureException signal: 'Expected end tag: ' , tagName]
+    ]
+
+    mustBePI [
+	<category: 'asserting event types'>
+	self isPI 
+	    ifFalse: [XPPStructureException signal: 'Expected processing instruction']
+    ]
+
+    mustBePI: tagName [
+	<category: 'asserting event types'>
+	(self isPI: tagName) 
+	    ifFalse: [XPPStructureException signal: 'Expected processing instruction: ' , tagName]
     ]
 
     mustBeStartDocument [
@@ -553,6 +575,7 @@ SAXDriver subclass: SAXEventGenerator [
     processingInstruction: targetString data: dataString [
         <category: 'content handler'>
 
+	generator yield: (XPPProcessingInstruction target: targetString data: dataString)
     ]
 
     startDocument [

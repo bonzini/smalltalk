@@ -21,6 +21,26 @@ Object subclass: XPPEvent [
 	^false
     ]
 
+    isPI [
+	<category: 'testing'>
+	^false
+    ]
+
+    isPI: aString [
+	<category: 'testing'>
+	^false
+    ]
+
+    isProcessingInstruction [
+	<category: 'testing'>
+	^false
+    ]
+
+    isProcessingInstruction: aString [
+	<category: 'testing'>
+	^false
+    ]
+
     isStartDocument [
 	<category: 'testing'>
 	^false
@@ -251,6 +271,57 @@ XPPTagEvent subclass: XPPStartTag [
 	    localName: tag type
 	    qName: tag asString
 	    attributes: attrArray
+    ]
+]
+
+
+
+XPPEvent subclass: XPPProcessingInstruction [
+    | target data |
+    
+    <category: 'XMLPullParser'>
+    <comment: nil>
+
+    XPPProcessingInstruction class >> target: targetString data: dataString [
+	<category: 'instance creation'>
+	^self new target: targetString; data: dataString
+    ]
+
+    data [
+	<category: 'accessing'>
+	^data
+    ]
+
+    data: aString [
+	<category: 'accessing'>
+	data := aString
+    ]
+
+    isPI [
+	<category: 'testing'>
+	^true
+    ]
+
+    isPI: aString [
+	<category: 'testing'>
+	^target = aString
+    ]
+
+    serializeTo: serializer [
+	<category: 'serializing'>
+	serializer 
+	    processingInstruction: target
+	    data: data
+    ]
+
+    target [
+	<category: 'accessing'>
+	^target
+    ]
+
+    target: aString [
+	<category: 'accessing'>
+	target := aString
     ]
 ]
 
