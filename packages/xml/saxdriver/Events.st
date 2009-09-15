@@ -1,7 +1,7 @@
 
 
 
-Object subclass: XPPEvent [
+Object subclass: SAXEvent [
     
     <category: 'XMLPullParser'>
     <comment: nil>
@@ -64,7 +64,7 @@ Object subclass: XPPEvent [
 
 
 
-XPPEvent subclass: XPPEndDocument [
+SAXEvent subclass: SAXEndDocument [
     
     <category: 'XMLPullParser'>
     <comment: nil>
@@ -82,7 +82,7 @@ XPPEvent subclass: XPPEndDocument [
 
 
 
-XPPEvent subclass: XPPStartDocument [
+SAXEvent subclass: SAXStartDocument [
     
     <category: 'XMLPullParser'>
     <comment: nil>
@@ -100,13 +100,13 @@ XPPEvent subclass: XPPStartDocument [
 
 
 
-XPPEvent subclass: XPPTagEvent [
+SAXEvent subclass: SAXTagEvent [
     | tag |
     
     <category: 'XMLPullParser'>
     <comment: nil>
 
-    XPPTagEvent class >> tag: tag [
+    SAXTagEvent class >> tag: tag [
 	<category: 'instance creation'>
 	^self new tag: tag
     ]
@@ -149,7 +149,7 @@ XPPEvent subclass: XPPTagEvent [
 
 
 
-XPPTagEvent subclass: XPPEndTag [
+SAXTagEvent subclass: SAXEndTag [
     
     <category: 'XMLPullParser'>
     <comment: nil>
@@ -184,18 +184,18 @@ XPPTagEvent subclass: XPPEndTag [
 
 
 
-XPPTagEvent subclass: XPPStartTag [
+SAXTagEvent subclass: SAXStartTag [
     | attributes attrArray |
     
     <category: 'XMLPullParser'>
     <comment: nil>
 
-    XPPStartTag class >> tag: tag attributesArray: a [
+    SAXStartTag class >> tag: tag attributesArray: a [
 	<category: 'instance creation'>
 	^(super tag: tag) attributesArray: a
     ]
 
-    XPPStartTag class >> tag: tag attributes: a [
+    SAXStartTag class >> tag: tag attributes: a [
 	<category: 'instance creation'>
 	^(super tag: tag) attributes: a
     ]
@@ -204,7 +204,7 @@ XPPTagEvent subclass: XPPStartTag [
 	<category: 'accessing'>
 	^self at: attName
 	    ifNone: 
-		[XPPStructureException 
+		[SAXStructureException 
 		    raiseSignal: 'Expected attribute ' , attName , ' is missing']
     ]
 
@@ -276,13 +276,13 @@ XPPTagEvent subclass: XPPStartTag [
 
 
 
-XPPEvent subclass: XPPProcessingInstruction [
+SAXEvent subclass: SAXProcessingInstruction [
     | target data |
     
     <category: 'XMLPullParser'>
     <comment: nil>
 
-    XPPProcessingInstruction class >> target: targetString data: dataString [
+    SAXProcessingInstruction class >> target: targetString data: dataString [
 	<category: 'instance creation'>
 	^self new target: targetString; data: dataString
     ]
@@ -327,13 +327,13 @@ XPPEvent subclass: XPPProcessingInstruction [
 
 
 
-XPPEvent subclass: XPPText [
+SAXEvent subclass: SAXText [
     | text |
     
     <category: 'XMLPullParser'>
     <comment: nil>
 
-    XPPText class >> text: aString [
+    SAXText class >> text: aString [
 	<category: 'instance creation'>
 	^self new text: aString
     ]

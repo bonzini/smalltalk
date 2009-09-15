@@ -1,4 +1,4 @@
-Error subclass: XPPStructureException [
+Error subclass: XMLStructureException [
     
     <category: 'XMLPullParser'>
     <comment: nil>
@@ -274,54 +274,54 @@ Stream subclass: XMLPullParser [
     mustBeEndDocument [
 	<category: 'asserting event types'>
 	self isEndDocument 
-	    ifFalse: [XPPStructureException signal: 'Expected end of document']
+	    ifFalse: [XMLStructureException signal: 'Expected end of document']
     ]
 
     mustBeEndTag [
 	<category: 'asserting event types'>
 	self isEndTag 
-	    ifFalse: [XPPStructureException signal: 'Expected end tag']
+	    ifFalse: [XMLStructureException signal: 'Expected end tag']
     ]
 
     mustBeEndTag: tagName [
 	<category: 'asserting event types'>
 	(self isEndTag: tagName) 
-	    ifFalse: [XPPStructureException signal: 'Expected end tag: ' , tagName]
+	    ifFalse: [XMLStructureException signal: 'Expected end tag: ' , tagName]
     ]
 
     mustBePI [
 	<category: 'asserting event types'>
 	self isPI 
-	    ifFalse: [XPPStructureException signal: 'Expected processing instruction']
+	    ifFalse: [XMLStructureException signal: 'Expected processing instruction']
     ]
 
     mustBePI: tagName [
 	<category: 'asserting event types'>
 	(self isPI: tagName) 
-	    ifFalse: [XPPStructureException signal: 'Expected processing instruction: ' , tagName]
+	    ifFalse: [XMLStructureException signal: 'Expected processing instruction: ' , tagName]
     ]
 
     mustBeStartDocument [
 	<category: 'asserting event types'>
 	self isStartDocument 
-	    ifFalse: [XPPStructureException signal: 'Expected start of document']
+	    ifFalse: [XMLStructureException signal: 'Expected start of document']
     ]
 
     mustBeStartTag [
 	<category: 'asserting event types'>
 	self isStartTag 
-	    ifFalse: [XPPStructureException signal: 'Expected start tag']
+	    ifFalse: [XMLStructureException signal: 'Expected start tag']
     ]
 
     mustBeStartTag: tagName [
 	<category: 'asserting event types'>
 	(self isStartTag: tagName) 
-	    ifFalse: [XPPStructureException signal: 'Expected start tag: ' , tagName]
+	    ifFalse: [XMLStructureException signal: 'Expected start tag: ' , tagName]
     ]
 
     mustBeText [
 	<category: 'asserting event types'>
-	self isText ifFalse: [XPPStructureException signal: 'Expected text']
+	self isText ifFalse: [XMLStructureException signal: 'Expected text']
     ]
 
     pastEnd [
@@ -358,7 +358,7 @@ Stream subclass: XMLPullParser [
 		    ifFalse: 
 			[event isStartTag 
 			    ifTrue: [self serializeTagTo: serializer]
-			    ifFalse: [XPPStructureException signal: 'Unexpected element']]]
+			    ifFalse: [XMLStructureException signal: 'Unexpected element']]]
     ]
 
     skip: tagName [
@@ -372,7 +372,7 @@ Stream subclass: XMLPullParser [
 		    ifFalse: 
 			[event isStartTag 
 			    ifTrue: [self skipAny]
-			    ifFalse: [XPPStructureException signal: 'Unexpected element']]].
+			    ifFalse: [XMLStructureException signal: 'Unexpected element']]].
 	self consumeEndTag: tagName
     ]
 
@@ -387,7 +387,7 @@ Stream subclass: XMLPullParser [
 		    ifFalse: 
 			[event isStartTag 
 			    ifTrue: [self skipAny]
-			    ifFalse: [XPPStructureException signal: 'Unexpected element']]].
+			    ifFalse: [XMLStructureException signal: 'Unexpected element']]].
 	self consumeEndTag
     ]
 
@@ -548,13 +548,13 @@ SAXDriver subclass: SAXEventGenerator [
     characters: aString [
         <category: 'content handler'>
 
-	generator yield: (XPPText text: aString)
+	generator yield: (SAXText text: aString)
     ]
 
     endDocument [
         <category: 'content handler'>
 
-	generator yield: XPPEndDocument new
+	generator yield: SAXEndDocument new
     ]
 
     endElement: namespaceURI localName: localName qName: name [
@@ -563,7 +563,7 @@ SAXDriver subclass: SAXEventGenerator [
         <category: 'content handler'>
 	| tag |
         tag := NodeTag name: name ns: namespaceURI type: localName.
-	generator yield: (XPPEndTag tag: tag)
+	generator yield: (SAXEndTag tag: tag)
 
     ]
 
@@ -575,19 +575,19 @@ SAXDriver subclass: SAXEventGenerator [
     processingInstruction: targetString data: dataString [
         <category: 'content handler'>
 
-	generator yield: (XPPProcessingInstruction target: targetString data: dataString)
+	generator yield: (SAXProcessingInstruction target: targetString data: dataString)
     ]
 
     startDocument [
         <category: 'content handler'>
 
-	generator yield: XPPStartDocument new
+	generator yield: SAXStartDocument new
     ]
 
     startElement: namespaceURI localName: localName qName: name attributes: attrArray [
 	| tag attributes |
         tag := NodeTag name: name ns: namespaceURI type: localName.
-	generator yield: (XPPStartTag tag: tag attributesArray: attrArray)
+	generator yield: (SAXStartTag tag: tag attributesArray: attrArray)
     ]
 
     startPrefixMapping: prefix uri: uri [
