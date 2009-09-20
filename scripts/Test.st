@@ -85,9 +85,8 @@ Smalltalk
 	    pkg := PackageLoader packageAt: arg.
 	    script := script, ' ', pkg sunitScript.
 	    pkg test notNil ifTrue: [
-		pkg := pkg test.
-	        script := script, ' ', pkg sunitScript ].
-	    pkg fileIn ]
+	        script := script, ' ', pkg test sunitScript ].
+	    PackageLoader fileInPackage: arg test: true ]
 	    ifCurtailed: [ ObjectMemory quit: 2 ] ].
 
     opt = 'file' ifTrue: [
@@ -104,12 +103,8 @@ Smalltalk
 script isEmpty ifTrue: [ ObjectMemory quit ].
 
 FileStream verbose: false.
-(PackageLoader packageAt: #SUnit) loaded
-    ifFalse: [
-	stderr nextPutAll: 'gst-sunit: you should load SUnit first.'; nl.
-	ObjectMemory quit: 1 ].
-
-result := TestSuitesScripter run: script quiet: quiet verbose: verbose.
+result := #{Smalltalk.TestSuitesScripter} value
+    run: script quiet: quiet verbose: verbose.
 
 result runCount = result passedCount
     ifFalse: [ ObjectMemory quit: 1 ]!

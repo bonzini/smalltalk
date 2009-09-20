@@ -127,7 +127,7 @@ XML.'>
 	self subclassResponsibility
     ]
 
-    extractDependenciesFor: packagesList ifMissing: aBlock [
+    extractDependenciesFor: packagesList test: aBoolean ifMissing: aBlock [
 	"Answer an OrderedCollection containing all the packages which you
 	 have to load to enable the packages in packagesList, in an appropriate
 	 order. For example
@@ -141,39 +141,40 @@ XML.'>
 	 prerequisites which are not available."
 
 	<category: 'accessing'>
-	| toBeLoaded featuresFound dependencies allPrereq allFeatures |
+	| toBeLoaded featuresFound pending allPrereq allFeatures package name |
 	featuresFound := Set withAll: Smalltalk.Features.
 	featuresFound := featuresFound collect: [:each | each asString].
-	toBeLoaded := packagesList asOrderedCollection.
-	toBeLoaded := toBeLoaded collect: [:each | each asString].
-	toBeLoaded removeAll: featuresFound ifAbsent: [:doesNotMatter | ].
-	dependencies := packagesList collect: [:each | each asString].
+	pending := packagesList asOrderedCollection.
+	pending := pending collect: [:each | each asString].
+	pending removeAll: featuresFound ifAbsent: [:doesNotMatter | ].
+	toBeLoaded := OrderedCollection new.
 	
-	[allPrereq := Set new.
-	allFeatures := Set new.
-	dependencies do: 
-		[:name | 
-		| package |
-		(featuresFound includes: name) 
-		    ifFalse: 
-			[package := self at: name ifAbsent: [^aBlock value: name].
-			allPrereq addAll: package prerequisites.
-			allFeatures addAll: package features]].
+	[pending notEmpty] whileTrue: [
+	    name := pending removeFirst.
+	    (featuresFound includes: name) 
+	        ifFalse: 
+		    [package := self at: name ifAbsent: [^aBlock value: name].
+		    allPrereq := package prerequisites asSet.
+		    allFeatures := package features asSet.
+		    (aBoolean and: [package test notNil]) ifTrue: [
+		        allPrereq addAll: package test prerequisites.
+		        allFeatures addAll: package test features].
 
-	"I don't think there will never be lots of packages in newDep (say
-	 more than 5), so I think it is acceptable to remove duplicates
-	 this naive way.  Note that we remove duplicates from toBeLoaded
-	 so that prerequisites are always loaded *before*."
-	toBeLoaded removeAll: allPrereq ifAbsent: [:doesNotMatter | ].
-	toBeLoaded removeAll: allFeatures ifAbsent: [:doesNotMatter | ].
-	allPrereq removeAll: allFeatures ifAbsent: [:doesNotMatter | ].
-	featuresFound addAll: allFeatures.
-	toBeLoaded addAllFirst: allPrereq.
+		    allPrereq remove: name ifAbsent: [].
+		    allPrereq removeAll: featuresFound ifAbsent: [:doesNotMatter|].
+		    (allPrereq allSatisfy: [ :each | toBeLoaded includes: each ])
+		        ifFalse: [
+			    pending addAllLast: allPrereq.
+			    pending addLast: name]
+			ifTrue: [
+			    pending removeAll: allPrereq ifAbsent: [:doesNotMatter | ].
+			    pending removeAll: allFeatures ifAbsent: [:doesNotMatter | ].
+			    allPrereq removeAll: toBeLoaded ifAbsent: [:doesNotMatter | ].
+			    allPrereq removeAll: allFeatures ifAbsent: [:doesNotMatter | ].
+			    featuresFound addAll: allFeatures.
+			    featuresFound add: name.
+			    toBeLoaded addLast: name]]].
 
-	"Proceed recursively with the prerequisites for allPrereq"
-	dependencies := allPrereq.
-	dependencies notEmpty] 
-		whileTrue.
 	^toBeLoaded
     ]
 
@@ -439,14 +440,8 @@ XML.'>
     fileIn [
 	"File in the given package and its dependencies."
 
-	<category: 'accessing'>
-	self name isNil 
-	    ifTrue: 
-		["Other packages cannot be dependent on this one."
-
-		PackageLoader fileInPackages: self prerequisites.
-		self primFileIn]
-	    ifFalse: [PackageLoader fileInPackage: self name]
+	<category: 'loading'>
+	PackageLoader fileInPackage: self name test: false
     ]
 
     fullPathsOf: aCollection [
@@ -1416,6 +1411,13 @@ that package.
     owner
 	The Package I provide tests for; initialized by the owner.'>
 
+    fileIn [
+	"File in the given package and its dependencies."
+
+	<category: 'loading'>
+	PackageLoader fileInPackage: owner name test: true
+    ]
+
     owner: aPackage [
 	"Set the Package I test."
 
@@ -1603,10 +1605,23 @@ into a Smalltalk image, correctly handling dependencies.'>
 	"File in the given package into GNU Smalltalk."
 
 	<category: 'loading'>
-	self fileInPackages: {package}
+	self fileInPackages: {package} test: false
+    ]
+
+    PackageLoader class >> fileInPackage: package test: aBoolean [
+	"File in the given package into GNU Smalltalk."
+
+	<category: 'loading'>
+	self fileInPackages: {package} test: aBoolean
     ]
 
     PackageLoader class >> fileInPackages: packagesList [
+	"File in all the packages in packagesList into GNU Smalltalk."
+
+        self fileInPackages: packagesList test: false
+    ]
+
+    PackageLoader class >> fileInPackages: packagesList test: aBoolean [
 	"File in all the packages in packagesList into GNU Smalltalk."
 
 	<category: 'loading'>
@@ -1614,22 +1629,31 @@ into a Smalltalk image, correctly handling dependencies.'>
 	packagesList isEmpty ifTrue: [^self].
 	self refresh.
 	toBeLoaded := root extractDependenciesFor: packagesList
+		    test: aBoolean
 		    ifMissing: [:name | SystemExceptions.PackageNotAvailable signal: name].
 	toBeLoaded do: 
-		[:each | 
+		[:each || pkg |
 		OutputVerbosity > 0 
 		    ifTrue: 
 			[Transcript
 			    nextPutAll: 'Loading package ' , each;
 			    nl].
-		(self packageAt: each) primFileIn]
+		(pkg := self packageAt: each) primFileIn.
+		(aBoolean and: [pkg test notNil]) ifTrue: [pkg test primFileIn]]
     ]
 
     PackageLoader class >> canLoad: package [
 	"Answer whether all the needed pre-requisites for package are available."
 
 	<category: 'testing'>
-	self extractDependenciesFor: {package} ifMissing: [:name | ^false].
+	^self canLoad: package test: false
+    ]
+
+    PackageLoader class >> canLoad: package test: aBoolean [
+	"Answer whether all the needed pre-requisites for package are available."
+
+	<category: 'testing'>
+	self extractDependenciesFor: {package} test: aBoolean ifMissing: [:name | ^false].
 	^true
     ]
 

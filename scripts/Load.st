@@ -31,7 +31,7 @@
 Smalltalk arguments isEmpty ifTrue: [ ObjectMemory quit ]!
 
 | helpString quiet verbose wasVerbose snapshot force test sunit packages
-  startMessage |
+  pkgNames startMessage |
 snapshot := true.
 quiet := false.
 verbose := false.
@@ -39,7 +39,7 @@ force := false.
 test := false.
 startMessage := nil.
 wasVerbose := FileStream verbose: false.
-packages := OrderedCollection new.
+pkgNames := OrderedCollection new.
 sunit := ''.
 
 helpString :=
@@ -102,17 +102,17 @@ Smalltalk
     opt = 'dry-run' ifTrue: [
 	snapshot := false ].
 
-    opt isNil ifTrue: [ packages add: arg ] ]
+    opt isNil ifTrue: [ pkgNames add: arg ] ]
 
     ifError: [
 	helpString displayOn: stderr.
 	ObjectMemory quit: 1 ].
 
 force ifTrue: [
-    packages do: [ :each | Smalltalk removeFeature: each asSymbol ] ].
+    pkgNames do: [ :each | Smalltalk removeFeature: each asSymbol ] ].
 
 [
-    packages := packages collect: [ :each | PackageLoader packageAt: each ].
+    packages := pkgNames collect: [ :each | PackageLoader packageAt: each ].
 
     (startMessage notNil and: [
 	startMessage selector == #start: and: [
@@ -121,39 +121,42 @@ force ifTrue: [
 '.
 	    ^self ].
 
-    packages do: [ :each |
-	each fileIn.
-        sunit := sunit, ' ', each sunitScript ] ]
+    packages do: [ :each | sunit := sunit, ' ', each sunitScript ]
+
+    wasVerbose := FileStream verbose: wasVerbose.
+
+    test
+	ifTrue: [
+	    | tmpFile tmpFileName result |
+	    snapshot
+	        ifTrue: [
+		    PackageLoader fileInPackages: pkgNames test: false.
+	            tmpFile := FileDescriptor openTemporaryFile: Directory temporary / 'im-'.
+	            tmpFileName := tmpFile name.
+	            ObjectMemory snapshot: tmpFileName.
+	            wasVerbose := FileStream verbose: wasVerbose ].
+
+	    PackageLoader fileInPackages: pkgNames test: true.
+
+	    packages do: [ :each |
+	        each test isNil ifFalse: [
+		    sunit := sunit, ' ', each test sunitScript ] ].
+
+	    result := #{Smalltalk.TestSuitesScripter} value
+	        run: sunit quiet: quiet verbose: verbose.
+	    result runCount = result passedCount ifFalse: [ ObjectMemory quit: 1 ].
+
+	    snapshot ifTrue: [
+	        (FileDescriptor open: File image mode: FileStream write)
+		    nextPutAll: tmpFile.
+	        tmpFile close.
+	        (File name: tmpFileName) remove ] ]
+
+        ifFalse: [
+	    PackageLoader fileInPackages: pkgNames test: false.
+	    snapshot ifTrue: [ ObjectMemory snapshot ] ].
+]
     ifCurtailed: [ ObjectMemory quit: 1 ].
-
-wasVerbose := FileStream verbose: wasVerbose.
-
-test
-    ifTrue: [
-	| tmpFile tmpFileName result |
-	snapshot ifTrue: [
-	    tmpFile := FileDescriptor openTemporaryFile: Directory temporary / 'im-'.
-	    tmpFileName := tmpFile name.
-	    ObjectMemory snapshot: tmpFileName.
-	    wasVerbose := FileStream verbose: wasVerbose ].
-
-	packages do: [ :each |
-	    each test isNil ifFalse: [
-		each test fileIn.
-		sunit := sunit, ' ', each test sunitScript ] ].
-
-	result := (Smalltalk at: #TestSuitesScripter)
-	    run: sunit quiet: quiet verbose: verbose.
-	result runCount = result passedCount ifFalse: [ ObjectMemory quit: 1 ].
-
-	snapshot ifTrue: [
-	    (FileDescriptor open: File image mode: FileStream write)
-		nextPutAll: tmpFile.
-	    tmpFile close.
-	    (File name: tmpFileName) remove ] ]
-
-    ifFalse: [
-	snapshot ifTrue: [ ObjectMemory snapshot ] ].
 
 (startMessage notNil and: [ 
     packages anySatisfy: [ :pkg | pkg startScript notNil ]])
