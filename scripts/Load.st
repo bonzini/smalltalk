@@ -121,11 +121,13 @@ force ifTrue: [
 '.
 	    ^self ].
 
-    packages do: [ :each | sunit := sunit, ' ', each sunitScript ]
-
+    packages do: [ :each |
+	sunit := sunit, ' ', each sunitScript.
+        each test isNil ifFalse: [
+	    sunit := sunit, ' ', each test sunitScript ] ].
     wasVerbose := FileStream verbose: wasVerbose.
 
-    test
+    (test and: [ sunit trimSeparators notEmpty ])
 	ifTrue: [
 	    | tmpFile tmpFileName result |
 	    snapshot
@@ -137,13 +139,9 @@ force ifTrue: [
 	            wasVerbose := FileStream verbose: wasVerbose ].
 
 	    PackageLoader fileInPackages: pkgNames test: true.
-
-	    packages do: [ :each |
-	        each test isNil ifFalse: [
-		    sunit := sunit, ' ', each test sunitScript ] ].
-
 	    result := #{Smalltalk.TestSuitesScripter} value
 	        run: sunit quiet: quiet verbose: verbose.
+
 	    result runCount = result passedCount ifFalse: [ ObjectMemory quit: 1 ].
 
 	    snapshot ifTrue: [
