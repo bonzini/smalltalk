@@ -1,14 +1,36 @@
 "======================================================================
 |
-|   SAX event-based pull parser
+|   Expat-based pull parser
 |
 |
  ======================================================================"
 
 "======================================================================
 |
+| Copyright 2009 Free Software Foundation, Inc.
+| Written by Paolo Bonzini.
+|
+| This file is part of the GNU Smalltalk class library.
+|
+| The GNU Smalltalk class library is free software; you can redistribute it
+| and/or modify it under the terms of the GNU Lesser General Public License
+| as published by the Free Software Foundation; either version 2.1, or (at
+| your option) any later version.
+| 
+| The GNU Smalltalk class library is distributed in the hope that it will be
+| useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+| General Public License for more details.
+| 
+| You should have received a copy of the GNU Lesser General Public License
+| along with the GNU Smalltalk class library; see the file COPYING.LIB.
+| If not, write to the Free Software Foundation, 59 Temple Place - Suite
+| 330, Boston, MA 02110-1301, USA.  
+|
  ======================================================================"
 
+
+
 Object subclass: SAXEventSequence [
     | event next |
 
@@ -18,30 +40,37 @@ communicates more than one event between its resumption and when it
 is stopped again.'>
 
     SAXEventSequence class >> new [
+	<category: 'instance creation'>
 	^super new initialize
     ]
 
     event [
+	<category: 'accessing'>
 	^event
     ]
 
     event: anObject [
+	<category: 'accessing'>
 	event := anObject
     ]
 
     initialize [
+	<category: 'initialization'>
 	next := self.
     ]
 
     isEmpty [
+	<category: 'testing'>
 	^next == self
     ]
 
     next [
+	<category: 'accessing'>
 	^next
     ]
 
     next: aSAXList [
+	<category: 'accessing'>
 	next := aSAXList.
     ]
 ]
@@ -119,6 +148,7 @@ nested parser.  It is never pushed down; it is only used to trigger
 the XMLResolveEntityNotification.'>
 
     neededBy: aParser [
+	<category: 'entity resolution'>
 	| entity |
         entity := XMLResolveEntityNotification new
 	    publicID: self publicID;
@@ -187,6 +217,8 @@ from C to Smalltalk.'>
 
     finalize [
 	"Free the whole parser chain."
+
+	<category: 'finalization'>
 	[ xp isNil ] whileFalse: [ self pop ]
     ]
 
@@ -195,12 +227,14 @@ from C to Smalltalk.'>
 	 from the ExternalEntityRefHandler and is passed down to
 	 XML_ExternalEntityParserCreate."
 
+	<category: 'entity resolution'>
 	| userData |
 	sourceStack add: source.
 	source := aStream.
 	first := true.
 
-	"The userData of suspended parser constitutes a list of parsers."
+	"The userData of suspended parsers constitutes a list of parsers,
+	 with nextParser as the head."
 	userData := xp userData.
 	xp userData: nextParser.
 	nextParser := xp.
@@ -214,6 +248,8 @@ from C to Smalltalk.'>
     pop [
 	"Switch back to the parent parser of XP, which is stored
 	 in nextParser."
+
+	<category: 'entity resolution'>
 	| userData oldParser |
 	oldParser := xp.
 	xp := nextParser.
@@ -231,8 +267,9 @@ from C to Smalltalk.'>
     ]
 
     parseMore [
-	"Pass data from SOURCE to the XML_Parser."
+	"Pass data from the source to the XML_Parser."
 
+	<category: 'parsing'>
 	| len |
 	len := source nextAvailable: buffer size into: buffer startingAt: 1.
 	^xp
@@ -244,6 +281,7 @@ from C to Smalltalk.'>
     raiseError [
 	"Convert an Expat error to a Smalltalk exception."
 
+	<category: 'parsing'>
 	| code |
 	code := xp errorCode.
 	code = 3
