@@ -6364,7 +6364,68 @@ Object subclass: WAEncoder [
 
 
 
-WAEncoder subclass: WAHtmlEncoder [
+
+
+WAEncoder subclass: WASimpleEncoder [
+    <category: 'Seaside-Core-Document'>
+    <comment: 'I encode everything that is written to myself using #nextPut: and #nextPutAll: onto the wrapped stream. I am optimized for the case of being neutral to most characters. The convertion of a single character is defined in #encode:on: on the class-side of my subclasses.'>
+    WASimpleEncoder class >> initializeBMP [
+	"Initializes the BMP, the Basic Multilingual Plane of UTF characters, using the encoding strategy of the receiver. This chaching strategy ensures that most commonly used characters can be encoded as efficient as possible."
+
+	<category: 'initialization'>
+	| stream characterLimit ch |
+	characterLimit := self maximumCharacterValue.
+	table := Array new: characterLimit.
+	stream := WriteStream on: (String new: 6).
+	1 to: characterLimit
+	    do: 
+		[:index | 
+		ch := Character value: index - 1.
+		self encode: ch on: stream reset.
+		table at: index
+		    put: (stream contents = (String with: ch)
+			    ifTrue: [nil]
+			    ifFalse: [stream contents])]
+    ]
+
+    nextPut: aCharacter [
+	<category: 'accessing'>
+	| value encoded |
+	value := aCharacter asInteger.
+	value < table size 
+	    ifFalse: [stream nextPut: aCharacter]
+	    ifTrue: 
+		[encoded := table at: value + 1.
+		encoded notNil
+		    ifTrue: [stream nextPutAll: encoded]
+		    ifFalse: [stream nextPut: aCharacter]]
+    ]
+
+    nextPutAll: aString [
+	<category: 'accessing'>
+	"uses #to:do: for speed reasons (on Squeak)
+	 this is not premature optimization, this is a hotspot method method
+	 and #to:do: shows measurable speed improvements for rendering seaside pages"
+
+	| character value encoded |
+	1 to: aString size
+	    do: 
+		[:index | 
+		character := aString at: index.
+		value := character asInteger.
+		value < table size 
+		    ifFalse: [self class encode: character on: stream]
+		    ifTrue: 
+			[encoded := table at: value + 1.
+			encoded notNil 
+			    ifTrue: [stream nextPutAll: encoded]
+			    ifFalse: [stream nextPut: character]]]
+    ]
+]
+
+
+
+WASimpleEncoder subclass: WAHtmlEncoder [
     
     <category: 'Seaside-Core-Document'>
     <comment: 'I encode XHTML text.'>
@@ -6382,11 +6443,16 @@ WAEncoder subclass: WAHtmlEncoder [
 	<category: 'initialization'>
 	self initializeBMP
     ]
+
+    WAHtmlEncoder class >> maximumCharacterValue [
+	<category: 'initialization'>
+	^255
+    ]
 ]
 
 
 
-WAEncoder subclass: WAUrlEncoder [
+WASimpleEncoder subclass: WAUrlEncoder [
     
     <category: 'Seaside-Core-Document'>
     <comment: 'I encode path segments and arguments of an URL.'>
@@ -6413,6 +6479,11 @@ WAEncoder subclass: WAUrlEncoder [
     WAUrlEncoder class >> initialize [
 	<category: 'initialization'>
 	self initializeBMP
+    ]
+
+    WAUrlEncoder class >> maximumCharacterValue [
+	<category: 'initialization'>
+	^255
     ]
 ]
 

@@ -1,3 +1,7 @@
+2009-10-04  Paolo Bonzini  <bonzini@gnu.org>
+
+	* core/Seaside-Core.st: Add WASimpleEncoder.
+
 2009-06-28  Paolo Bonzini  <bonzini@gnu.org>
 
 	* core/Seaside-GST.st: Remove Signal>>#resumeContext, use
