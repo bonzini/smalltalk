@@ -142,7 +142,7 @@ HTTPMessage subclass: HTTPRequest [
 	 I return my collection of conditional header fields.  A conditional GET requires that each of these is checked against the current state of the target resource."
 
 	<category: 'services'>
-	^self headers fields select: [:aField | aField isConditional]
+	^self headers headerFields select: [:aField | aField isConditional]
     ]
 
     connection [
@@ -159,7 +159,7 @@ HTTPMessage subclass: HTTPRequest [
     cookie [
 	<category: 'accessing-headers'>
 	| field |
-	field := self headers fields at: 'COOKIE' ifAbsent: [^nil].
+	field := self headers headerFields at: 'COOKIE' ifAbsent: [^nil].
 	^field value
 
 	"field := self headers fieldOfClass: HTTPCookieField ifNone: [nil].
@@ -214,7 +214,7 @@ HTTPMessage subclass: HTTPRequest [
 	"it is GenericHeaderField!!"
 
 	<category: 'testing'>
-	^self headers fields includesKey: 'COOKIE'
+	^self headers headerFields includesKey: 'COOKIE'
 
 	"^self headers includesFieldOfClass: HTTPCookieField"
     ]
@@ -372,7 +372,7 @@ HTTPMessage subclass: HTTPRequest [
 	"how many seconds a connection must be kept alive"
 
 	<category: 'accessing-headers'>
-	^(self headers fieldNamed: 'KeepAlive' ifNone: [^nil]) value
+	^(self headers fieldNamed: 'KEEP-ALIVE' ifNone: [^nil]) value
     ]
 
     methodName [
@@ -424,7 +424,7 @@ HTTPMessage subclass: HTTPRequest [
 	    cr;
 	    tab;
 	    nextPutAll: ' host: ';
-	    nextPutAll: (self headerAt: 'Host' ifAbsent: ['']) hostName.
+	    nextPutAll: (self headerAt: 'HOST' ifAbsent: ['']) hostName.
 	aStream
 	    cr;
 	    tab;
@@ -850,7 +850,7 @@ Instance Variables:
 	(self headers includesFieldOfClass: ContentTypeField) ifFalse: [^false].
 	(self headers includesFieldOfClass: HTTPContentLengthField) 
 	    ifTrue: [^true].
-	^(self headers fieldNamed: 'Transfer-encoding' ifNone: [^false]) value 
+	^(self headers fieldNamed: 'TRANSFER-ENCODING' ifNone: [^false]) value 
 	    = 'chunked'
     ]
 
@@ -1522,7 +1522,7 @@ HTTPMessage subclass: HTTPResponse [
 
     contentLength [
 	^self headers
-	    fieldNamed: 'Content-length'
+	    fieldNamed: 'CONTENT-LENGTH'
 	    ifNone: [
 		| field |
 		field := HTTPContentLengthField new contentLength: self contentSize.

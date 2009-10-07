@@ -30,7 +30,7 @@
 
 
 Object subclass: HTTPHeaders [
-    | fields |
+    | headerFields |
     
     <category: 'Swazoo-Headers'>
     <comment: nil>
@@ -41,9 +41,11 @@ Object subclass: HTTPHeaders [
 	 Note that we have to use the field name here as we may be adding a field for which there is no class, i.e. it's a GenericHeaderField."
 
 	<category: 'services'>
-	(self includesFieldNamed: aField name) 
-	    ifTrue: [(self fieldNamed: aField name) combineWith: aField]
-	    ifFalse: [self fields at: aField name asUppercase put: aField].
+	| field |
+	field := self headerFields at: aField key ifAbsent: [nil].
+	field isNil 
+	    ifTrue: [self headerFields at: aField key put: aField]
+	    ifFalse: [field combineWith: aField].
 	^self
     ]
 
@@ -53,9 +55,7 @@ Object subclass: HTTPHeaders [
 	 This is a bad way of getting a field.  Use >> fieldOfClass: instead."
 
 	<category: 'services'>
-	| targetString |
-	targetString := aString asUppercase.
-	^self fields detect: [:aField | aField name asUppercase = targetString]
+	^self headerFields at: (HeaderField keyForFieldName: aString)
     ]
 
     fieldNamed: aString ifNone: aBlock [
@@ -63,7 +63,7 @@ Object subclass: HTTPHeaders [
 	 If I contain a field named aString, I return it.  Otherwise I evaluate aBlock."
 
 	<category: 'services'>
-	^self fields at: aString asUppercase ifAbsent: aBlock
+	^self headerFields at: (HeaderField keyForFieldName: aString) ifAbsent: aBlock
     ]
 
     fieldNamed: aFieldName ifPresent: presentBlock ifAbsent: absentBlock [
@@ -80,10 +80,14 @@ Object subclass: HTTPHeaders [
 
     fieldOfClass: aClass [
 	"^aString
-	 If I contain a field of class aClass, I return it.   Otherwise an exception is thrown."
+	 If I contain a field of class aClass, I return it.   Otherwise nil
+	 is returned."
 
 	<category: 'services'>
-	^self fields detect: [:aField | aField class == aClass] ifNone: [^nil]
+	aClass = GenericHeaderField
+	    ifFalse: [^self headerFields at: aClass ifAbsent: [nil]].
+
+	^self headerFields detect: [:aField | aField class == aClass] ifNone: [^nil]
     ]
 
     fieldOfClass: aClass ifNone: aBlock [
@@ -91,7 +95,10 @@ Object subclass: HTTPHeaders [
 	 If I contain a field of class aClass, I return it.   Otherwise I evaluate aBlock."
 
 	<category: 'services'>
-	^self fields detect: [:aField | aField class == aClass] ifNone: aBlock
+	aClass = GenericHeaderField
+	    ifFalse: [^self headerFields at: aClass ifAbsent: aBlock].
+
+	^self headerFields detect: [:aField | aField class == aClass] ifNone: aBlock
     ]
 
     fieldOfClass: fieldClass ifPresent: presentBlock ifAbsent: absentBlock [
@@ -100,16 +107,34 @@ Object subclass: HTTPHeaders [
 
 	<category: 'services'>
 	| foundField |
-	foundField := self fieldOfClass: fieldClass ifNone: [nil].
+	foundField := self fieldOfClass: fieldClass.
 	^foundField isNil 
 	    ifTrue: [absentBlock value]
 	    ifFalse: [presentBlock value: foundField]
     ]
 
+    fieldsDo: aBlock [
+	"^a self
+	Iterate through all HeaderField objects."
+	<category: 'services'>
+	headerFields do: aBlock
+    ]
+
     fields [
-	<category: 'private'>
-	fields isNil ifTrue: [fields := Dictionary new].
+	"^a Dictionary
+	Use for testing only.  Returns a dictionary holding associations from
+field names to HeaderField objects."
+	<category: 'accessing'>
+	| fields |
+	fields := Dictionary new.
+	headerFields do: [ :each | fields at: each name put: each value ].
 	^fields
+    ]
+
+    headerFields [
+	<category: 'private'>
+	headerFields isNil ifTrue: [headerFields := Dictionary new].
+	^headerFields
     ]
 
     getOrMakeFieldOfClass: aClass [
@@ -151,7 +176,7 @@ Object subclass: HTTPHeaders [
 	aStream
 	    nextPutAll: 'a HTTPHeaders';
 	    cr.
-	self fields values do: 
+	self headerFields values do: 
 		[:each | 
 		aStream
 		    nextPutAll: '   ' , each printString;
@@ -178,6 +203,15 @@ Object subclass: HeaderField [
 	<category: 'private'>
 	^self httpFieldNameToClassDictionary at: aString
 	    ifAbsent: [GenericHeaderField]
+    ]
+
+    HeaderField class >> keyForFieldName: aString [
+	"^an Object
+	 I return an object that is used to access the dictionary of fields."
+
+	<category: 'private'>
+	^self httpFieldNameToClassDictionary at: aString
+	    ifAbsent: [aString]
     ]
 
     HeaderField class >> fromLine: aString [
@@ -209,28 +243,42 @@ Object subclass: HeaderField [
 	<category: 'private'>
 	httpFieldNameToClassDictionary isNil 
 	    ifTrue: 
-		[| headerClasses |
-		headerClasses := OrderedCollection new.
-		headerClasses
-		    add: ContentDispositionField;
-		    add: HTTPContentLengthField;
-		    add: ContentTypeField;
-		    add: HTTPAcceptField;
-		    add: HTTPAuthorizationField;
-		    add: HTTPConnectionField;
-		    add: HTTPHostField;
-		    add: HTTPIfMatchField;
-		    add: HTTPIfModifiedSinceField;
-		    add: HTTPIfNoneMatchField;
-		    add: HTTPIfRangeField;
-		    add: HTTPIfUnmodifiedSinceField;
-		    add: HTTPRefererField;
-		    add: HTTPUserAgentField.
-		httpFieldNameToClassDictionary := Dictionary new.
-		headerClasses do: 
+		[httpFieldNameToClassDictionary := Dictionary new.
+		self headerClasses do: 
 			[:aClass | 
 			httpFieldNameToClassDictionary at: aClass fieldName asUppercase put: aClass]].
 	^httpFieldNameToClassDictionary
+    ]
+
+    HeaderField class >> headerClasses [
+	^OrderedCollection new
+	    add: ContentDispositionField;
+	    add: ContentTypeField;
+	    add: HTTPAcceptField;
+	    "add: HTTPAllowField;"
+	    add: HTTPAuthorizationField;
+	    "add: HTTPCacheControlField;"
+	    add: HTTPConnectionField;
+	    add: HTTPContentLengthField;
+	    "add: HTTPCookieField;"
+	    "add: HTTPDateField;"
+	    "add: HTTPETagField;"
+	    "add: HTTPExpiresField;"
+	    add: HTTPHostField;
+	    add: HTTPIfModifiedSinceField;
+	    "add: HTTPIfRangeField;"
+	    "add: HTTPIfUnmodifiedSinceField;"
+	    "add: HTTPLastModifiedField;"
+	    "add: HTTPLocationField;"
+	    add: HTTPIfMatchField;
+	    add: HTTPIfNoneMatchField;
+	    add: HTTPRefererField;
+	    "add: HTTPServerField;"
+	    "add: HTTPSetCookieField;"
+	    add: HTTPUserAgentField;
+	    "add: HTTPWWWAuthenticateBasicField;"
+	    "add: HTTPWWWAuthenticateDigestField;"
+	    yourself
     ]
 
     HeaderField class >> newForFieldName: fieldNameString withValueFrom: fieldValueString [
@@ -267,6 +315,11 @@ Object subclass: HeaderField [
     isContentType [
 	<category: 'testing'>
 	^false
+    ]
+
+    key [
+	<category: 'accessing'>
+	^self subclassResponsibility
     ]
 
     name [
@@ -337,6 +390,11 @@ HeaderField subclass: GenericHeaderField [
 	^self
     ]
 
+    key [
+	<category: 'accessing'>
+	^name asUppercase
+    ]
+
     name [
 	<category: 'accessing'>
 	^name
@@ -380,6 +438,11 @@ HeaderField subclass: SpecificHeaderField [
     SpecificHeaderField class >> newWithValueFrom: fieldValueString [
 	<category: 'private'>
 	^self new valueFrom: fieldValueString
+    ]
+
+    key [
+	<category: 'accessing'>
+	^self class
     ]
 
     name [

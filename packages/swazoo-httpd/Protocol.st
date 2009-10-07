@@ -281,7 +281,7 @@ Object subclass: SwazooResponsePrinter [
 	 must be a String."
 
 	<category: 'sending'>
-	response headers fields do: 
+	response headers fieldsDo: 
 		[:aField | self printHeader: aField]
     ]
 

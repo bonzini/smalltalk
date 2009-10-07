@@ -553,9 +553,9 @@ TestCase subclass: FileResourceTest [
 	resource directoryIndex: 'abc.html'.
 	response := URIResolution resolveRequest: request startingAt: resource.
 	self assert: response code = 301.
-	self assert: (response headers fieldNamed: 'Location') uri asString 
+	self assert: (response headers fieldNamed: 'LOCATION') uri asString 
 		    = 'http://foo/'.
-	self assert: (response headers fieldNamed: 'Location') uri host = 'foo'
+	self assert: (response headers fieldNamed: 'LOCATION') uri host = 'foo'
     ]
 
     testRelativeFile [
@@ -1066,7 +1066,7 @@ TestCase subclass: HTTPRequestTest [
 	<category: 'testing-gets'>
 	| header |
 	request := self getMultiValueHeader.
-	header := request headerAt: 'Content-Type' ifAbsent: [nil].
+	header := request headerAt: 'CONTENT-TYPE' ifAbsent: [nil].
 	self assert: header mediaType = 'multipart/form-data'.
 	self assert: (header transferCodings at: 'boundary') = '--boundary'.
 	self 
@@ -1304,7 +1304,7 @@ TestCase subclass: HeaderFieldTest [
 	    crlf.
 	request := HTTPRequest 
 		    readFrom: (SwazooStream on: requestStream writeBufferContents).
-	field := request headers fieldNamed: 'content-type'.
+	field := request headers fieldNamed: 'CONTENT-TYPE'.
 	self assert: field name = 'Content-Type'.
 	self assert: field mediaType = 'text/html'.
 	self assert: (field transferCodings at: 'charset') = 'iso-8859-1'
@@ -1403,7 +1403,7 @@ TestCase subclass: RedirectionResourceTest [
 	request := HTTPGet request: 'foo'.
 	response := URIResolution resolveRequest: request startingAt: resource.
 	self assert: response code = 301.
-	self assert: (response headers fieldNamed: 'Location') uri asString 
+	self assert: (response headers fieldNamed: 'LOCATION') uri asString 
 		    = 'http://abc.def.com'.
 	self assert: request resourcePath size = 1.
 	self assert: request resourcePath first = 'foo'
@@ -1843,8 +1843,8 @@ TestCase subclass: SwazooCacheControlTest [
 	response := HTTPResponse ok.
 	cacheControl addResponseHeaders: response.
 	self 
-	    assert: (response headers fieldNamed: 'ETag') entityTag = cacheTarget etag.
-	self assert: (response headers fieldNamed: 'Last-Modified') timestamp 
+	    assert: (response headers fieldNamed: 'ETAG') entityTag = cacheTarget etag.
+	self assert: (response headers fieldNamed: 'LAST-MODIFIED') timestamp 
 		    = cacheTarget lastModified
     ]
 
@@ -1858,8 +1858,8 @@ TestCase subclass: SwazooCacheControlTest [
 	response := HTTPResponse notModified.
 	cacheControl addResponseHeaders: response.
 	self 
-	    assert: (response headers fieldNamed: 'ETag') entityTag = cacheTarget etag.
-	self assert: (response headers fieldNamed: 'Last-Modified') timestamp 
+	    assert: (response headers fieldNamed: 'ETAG') entityTag = cacheTarget etag.
+	self assert: (response headers fieldNamed: 'LAST-MODIFIED') timestamp 
 		    = cacheTarget lastModified
     ]
 
@@ -1877,9 +1877,9 @@ TestCase subclass: SwazooCacheControlTest [
 	response := HTTPResponse notModified.
 	cacheControl addResponseHeaders: response.
 	self 
-	    assert: (response headers fieldNamed: 'ETag') entityTag = cacheTarget etag.
+	    assert: (response headers fieldNamed: 'ETAG') entityTag = cacheTarget etag.
 	self 
-	    assert: (response headers fieldNamed: 'Last-Modified' ifNone: [nil]) isNil
+	    assert: (response headers fieldNamed: 'LAST-MODIFIED' ifNone: [nil]) isNil
     ]
 
     testIfNoneMatchHeaderNone [
@@ -1896,8 +1896,8 @@ TestCase subclass: SwazooCacheControlTest [
 	response := HTTPResponse ok.
 	cacheControl addResponseHeaders: response.
 	self 
-	    assert: (response headers fieldNamed: 'ETag') entityTag = cacheTarget etag.
-	self assert: (response headers fieldNamed: 'Last-Modified') timestamp 
+	    assert: (response headers fieldNamed: 'ETAG') entityTag = cacheTarget etag.
+	self assert: (response headers fieldNamed: 'LAST-MODIFIED') timestamp 
 		    = cacheTarget lastModified
     ]
 
@@ -1912,8 +1912,8 @@ TestCase subclass: SwazooCacheControlTest [
 	response := HTTPResponse ok.
 	cacheControl addResponseHeaders: response.
 	self 
-	    assert: (response headers fieldNamed: 'ETag') entityTag = cacheTarget etag.
-	self assert: (response headers fieldNamed: 'Last-Modified') timestamp 
+	    assert: (response headers fieldNamed: 'ETAG') entityTag = cacheTarget etag.
+	self assert: (response headers fieldNamed: 'LAST-MODIFIED') timestamp 
 		    = cacheTarget lastModified
     ]
 ]
