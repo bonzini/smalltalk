@@ -30,7 +30,7 @@
 
 
 Object subclass: HTTPConnection [
-    | stream loop server task |
+    | stream loop server timeout |
     
     <category: 'Swazoo-HTTP'>
     <comment: nil>
@@ -59,15 +59,17 @@ Object subclass: HTTPConnection [
 	 to get a response."
 
 	<category: 'serving'>
+	| task |
 	self stream anyDataReady 
 	    ifTrue: 
 		["wait for data and if anything read, proceed"
 
-		self task: (SwazooTask newOn: self).
-		self readRequestFor: self task.
-		self produceResponseFor: self task.
-		self task request wantsConnectionClose ifTrue: [self close].
-		self task request isHttp10 ifTrue: [self close]	"well, we won't complicate here"]
+		task := SwazooTask newOn: self.
+		self readRequestFor: task.
+		timeout := task request timestamp asSeconds + task request keepAlive.
+		self produceResponseFor: task.
+		task request wantsConnectionClose ifTrue: [self close].
+		task request isHttp10 ifTrue: [self close]	"well, we won't complicate here"]
 	    ifFalse: 
 		[self keepAliveTimeout ifTrue: [^self close].
 		(Delay forMilliseconds: 100) wait.	"to finish sending, if any"
@@ -85,11 +87,11 @@ Object subclass: HTTPConnection [
 			[self getAndDispatchMessages.
 			Processor yield]] 
 			    ifCurtailed: 
-			        [self close]]
+			        [self loop: nil; close]]
 		    on: Error
 		    do: [:ex |
 			(Delay forMilliseconds: 50) wait.	"to finish sending, if any"
-			self close]].
+			self loop: nil; close]].
 	self server isMultiThreading 
 	    ifTrue: 
 		[self loop: (interactionBlock forkAt: Processor userBackgroundPriority)]
@@ -110,14 +112,7 @@ Object subclass: HTTPConnection [
 
     keepAliveTimeout [
 	<category: 'testing'>
-	| seconds |
-	self task isNil ifTrue: [^false].
-	self task request isKeepAlive ifFalse: [^false].
-	seconds := self task request keepAlive notNil 
-		    ifTrue: [self task request keepAlive asInteger - 10	"to be sure"]
-		    ifFalse: [20].	"probably enough?"
-	^SpTimestamp now asSeconds - self task request timestamp asSeconds 
-	    >= seconds
+	^timeout isNil or: [SpTimestamp now asSeconds >= timeout]
     ]
 
     loop [
@@ -236,20 +231,6 @@ Object subclass: HTTPConnection [
     stream: aSwazooStream [
 	<category: 'private'>
 	stream := aSwazooStream
-    ]
-
-    task [
-	"request/response pair, current or last one (until next request)"
-
-	<category: 'private'>
-	^task
-    ]
-
-    task: aSwazooTask [
-	"request/response pair, current or last one (until next request)"
-
-	<category: 'private'>
-	task := aSwazooTask
     ]
 ]
 
