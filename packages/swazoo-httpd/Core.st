@@ -760,7 +760,14 @@ case limited resources prevent acceptance of new connections.
 	"First the easy case, see if some Keep-Alive connection has
 	 timed out."
 	self walk: [ :conn |
-	    conn keepAliveTimeout ifTrue: [conn close. ^self]].
+	    conn keepAliveTimeout ifTrue: [
+		"This can call back into #removeConnection:, so we
+		 need to release the mutex temporarily.  It would
+		 be better to use some kind of RecursionLock."
+		mutex signal.
+		conn close.
+		mutex wait.
+		^self]].
 
 	"Else wake up the reaper processes.  They will find the first
 	 connection that finishes serving a response and forcibly close
