@@ -217,12 +217,21 @@ Object subclass: Command [
 	aCollection do: [ :assoc |
 	    (options at: assoc key ifAbsentPut: [ OrderedCollection new ])
 	        addLast: assoc value.
-	    (self validOptions includes: assoc key) ifFalse: [
+	    (self isValidOption: assoc key) ifFalse: [
 	        self error: ('--%1 invalid for this mode' % {assoc key}) ] ]
     ]
-    validOptions [ ^#() ]
+
+    isValidOption: aString [ ^#('srcdir') includes: aString ]
     isOption: aString [ ^options includesKey: aString ]
     optionsAt: aString [ ^options at: aString ]
+    optionAt: aString [ ^self optionAt: aString ifAbsent: [ nil ] ]
+
+    optionAt: aString ifAbsent: aBlock [
+	| value |
+	value := options at: aString ifAbsent: [ ^aBlock value ].
+	value size > 1 ifTrue: [ self error: '--%1 given multiple times' % {aString} ].
+	^value first
+    ]
 
     validateDestDir: destdir installDir: instDir [ 
 	instDir isNil ifTrue: [ ^self ].
@@ -240,18 +249,24 @@ Object subclass: Command [
     defaultInstallDir [ ^Directory image ]
     installDir [ ^installDir ]
 
+    buildPackages [
+	| srcdir |
+	packages := PackageFiles new.
+	srcdir := self optionAt: 'srcdir' ifAbsent: [ '.' ].
+	(srcdir = '.' or: [ (File fullNameFor: srcdir) = Directory working ])
+	    ifTrue: [ srcdir := nil ].
+
+	packages srcdir: srcdir.
+	^packages
+    ]
+
     packages [
-	packages isNil ifTrue: [ packages := PackageFiles new ].
+	packages isNil ifTrue: [ self buildPackages ].
 	^packages 
     ]
 
     srcdir [
 	^self packages srcdir ifNil: [ '.' ]
-    ]
-    srcdir: aString [
-	(aString = '.' or: [ (File fullNameFor: aString) = Directory working ])
-	    ifTrue: [ self packages srcdir: nil ]
-	    ifFalse: [ self packages srcdir: aString ]
     ]
 
     addFile: aString [ self packages addFile: aString ]
@@ -286,7 +301,10 @@ Command subclass: PkgDist [
 			in: nil ] ]
     ]
 
-    validOptions [ ^#('all-files' 'copy') ]
+    isValidOption: aString [
+	(#('all-files' 'copy') includes: aString) ifTrue: [^true].
+	^super isValidOption: aString
+    ]
 
     distribute: srcFile as: file in: dir [
 	| destName baseDir |
@@ -325,7 +343,10 @@ Command subclass: PkgDist [
 
 Command subclass: PkgInstall [
     | tmpDir |
-    validOptions [ ^#('load' 'test') ]
+    isValidOption: aString [
+	(#('load' 'test') includes: aString) ifTrue: [^true].
+	^super isValidOption: aString
+    ]
 
     run [
         "Create the installation directory."
@@ -454,7 +475,10 @@ Command subclass: ListCommand [
 ]
 
 ListCommand subclass: PkgList [
-    validOptions [ ^#('list-files' 'vpath' 'load') ]
+    isValidOption: aString [
+	(#('list-files' 'vpath' 'load') includes: aString) ifTrue: [^true].
+	^super isValidOption: aString
+    ]
 
     run [
 	| base vpathBase vpath source test listFiles |
@@ -516,7 +540,7 @@ Command subclass: PkgPrepare [
 
 	    f := f, '.in'.
             (File exists: f)
-	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ]
+	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ].
 
             (File exists: aString)
 		ifTrue: [ srcFile := File name: aString ].
@@ -657,13 +681,12 @@ uninstall-local::
     ]
 ]
 
-| srcdir installDir mode command destdir packageArgs helpString options |
+| installDir mode command destdir packageArgs helpString options |
 
 mode := nil.
 command := nil.
 installDir := nil.
 destdir := ''.
-srcdir := '.'.
 options := OrderedCollection new.
 packageArgs := OrderedCollection new.
 
@@ -753,7 +776,7 @@ The default target directory is ', Directory image name, '
 
             opt = 'target-directory' ifTrue: [ installDir := arg ].
 
-            opt = 'srcdir' ifTrue: [ srcdir := arg ].
+            opt = 'srcdir' ifTrue: [ options add: opt -> arg ].
             opt = 'destdir' ifTrue: [ destdir := arg ].
             opt = 'dry-run' ifTrue: [ Command dryRun: true ].
             opt = 'test' ifTrue: [ options add: opt -> arg ].
@@ -773,8 +796,6 @@ The default target directory is ', Directory image name, '
 
     "Validate the installation and source directory."
     command destDir: destdir installDir: installDir.
-
-    command srcdir: srcdir.
 
     packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
     packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
