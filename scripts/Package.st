@@ -221,7 +221,10 @@ Object subclass: Command [
 	        self error: ('--%1 invalid for this mode' % {assoc key}) ] ]
     ]
 
-    isValidOption: aString [ ^#('srcdir') includes: aString ]
+    isValidOption: aString [
+	^#('srcdir' 'target-directory' 'destdir') includes: aString
+    ]
+
     isOption: aString [ ^options includesKey: aString ]
     optionsAt: aString [ ^options at: aString ]
     optionAt: aString [ ^self optionAt: aString ifAbsent: [ nil ] ]
@@ -240,7 +243,11 @@ Object subclass: Command [
 		self error: '--destdir used with relative target directory' ]
     ]
 
-    destDir: destdir installDir: instDir [
+    prolog [
+	| destdir instDir |
+	destdir := self optionAt: 'destdir' ifAbsent: [ '' ].
+	instDir := self optionAt: 'target-directory' ifAbsent: [ nil ].
+
 	self validateDestDir: destdir installDir: instDir.
 	installDir :=
 	    File name: destdir, (instDir ifNil: [ self defaultInstallDir asString ])
@@ -271,7 +278,6 @@ Object subclass: Command [
 
     addFile: aString [ self packages addFile: aString ]
 
-    prolog [ ]
     run [ self packages do: [ :pkg | pkg runCommand: self ] ]
     runOnStar: aStarPackage [ self runOnPackage: aStarPackage ]
     runOnPackage: aPackage [ ]
@@ -681,12 +687,10 @@ uninstall-local::
     ]
 ]
 
-| installDir mode command destdir packageArgs helpString options |
+| mode command packageArgs helpString options |
 
 mode := nil.
 command := nil.
-installDir := nil.
-destdir := ''.
 options := OrderedCollection new.
 packageArgs := OrderedCollection new.
 
@@ -774,17 +778,16 @@ The default target directory is ', Directory image name, '
 		options add: opt->arg.
 		mode := PkgList ].
 
-            opt = 'target-directory' ifTrue: [ installDir := arg ].
-
-            opt = 'srcdir' ifTrue: [ options add: opt -> arg ].
-            opt = 'destdir' ifTrue: [ destdir := arg ].
             opt = 'dry-run' ifTrue: [ Command dryRun: true ].
+
+            opt = 'target-directory' ifTrue: [ options add: opt->arg ].
+            opt = 'srcdir' ifTrue: [ options add: opt -> arg ].
+            opt = 'destdir' ifTrue: [ options add: opt -> arg ].
             opt = 'test' ifTrue: [ options add: opt -> arg ].
             opt = 'load' ifTrue: [ options add: opt -> arg ].
             opt = 'all-files' ifTrue: [ options add: opt -> arg ].
             opt = 'copy' ifTrue: [ options add: opt -> arg ].
             opt = 'vpath' ifTrue: [ options add: opt -> arg ].
-
             opt isNil ifTrue: [ packageArgs add: arg ] ]
         ifError: [
             helpString displayOn: stderr.
@@ -793,17 +796,13 @@ The default target directory is ', Directory image name, '
     mode isNil ifTrue: [ mode := PkgInstall ].
     command := mode new.
     command options: options.
-
-    "Validate the installation and source directory."
-    command destDir: destdir installDir: installDir.
+    command prolog.
 
     packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
     packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
     packageArgs do: [ :each | command addFile: each ].
 
-    command
-	prolog;
-	run
+    command run
 ]
     on: Error
     do: [ :ex |
