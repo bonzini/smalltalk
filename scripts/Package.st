@@ -8,7 +8,7 @@
 
 "======================================================================
 |
-| Copyright 2007, 2008 Free Software Foundation, Inc.
+| Copyright 2007, 2008, 2009 Free Software Foundation, Inc.
 | Written by Paolo Bonzini.
 |
 | This file is part of GNU Smalltalk.
@@ -27,7 +27,6 @@
 | Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 |
  ======================================================================"
-
 
 Package extend [
     srcdir [
@@ -217,14 +216,17 @@ Object subclass: Command [
 	^(Smalltalk getenv: 'LN_S') ifNil: [ 'ln -s' ]
     ]
 
-    options: aSet [
-	options := aSet.
-	aSet do: [ :each |
-	    (self validOptions includes: each) ifFalse: [
-		self error: ('option %1 invalid for this mode' % {each}) ] ]
+    options: aCollection [
+	options := Dictionary new.
+	aCollection do: [ :assoc |
+	    (options at: assoc key ifAbsentPut: [ OrderedCollection new ])
+	        addLast: assoc value.
+	    (self validOptions includes: assoc key) ifFalse: [
+	        self error: ('--%1 invalid for this mode' % {assoc key}) ] ]
     ]
     validOptions [ ^#() ]
-    isOption: aString [ ^options includes: aString ]
+    isOption: aString [ ^options includesKey: aString ]
+    optionsAt: aString [ ^options at: aString ]
 
     validateDestDir: destdir installDir: instDir [ 
 	instDir isNil ifTrue: [ ^self ].
@@ -262,33 +264,6 @@ Object subclass: Command [
     run [ self packages do: [ :pkg | pkg runCommand: self ] ]
     runOnStar: aStarPackage [ self runOnPackage: aStarPackage ]
     runOnPackage: aPackage [ ]
-
-    listFiles: listFiles [
-	| base vpathBase vpath source test |
-	vpath := self isOption: 'vpath'.
-	source := self isOption: 'load'.
-	test := self isOption: 'test'.
-	base := self installDir.
-	vpathBase := File name: self srcdir.
-
-        listFiles do: [ :each || package files |
-	    package := self packages at: each.
-	    files := source
-		ifFalse: [ package allFiles ]
-		ifTrue: [ package fileIns ].
-
-	    (test and: [ source and: [ package test notNil ]])
-		ifTrue: [ files := files, package test fileIns ].
-
-	    files do: [ :file |
-		| path relativePath |
-		path := package fullPathOf: file.
-		relativePath := base pathTo: path.
-		(vpath and: [ (relativePath indexOfSubCollection: '../') > 0 ])
-		    ifTrue: [ relativePath := vpathBase pathTo: path ].
-
-		relativePath displayNl ] ]
-    ]
 ]
 
 Command subclass: PkgDist [
@@ -472,8 +447,7 @@ Command subclass: PkgUninstall [
     runOnStar: aPackage [ ]
 ]
 
-Command subclass: PkgList [
-    validOptions [ ^#('list-files' 'vpath' 'load') ]
+Command subclass: ListCommand [
     validateDestDir: destdir installDir: installDir [
 	destdir = ''
 	    ifFalse: [ self error: '--destdir not needed with --list-files' ].
@@ -483,7 +457,40 @@ Command subclass: PkgList [
     defaultInstallDir [ ^'.' ]
 ]
 
-PkgList subclass: PkgPackageList [
+ListCommand subclass: PkgList [
+    validOptions [ ^#('list-files' 'vpath' 'load') ]
+
+    run [
+	| base vpathBase vpath source test listFiles |
+	super run.
+	listFiles := self optionsAt: 'list-files'.
+	vpath := self isOption: 'vpath'.
+	source := self isOption: 'load'.
+	test := self isOption: 'test'.
+	base := self installDir.
+	vpathBase := File name: self srcdir.
+
+        listFiles do: [ :each || package files |
+	    package := self packages at: each.
+	    files := source
+		ifFalse: [ package allFiles ]
+		ifTrue: [ package fileIns ].
+
+	    (test and: [ source and: [ package test notNil ]])
+		ifTrue: [ files := files, package test fileIns ].
+
+	    files do: [ :file |
+		| path relativePath |
+		path := package fullPathOf: file.
+		relativePath := base pathTo: path.
+		(vpath and: [ (relativePath indexOfSubCollection: '../') > 0 ])
+		    ifTrue: [ relativePath := vpathBase pathTo: path ].
+
+		relativePath displayNl ] ]
+    ]
+]
+
+ListCommand subclass: PkgPackageList [
     runOnPackage: aPackage [ aPackage name displayNl ]
 ]
 
@@ -648,16 +655,14 @@ uninstall-local::
     ]
 ]
 
-| srcdir installDir mode listFiles destdir packageFiles helpString options |
+| srcdir installDir mode destdir packageFiles helpString options |
 
 mode := nil.
-listFiles := OrderedCollection new.
 installDir := nil.
 destdir := ''.
 srcdir := '.'.
-options := Set new.
+options := OrderedCollection new.
 packageFiles := OrderedCollection new.
-packages := PackageFiles new.
 
 helpString := 
 'Usage:
@@ -740,7 +745,7 @@ The default target directory is ', Directory image name, '
             opt = 'list-files' ifTrue: [
 		(mode isNil or: [ mode = PkgList ])
 		     ifFalse: [ self error: 'multiple modes specified' ].
-		listFiles add: arg.
+		options add: opt->arg.
 		mode := PkgList ].
 
             opt = 'target-directory' ifTrue: [ installDir := arg ].
@@ -748,11 +753,11 @@ The default target directory is ', Directory image name, '
             opt = 'srcdir' ifTrue: [ srcdir := arg ].
             opt = 'destdir' ifTrue: [ destdir := arg ].
             opt = 'dry-run' ifTrue: [ Command dryRun: true ].
-            opt = 'test' ifTrue: [ options add: opt ].
-            opt = 'load' ifTrue: [ options add: opt ].
-            opt = 'all-files' ifTrue: [ options add: opt ].
-            opt = 'copy' ifTrue: [ options add: opt ].
-            opt = 'vpath' ifTrue: [ options add: opt ].
+            opt = 'test' ifTrue: [ options add: opt -> arg ].
+            opt = 'load' ifTrue: [ options add: opt -> arg ].
+            opt = 'all-files' ifTrue: [ options add: opt -> arg ].
+            opt = 'copy' ifTrue: [ options add: opt -> arg ].
+            opt = 'vpath' ifTrue: [ options add: opt -> arg ].
 
             opt isNil ifTrue: [ packageFiles add: arg ] ]
         ifError: [
@@ -768,8 +773,7 @@ The default target directory is ', Directory image name, '
 	addAllFiles: packageFiles;
 	options: options;
 	prolog;
-	run;
-	listFiles: listFiles
+	run
 ]
     on: Error
     do: [ :ex |
