@@ -687,15 +687,32 @@ uninstall-local::
     ]
 ]
 
-| mode command packageArgs helpString options |
+
+Object subclass: PackageManager [
+    | mode args options |
 
-mode := nil.
-command := nil.
-options := OrderedCollection new.
-packageArgs := OrderedCollection new.
+    mode [
+	mode isNil ifTrue: [ mode := PkgInstall ].
+	^mode
+    ]
 
-helpString := 
-'Usage:
+    mode: aClass [
+	mode isNil ifFalse: [ self error: 'multiple modes specified' ].
+	mode := aClass
+    ]
+
+    addOption: opt argument: arg [
+	options isNil ifTrue: [ options := OrderedCollection new ].
+	options add: opt->arg
+    ]
+
+    addArgument: arg [
+	args isNil ifTrue: [ args := OrderedCollection new ].
+	args add: arg
+    ]
+
+    helpString [
+	^'Usage:
     gst-package [OPTION]... FILES...
 
 Operation modes:
@@ -736,73 +753,74 @@ files on the command line with that file.
 
 The default target directory is ', Directory image name, '
 
-'.
+'
+    ]
 
-[
-    Smalltalk
-        "--kenrel-directory and --image-file are processed by gst-tool.
-	 --no-load present for backwards compatibility, it is now the default.
-	 --no-install is also present for backwards compatibility."
-        arguments: '-h|--help --no-load --test --load --no-install --uninstall
-            --dist -t|--target-directory: --list-files: --list-packages
-            --prepare --srcdir: --distdir|--destdir: -n|--dry-run --all-files
-	    --vpath --copy -I|--image-file: --kernel-directory: --version'
+    parseArguments: args [
+        Getopt
+            "--kernel-directory and --image-file are processed by gst-tool.
+	     --no-load present for backwards compatibility, it is now the
+	     default. --no-install is also present for backwards compatibility."
+	     parse: args
+	     with: '-h|--help --no-load --test --load --no-install --uninstall
+                --dist -t|--target-directory: --list-files: --list-packages
+                --prepare --srcdir: --distdir|--destdir: -n|--dry-run
+		--all-files --vpath --copy -I|--image-file: --kernel-directory:
+		--version'
 
-        do: [ :opt :arg |
-	    opt = 'help' ifTrue: [
-		helpString displayOn: stdout.
-		ObjectMemory quit: 0 ].
+            do: [ :opt :arg |
+	        opt = 'help' ifTrue: [
+		    self helpString displayOn: stdout.
+		    ObjectMemory quit: 0 ].
 
-	    opt = 'version' ifTrue: [
-		('gst-package - %1' % {Smalltalk version}) displayNl.
-		ObjectMemory quit: 0 ].
+	        opt = 'version' ifTrue: [
+		    ('gst-package - %1' % {Smalltalk version}) displayNl.
+		    ObjectMemory quit: 0 ].
 
-            opt = 'uninstall' ifTrue: [
-		mode isNil ifFalse: [ self error: 'multiple modes specified' ].
-		mode := PkgUninstall ].
-            opt = 'dist' ifTrue: [
-		mode isNil ifFalse: [ self error: 'multiple modes specified' ].
-		mode := PkgDist ].
-            opt = 'list-packages' ifTrue: [
-		mode isNil ifFalse: [ self error: 'multiple modes specified' ].
-		mode := PkgPackageList ].
-            opt = 'no-install' ifTrue: [
-		mode isNil ifFalse: [ self error: 'multiple modes specified' ].
-		mode := PkgList ].
-            opt = 'prepare' ifTrue: [
-		mode isNil ifFalse: [ self error: 'multiple modes specified' ].
-		mode := PkgPrepare ].
-            opt = 'list-files' ifTrue: [
-		(mode isNil or: [ mode = PkgList ])
-		     ifFalse: [ self error: 'multiple modes specified' ].
-		options add: opt->arg.
-		mode := PkgList ].
+                opt = 'uninstall' ifTrue: [ self mode: PkgUninstall ].
+                opt = 'dist' ifTrue: [ self mode: PkgDist ].
+                opt = 'list-packages' ifTrue: [ self mode: PkgPackageList ].
+                opt = 'no-install' ifTrue: [ self mode: PkgList ].
+                opt = 'prepare' ifTrue: [ self mode: PkgPrepare ].
+                opt = 'list-files' ifTrue: [
+		    self addOption: opt argument: arg.
+		    self mode: PkgList ].
 
-            opt = 'dry-run' ifTrue: [ Command dryRun: true ].
+                opt = 'dry-run' ifTrue: [ Command dryRun: true ].
 
-            opt = 'target-directory' ifTrue: [ options add: opt->arg ].
-            opt = 'srcdir' ifTrue: [ options add: opt -> arg ].
-            opt = 'destdir' ifTrue: [ options add: opt -> arg ].
-            opt = 'test' ifTrue: [ options add: opt -> arg ].
-            opt = 'load' ifTrue: [ options add: opt -> arg ].
-            opt = 'all-files' ifTrue: [ options add: opt -> arg ].
-            opt = 'copy' ifTrue: [ options add: opt -> arg ].
-            opt = 'vpath' ifTrue: [ options add: opt -> arg ].
-            opt isNil ifTrue: [ packageArgs add: arg ] ]
-        ifError: [
-            helpString displayOn: stderr.
-            ObjectMemory quit: 1 ].
+                opt = 'target-directory' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'srcdir' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'destdir' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'test' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'load' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'all-files' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'copy' ifTrue: [ self addOption: opt argument: arg. ].
+                opt = 'vpath' ifTrue: [ self addOption: opt argument: arg. ].
+                opt isNil ifTrue: [ self addArgument: arg ] ]
+            ifError: [
+                self helpString displayOn: stderr.
+                ObjectMemory quit: 1 ].
+    ]
 
-    mode isNil ifTrue: [ mode := PkgInstall ].
-    command := mode new.
-    command options: options.
-    command prolog.
+    run [
+	| command packageArgs |
+        command := self mode new.
+        command options: options.
+        command prolog.
 
-    packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
-    packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
-    packageArgs do: [ :each | command addFile: each ].
+	packageArgs := args.
+        packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
+        packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
+        packageArgs do: [ :each | command addFile: each ].
 
-    command run
+        command run
+    ]
+]
+
+
+[ PackageManager new
+	parseArguments: Smalltalk arguments;
+	run
 ]
     on: Error
     do: [ :ex |
