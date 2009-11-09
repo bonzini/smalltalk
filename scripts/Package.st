@@ -73,10 +73,6 @@ Kernel.PackageDirectory subclass: PackageFile [
 Kernel.PackageDirectories subclass: PackageFiles [
     | srcdir |
 
-    addAllFiles: aCollection [
-	aCollection do: [ :each | self addFile: each ]
-    ]
-
     parse: fileName [
 	| file packageFile |
 	file := File name: fileName.
@@ -258,7 +254,7 @@ Object subclass: Command [
 	    ifFalse: [ self packages srcdir: aString ]
     ]
 
-    addAllFiles: aCollection [ self packages addAllFiles: aCollection ]
+    addFile: aString [ self packages addFile: aString ]
 
     prolog [ ]
     run [ self packages do: [ :pkg | pkg runCommand: self ] ]
@@ -503,26 +499,32 @@ Command subclass: PkgPrepare [
 	    ifFalse: [ self error: '--target-directory not needed with --prepare' ]
     ]
 
-    addAllFiles: aCollection [
-	| f |
-	aCollection isEmpty ifTrue: [
-	    (File exists: self srcdir, '/package.xml')
-		ifTrue: [ srcFile := 'package.xml' ].
-	    (File exists: self srcdir, '/package.xml.in')
-		ifTrue: [ srcFile := 'package.xml.in' ].
-	    ^super addAllFiles: { srcFile } ].
+    defaultFiles [
+	(File exists: self srcdir, '/package.xml')
+	    ifTrue: [ srcFile := 'package.xml' ].
+	(File exists: self srcdir, '/package.xml.in')
+	    ifTrue: [ srcFile := 'package.xml.in' ].
+	^{ srcFile }
+    ]
 
+    addFile: aString [
+	| f |
 	srcFile isNil ifTrue: [
-	    f := self srcdir / aCollection first.
+	    f := self srcdir / aString.
             (File exists: f)
 	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ].
 
 	    f := f, '.in'.
             (File exists: f)
 	        ifTrue: [ srcFile := (File name: self srcdir) pathTo: f ]
+
+            (File exists: aString)
+		ifTrue: [ srcFile := File name: aString ].
+
+	    srcFile isNil ifTrue: [ self error: '%1 not found' % {srcFile} ]
 	].
 
-	super addAllFiles: aCollection.
+	super addFile: aString.
     ]
 
     run [
@@ -655,14 +657,15 @@ uninstall-local::
     ]
 ]
 
-| srcdir installDir mode destdir packageFiles helpString options |
+| srcdir installDir mode command destdir packageArgs helpString options |
 
 mode := nil.
+command := nil.
 installDir := nil.
 destdir := ''.
 srcdir := '.'.
 options := OrderedCollection new.
-packageFiles := OrderedCollection new.
+packageArgs := OrderedCollection new.
 
 helpString := 
 'Usage:
@@ -759,19 +762,25 @@ The default target directory is ', Directory image name, '
             opt = 'copy' ifTrue: [ options add: opt -> arg ].
             opt = 'vpath' ifTrue: [ options add: opt -> arg ].
 
-            opt isNil ifTrue: [ packageFiles add: arg ] ]
+            opt isNil ifTrue: [ packageArgs add: arg ] ]
         ifError: [
             helpString displayOn: stderr.
             ObjectMemory quit: 1 ].
 
     mode isNil ifTrue: [ mode := PkgInstall ].
+    command := mode new.
+    command options: options.
 
     "Validate the installation and source directory."
-    mode new
-        destDir: destdir installDir: installDir;
-	srcdir: srcdir;
-	addAllFiles: packageFiles;
-	options: options;
+    command destDir: destdir installDir: installDir.
+
+    command srcdir: srcdir.
+
+    packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
+    packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
+    packageArgs do: [ :each | command addFile: each ].
+
+    command
 	prolog;
 	run
 ]
