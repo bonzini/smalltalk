@@ -186,7 +186,7 @@ File extend [
 ]
 
 Object subclass: Command [
-    | packages installDir options |
+    | installDir options |
 
     DryRun := false.
     Command class >> selectionOptions [
@@ -261,6 +261,13 @@ Object subclass: Command [
     defaultInstallDir [ ^Directory image ]
     installDir [ ^installDir ]
 
+    defaultFiles [ ^#() ]
+    runOnAll: args [ self subclassResponsibility ]
+]
+
+Command subclass: PackageCommand [
+    | packages |
+
     buildPackages [
 	| srcdir |
 	packages := PackageFiles new.
@@ -286,9 +293,14 @@ Object subclass: Command [
     run [ self packages do: [ :pkg | pkg runCommand: self ] ]
     runOnStar: aStarPackage [ self runOnPackage: aStarPackage ]
     runOnPackage: aPackage [ ]
+
+    runOnAll: args [
+	args do: [ :each | self addFile: each ].
+	self run
+    ]
 ]
 
-Command subclass: PkgDist [
+PackageCommand subclass: PkgDist [
     PkgDist class >> selectionOptions [
 	^#('dist')
     ]
@@ -356,7 +368,7 @@ Command subclass: PkgDist [
     ]
 ]
 
-Command subclass: PkgInstall [
+PackageCommand subclass: PkgInstall [
     | tmpDir |
     isValidOption: aString [
 	(#('load' 'test') includes: aString) ifTrue: [^true].
@@ -460,7 +472,7 @@ Command subclass: PkgInstall [
     ]
 ]
 
-Command subclass: PkgUninstall [
+PackageCommand subclass: PkgUninstall [
     PkgUninstall class >> selectionOptions [
 	^#('uninstall')
     ]
@@ -483,7 +495,7 @@ Command subclass: PkgUninstall [
     runOnStar: aPackage [ ]
 ]
 
-Command subclass: ListCommand [
+PackageCommand subclass: ListCommand [
     validateDestDir: destdir installDir: installDir [
 	destdir = ''
 	    ifFalse: [ self error: '--destdir not needed with --list-files' ].
@@ -541,7 +553,7 @@ ListCommand subclass: PkgPackageList [
     runOnPackage: aPackage [ aPackage name displayNl ]
 ]
 
-Command subclass: PkgPrepare [
+PackageCommand subclass: PkgPrepare [
     | srcFile |
     PkgPrepare class >> selectionOptions [
 	^#('prepare')
@@ -845,9 +857,8 @@ The default target directory is ', Directory image name, '
 	packageArgs := args.
         packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
         packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
-        packageArgs do: [ :each | command addFile: each ].
 
-        command run
+        command runOnAll: packageArgs
     ]
 ]
 
