@@ -189,6 +189,10 @@ Object subclass: Command [
     | packages installDir options |
 
     DryRun := false.
+    Command class >> selectionOptions [
+	^#()
+    ]
+
     Command class >> execute: aBlock [
 	DryRun ifFalse: [ aBlock value ]
     ]
@@ -222,7 +226,8 @@ Object subclass: Command [
     ]
 
     isValidOption: aString [
-	^#('srcdir' 'target-directory' 'destdir') includes: aString
+	^#('srcdir' 'target-directory' 'destdir' 'image-file'
+	   'dry-run' 'kernel-directory') includes: aString
     ]
 
     isOption: aString [ ^options includesKey: aString ]
@@ -284,6 +289,10 @@ Object subclass: Command [
 ]
 
 Command subclass: PkgDist [
+    PkgDist class >> selectionOptions [
+	^#('dist')
+    ]
+
     validateDestDir: destdir installDir: instDir [ 
 	(destdir isEmpty and: [ instDir isNil ]) ifTrue: [
 	    self error: 'using --dist without specifying --distdir' ].
@@ -452,6 +461,10 @@ Command subclass: PkgInstall [
 ]
 
 Command subclass: PkgUninstall [
+    PkgUninstall class >> selectionOptions [
+	^#('uninstall')
+    ]
+
     run [
         super run.
         packages filesDo: [ :each | (File name: each) emitRemove ]
@@ -481,6 +494,10 @@ Command subclass: ListCommand [
 ]
 
 ListCommand subclass: PkgList [
+    PkgList class >> selectionOptions [
+	^#('list-files' 'no-install')
+    ]
+
     isValidOption: aString [
 	(#('list-files' 'vpath' 'load') includes: aString) ifTrue: [^true].
 	^super isValidOption: aString
@@ -517,11 +534,19 @@ ListCommand subclass: PkgList [
 ]
 
 ListCommand subclass: PkgPackageList [
+    PkgPackageList class >> selectionOptions [
+	^#('list-packages')
+    ]
+
     runOnPackage: aPackage [ aPackage name displayNl ]
 ]
 
 Command subclass: PkgPrepare [
     | srcFile |
+    PkgPrepare class >> selectionOptions [
+	^#('prepare')
+    ]
+
     validateDestDir: destdir installDir: installDir [
 	destdir = ''
 	    ifFalse: [ self error: '--destdir not needed with --prepare' ].
@@ -691,6 +716,21 @@ uninstall-local::
 Object subclass: PackageManager [
     | mode args options |
 
+    ModeClasses := nil.
+    PackageManager class >> classForMode: aString [
+	^self modeClasses at: aString ifAbsent: [ nil ]
+    ]
+
+    PackageManager class >> modeClasses [
+	ModeClasses isNil ifTrue: [
+	    ModeClasses := Dictionary new.
+	    Command allSubclassesDo: [ :each |
+	        each selectionOptions do: [ :opt |
+		    ModeClasses at: opt put: each ] ] ].
+
+	^ModeClasses
+    ]
+
     mode [
 	mode isNil ifTrue: [ mode := PkgInstall ].
 	^mode
@@ -701,9 +741,13 @@ Object subclass: PackageManager [
 	mode := aClass
     ]
 
-    addOption: opt argument: arg [
+    options [
 	options isNil ifTrue: [ options := OrderedCollection new ].
-	options add: opt->arg
+	^options
+    ]
+
+    addOption: opt argument: arg [
+	self options add: opt->arg
     ]
 
     addArgument: arg [
@@ -768,7 +812,7 @@ The default target directory is ', Directory image name, '
 		--all-files --vpath --copy -I|--image-file: --kernel-directory:
 		--version'
 
-            do: [ :opt :arg |
+            do: [ :opt :arg || modeClass |
 	        opt = 'help' ifTrue: [
 		    self helpString displayOn: stdout.
 		    ObjectMemory quit: 0 ].
@@ -777,26 +821,16 @@ The default target directory is ', Directory image name, '
 		    ('gst-package - %1' % {Smalltalk version}) displayNl.
 		    ObjectMemory quit: 0 ].
 
-                opt = 'uninstall' ifTrue: [ self mode: PkgUninstall ].
-                opt = 'dist' ifTrue: [ self mode: PkgDist ].
-                opt = 'list-packages' ifTrue: [ self mode: PkgPackageList ].
-                opt = 'no-install' ifTrue: [ self mode: PkgList ].
-                opt = 'prepare' ifTrue: [ self mode: PkgPrepare ].
-                opt = 'list-files' ifTrue: [
-		    self addOption: opt argument: arg.
-		    self mode: PkgList ].
-
                 opt = 'dry-run' ifTrue: [ Command dryRun: true ].
 
-                opt = 'target-directory' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'srcdir' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'destdir' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'test' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'load' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'all-files' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'copy' ifTrue: [ self addOption: opt argument: arg. ].
-                opt = 'vpath' ifTrue: [ self addOption: opt argument: arg. ].
-                opt isNil ifTrue: [ self addArgument: arg ] ]
+		modeClass := self class classForMode: opt.
+		modeClass notNil ifTrue: [ self mode: modeClass ].
+
+		(modeClass isNil or: [ arg notNil ])
+		    ifTrue: [
+			opt isNil
+			    ifFalse: [ self addOption: opt argument: arg. ]
+			    ifTrue: [ self addArgument: arg ]]]
             ifError: [
                 self helpString displayOn: stderr.
                 ObjectMemory quit: 1 ].
@@ -805,7 +839,7 @@ The default target directory is ', Directory image name, '
     run [
 	| command packageArgs |
         command := self mode new.
-        command options: options.
+        command options: self options.
         command prolog.
 
 	packageArgs := args.
