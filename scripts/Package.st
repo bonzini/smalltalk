@@ -28,6 +28,9 @@
 |
  ======================================================================"
 
+[PackageLoader fileInPackage: 'NetClients'] on: Error do: [:ex | ex return].
+
+
 DynamicVariable subclass: CurrentCommand [
 ]
 
@@ -304,6 +307,15 @@ Object subclass: Command [
 	^(Smalltalk getenv: 'LN_S') ifNil: [ 'ln -s' ]
     ]
 
+    options [
+	| optionsCollection |
+	optionsCollection := OrderedCollection new.
+	options keysDo: [ :opt |
+	    (options at: opt) do: [ :arg |
+	        optionsCollection add: opt->arg ]].
+	^optionsCollection
+    ]
+
     options: aCollection [
 	options := Dictionary new.
 	aCollection do: [ :assoc |
@@ -360,6 +372,36 @@ Object subclass: Command [
             packageArgs isEmpty ifTrue: [ packageArgs := self defaultFiles ].
             packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
 	    self runOnAll: packageArgs]
+    ]
+]
+
+
+Command subclass: PkgDownload [
+    PkgDownload class >> selectionOptions [
+	^#('download' 'update')
+    ]
+
+    PkgDownload class >> urlBase [
+	^'http://smalltalk.gnu.org/project'
+    ]
+
+    isValidOption: aString [
+	"Let PkgInstall decide later."
+	^true
+    ]
+
+    prolog []
+
+    runOnAll: args [
+	| urls |
+	urls := args collect: [ :each || pkg url |
+	    pkg := PackageLoader packageAt: each ifAbsent: [ nil ].
+	    url := pkg ifNotNil: [ pkg url ].
+	    url ifNil: [ '%1/%2/package.xml' % { self class urlBase. each } ] ].
+		
+	PkgInstall new
+            options: self options;
+            executeOnAll: urls
     ]
 ]
 
@@ -878,7 +920,7 @@ Object subclass: PackageManager [
 
     helpString [
 	^'Usage:
-    gst-package [OPTION]... FILES...
+    gst-package [OPTION]... ARGS...
 
 Operation modes:
         --install               make or install STAR packages (default)
@@ -887,6 +929,10 @@ Operation modes:
         --prepare               create configure.ac or Makefile.am
         --list-files PKG        just output the list of files in the package
         --list-packages         just output the list of packages in the files
+
+        --download, --update    download package from smalltalk.gnu.org or
+                                from its specified URL
+
 	--help                  display this message and exit
 	--version               print version information and exit
 
@@ -912,6 +958,12 @@ Common suboptions:
         --all-files             Process all files, not just non-built ones
         --copy                  Do not create symbolic links
 
+All operation modes except --download (or its synonym --update) accept
+paths to package.xml files or .star files, including remote URLs.
+--download and --update accept names of packages, which will be searched
+in the current system or on smalltalk.gnu.org)
+or URLs to package.xml or .star files.
+
 Except in uninstall and list files mode, gst-package requires write
 access to the GNU Smalltalk image directory, and merges the XML package
 files on the command line with that file.
@@ -931,7 +983,7 @@ The default target directory is ', Directory image name, '
                 --dist -t|--target-directory: --list-files: --list-packages
                 --prepare --srcdir: --distdir|--destdir: -n|--dry-run
 		--all-files --vpath --copy -I|--image-file: --kernel-directory:
-		--version'
+		--download --version'
 
             do: [ :opt :arg || modeClass |
 	        opt = 'help' ifTrue: [
@@ -972,4 +1024,4 @@ The default target directory is ', Directory image name, '
     do: [ :ex |
 	('gst-package: ', ex messageText, '
 ') displayOn: stderr.
-	"ex pass." ObjectMemory quit: 1 ].
+	ex pass. ObjectMemory quit: 1 ].
