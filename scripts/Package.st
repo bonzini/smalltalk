@@ -55,18 +55,45 @@ Package extend [
 ]
 
 Kernel.PackageContainer subclass: StarPackageFile [
+    | name |
+
     StarPackageFile class >> on: aFile [
 	^self new file: aFile; yourself
+    ]
+
+    StarPackageFile class >> on: aFile name: aString [
+	^self new file: aFile; name: aString; yourself
     ]
 
     baseDirectories [
 	^self file zip
     ]
 
+    name [
+	^name
+    ]
+
+    name: aString [
+	name := aString
+    ]
+
     refresh: loadDate [
 	| package |
 	package := Kernel.StarPackage file: self file.
+	name isNil ifFalse: [ package name: self name ].
         self packages at: package name put: package loadedPackage
+    ]
+]
+
+Kernel.PackageContainer subclass: RemotePackageFile [
+    RemotePackageFile class >> on: aFile [
+	^self new file: aFile; yourself
+    ]
+
+    refresh: loadDate [
+        | file |
+	self file withReadStreamDo: [ :fileStream |
+	    self parse: fileStream ]
     ]
 ]
 
@@ -114,15 +141,61 @@ Kernel.PackageContainer subclass: PackageFile [
 Kernel.PackageDirectories subclass: PackageFiles [
     | srcdir |
 
+    parseStarFile: file [
+	^(StarPackageFile on: file)
+	    refresh;
+	    yourself
+    ]
+
+    parseStarFile: file name: aString [
+	^(StarPackageFile on: file name: aString)
+	    refresh;
+	    yourself
+    ]
+
+    parseXMLFile: file [
+	^(PackageFile on: file)
+	    srcdir: self srcdir;
+	    refresh;
+	    yourself
+    ]
+
     parse: fileName [
 	| file packageFile |
 	file := File name: fileName.
-	packageFile := ('*.star' match: fileName)
-	    ifFalse: [ (PackageFile on: file) srcdir: self srcdir; yourself ]
-	    ifTrue: [ StarPackageFile on: file ].
+	^('*.star' match: fileName)
+	    ifFalse: [ self parseXMLFile: file ]
+	    ifTrue: [ self parseStarFile: file ]
+    ]
 
-	packageFile refresh.
-	^packageFile
+    addURL: urlString [
+	| url localFile package found |
+	url := NetClients.URL fromString: urlString.
+
+	"Remote package.xml: download it to find the `real' URL."
+	('*.xml' match: url path)
+	    ifTrue: [
+		localFile := File name: url entity localFileName.
+		package := RemotePackageFile on: localFile.
+		package parse: url readStream.
+		found := false.
+		package packages do: [ :each |
+		    (each url notNil and: [each url notEmpty]) ifTrue: [
+			found := true.
+		        each url = urlString ifTrue: [
+			    ^self error: 'infinite loop in package.xml urls' ].
+			self addURL: (NetClients.URL fromString: each url) ]].
+		found ifTrue: [^self].
+		^self error: 'url element not found in remote XML file' ].
+
+	"Remote .star file: download it and install."
+	('*.star' match: url path)
+	    ifTrue: [
+		^self add: (self
+		    parseStarFile: (File name: url entity localFileName)
+		    name: (File stripPathFrom: (File stripExtensionFrom: url path))) ].
+	
+	self error: 'remote checkout is not supported yet'
     ]
 
     addFile: fileName [
@@ -313,7 +386,16 @@ Command subclass: PackageCommand [
 	^self packages srcdir ifNil: [ '.' ]
     ]
 
-    addFile: aString [ self packages addFile: aString ]
+    addFile: aString [
+	aString ~ '^[a-z+]*://'
+	    ifTrue: [
+		self handleURLs
+		    ifFalse: [ self error: 'URLs are not supported by this mode' ]
+		    ifTrue: [ self packages addURL: aString ] ]
+	    ifFalse: [ self packages addFile: aString ]
+    ]
+
+    handleURLs [ ^false ]
 
     run [ self packages do: [ :pkg | pkg runCommand: self ] ]
     runOnStar: aStarPackage [ self runOnPackage: aStarPackage ]
@@ -399,6 +481,8 @@ PackageCommand subclass: PkgInstall [
 	(#('load' 'test') includes: aString) ifTrue: [^true].
 	^super isValidOption: aString
     ]
+
+    handleURLs [ ^true ]
 
     run [
         "Create the installation directory."
