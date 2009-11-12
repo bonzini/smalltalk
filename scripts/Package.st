@@ -193,10 +193,61 @@ Kernel.PackageContainer subclass: PackageCheckout [
 
 
 PackageCheckout subclass: SvnPackageCheckout [
+    checkout [
+	| realUrl command saveDir |
+	self checkoutDirectory exists
+	    ifFalse: [
+	        self checkoutDirectory emitMkdir.
+		realUrl := url copy.
+		url scheme = 'svn+http' ifTrue: [ realUrl scheme: 'http' ].
+		url host = '' ifTrue: [ realUrl := realUrl path ].
+	        command := 'svn checkout %1 .' % {realUrl} ]
+	    ifTrue: [
+		command := 'svn update' ].
+
+        ('cd %1 && ' % { self checkoutDirectory }, command) displayNl.
+        saveDir := Directory working.
+	Command
+	    execute: [
+	        Directory working: self checkoutDirectory.
+		Smalltalk system: command ]
+	    ensure: [ Directory working: saveDir ]
+    ]
 ]
 
 
 PackageCheckout subclass: GitPackageCheckout [
+    checkout [
+	| realUrl command saveDir |
+	self checkoutDirectory exists
+	    ifFalse: [
+	        self checkoutDirectory emitMkdir.
+		realUrl := url copy.
+		url scheme ~ 'git+(https?|rsync)' ifTrue: [
+		     realUrl scheme: (url scheme copyFrom: 5) ].
+		url host = '' ifTrue: [ realUrl := realUrl path ].
+	        command := 'git clone --depth 1 %1 .' % {realUrl} ]
+	    ifTrue: [
+		command := 'git fetch' ].
+
+        ('cd %1 && ' % { self checkoutDirectory }, command) displayNl.
+        saveDir := Directory working.
+	Command
+	    execute: [
+	        Directory working: self checkoutDirectory.
+		Smalltalk system: command ]
+	    ensure: [ Directory working: saveDir ].
+
+	url fragment isNil ifFalse: [
+	    command := 'git checkout origin/%1' % {url fragment}.
+
+            ('cd %1 && ' % { self checkoutDirectory }, command) displayNl.
+	    Command
+	        execute: [
+	            Directory working: self checkoutDirectory.
+		    Smalltalk system: command ]
+	        ensure: [ Directory working: saveDir ] ]
+    ]
 ]
 
 
