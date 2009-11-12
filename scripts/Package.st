@@ -28,6 +28,10 @@
 |
  ======================================================================"
 
+DynamicVariable subclass: CurrentCommand [
+]
+
+
 Package extend [
     srcdir [
 	^self baseDirectories last
@@ -188,22 +192,21 @@ File extend [
 Object subclass: Command [
     | installDir options |
 
-    DryRun := false.
     Command class >> selectionOptions [
 	^#()
     ]
 
+    Command class >> current [
+	^CurrentCommand value
+    ]
     Command class >> execute: aBlock [
-	DryRun ifFalse: [ aBlock value ]
+	self dryRun ifFalse: [ aBlock value ]
     ]
     Command class >> execute: aBlock ensure: ensureBlock [
-	DryRun ifFalse: [ aBlock ensure: ensureBlock ]
+	self dryRun ifFalse: [ aBlock ensure: ensureBlock ]
     ]
     Command class >> dryRun [
-	^DryRun
-    ]
-    Command class >> dryRun: aBoolean [
-	DryRun := aBoolean
+	^self current isOption: 'dry-run'
     ]
 
     Command class >> zip [
@@ -263,6 +266,16 @@ Object subclass: Command [
 
     defaultFiles [ ^#() ]
     runOnAll: args [ self subclassResponsibility ]
+
+    executeOnAll: args [
+	CurrentCommand use: self during: [
+	    | packageArgs |
+	    self prolog.
+	    packageArgs := args.
+            packageArgs isEmpty ifTrue: [ packageArgs := self defaultFiles ].
+            packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
+	    self runOnAll: packageArgs]
+    ]
 ]
 
 Command subclass: PackageCommand [
@@ -833,8 +846,6 @@ The default target directory is ', Directory image name, '
 		    ('gst-package - %1' % {Smalltalk version}) displayNl.
 		    ObjectMemory quit: 0 ].
 
-                opt = 'dry-run' ifTrue: [ Command dryRun: true ].
-
 		modeClass := self class classForMode: opt.
 		modeClass notNil ifTrue: [ self mode: modeClass ].
 
@@ -849,16 +860,10 @@ The default target directory is ', Directory image name, '
     ]
 
     run [
-	| command packageArgs |
+	| command |
         command := self mode new.
         command options: self options.
-        command prolog.
-
-	packageArgs := args.
-        packageArgs isEmpty ifTrue: [ packageArgs := command defaultFiles ].
-        packageArgs isEmpty ifTrue: [ self error: 'no packages given' ].
-
-        command runOnAll: packageArgs
+        command executeOnAll: args.
     ]
 ]
 
