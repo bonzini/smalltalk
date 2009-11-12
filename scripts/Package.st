@@ -141,6 +141,65 @@ Kernel.PackageContainer subclass: PackageFile [
     ]
 ]
 
+
+Kernel.PackageContainer subclass: PackageCheckout [
+    | url checkoutDirectory |
+
+    PackageCheckout class >> cacheRoot [
+	^Directory userBase / 'cache'
+    ]
+
+    PackageCheckout class >> on: anURL [
+	^self new url: anURL; yourself
+    ]
+
+    baseDirectories [
+	^{ self checkoutDirectory }
+    ]
+
+    checkoutDirectory [
+	| dir name |
+	checkoutDirectory isNil ifTrue: [
+	    name := '%1__%2__%3' % {
+		url scheme. url host.
+		NetClients.URL encode: url path }.
+	    checkoutDirectory := self class cacheRoot / name ].
+	^checkoutDirectory
+    ]
+
+    checkout [
+	self subclassResponsibility
+    ]
+
+    url [
+	^url
+    ]
+
+    url: anURL [
+	url := anURL
+    ]
+
+    refresh: loadDate [
+	self checkout.
+	(self checkoutDirectory / 'package.xml') exists ifFalse: [
+	    Command dryRun ifTrue: [^self].
+	    ^self error: 'cannot find package.xml in checked out repository'].
+
+	self file: self checkoutDirectory / 'package.xml'.
+	self file withReadStreamDo: [ :fileStream |
+	    self parse: fileStream ].
+    ]
+]
+
+
+PackageCheckout subclass: SvnPackageCheckout [
+]
+
+
+PackageCheckout subclass: GitPackageCheckout [
+]
+
+
 Kernel.PackageDirectories subclass: PackageFiles [
     | srcdir |
 
@@ -198,7 +257,21 @@ Kernel.PackageDirectories subclass: PackageFiles [
 		    parseStarFile: (File name: url entity localFileName)
 		    name: (File stripPathFrom: (File stripExtensionFrom: url path))) ].
 	
-	self error: 'remote checkout is not supported yet'
+	(url scheme ~ '^svn(\+|$)')
+	    ifTrue: [
+		^self add: ((SvnPackageCheckout on: url)
+		    refresh;
+		    yourself) ].
+	
+	(url scheme ~ '^git(\+|$)')
+	    ifTrue: [
+		^self add: ((GitPackageCheckout on: url)
+		    refresh;
+		    yourself) ].
+
+	(url scheme ~ '^(https?|ftp|file)$')
+	    ifTrue: [ self error: 'invalid URL %1' % {url} ]
+	    ifFalse: [ self error: 'unknown protocol %1' % {url scheme} ]
     ]
 
     addFile: fileName [
