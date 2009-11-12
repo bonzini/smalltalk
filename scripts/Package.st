@@ -54,20 +54,57 @@ Package extend [
     ]
 ]
 
-Kernel.PackageDirectory subclass: StarPackageFile [
-    refreshStarList: dir [
-	| package |
-	package := Kernel.StarPackage file: self file.
-        packages at: package name put: package loadedPackage
+Kernel.PackageContainer subclass: StarPackageFile [
+    StarPackageFile class >> on: aFile [
+	^self new file: aFile; yourself
     ]
 
-    refreshPackageList []
+    baseDirectories [
+	^self file zip
+    ]
+
+    refresh: loadDate [
+	| package |
+	package := Kernel.StarPackage file: self file.
+        self packages at: package name put: package loadedPackage
+    ]
 ]
 
-Kernel.PackageDirectory subclass: PackageFile [
-    refreshStarList: dir []
+Kernel.PackageContainer subclass: PackageFile [
+    | srcdir |
 
-    refreshPackageList [
+    PackageFile class >> on: aFile [
+	^self new file: aFile; yourself
+    ]
+
+    srcdir [
+	^srcdir
+    ]
+
+    srcdir: aString [
+	srcdir := aString
+    ]
+
+    baseDirectories [
+	| srcdirFile builddirPrefix |
+	self srcdir isNil ifTrue: [ ^{ file path } ].
+
+	"See if the file is in srcdir or builddir.  In any case, we want to
+	 look for files first in the builddir, and secondarily in srcdir."
+	srcdirFile := self file pathFrom: self srcdir.
+	builddirPrefix := Directory working pathFrom: self srcdir.
+	^(srcdirFile startsWith: builddirPrefix, Directory pathSeparatorString)
+	    ifFalse: [ {
+		"file is in srcdir."
+		(File name: srcdirFile) parent.
+		self file parent } ]
+	    ifTrue: [ {
+		"file is in builddir."
+		self file parent.
+		(self srcdir / (self file pathFrom: Directory working)) parent } ]
+    ]
+
+    refresh: loadDate [
         | file |
 	self file withReadStreamDo: [ :fileStream |
 	    self parse: fileStream ]
@@ -81,14 +118,8 @@ Kernel.PackageDirectories subclass: PackageFiles [
 	| file packageFile |
 	file := File name: fileName.
 	packageFile := ('*.star' match: fileName)
-	    ifFalse: [
-		PackageFile
-		    on: file
-		    baseDirectories: [ self baseDirsFor: file ] ]
-	    ifTrue: [
-		StarPackageFile
-		    on: file
-		    baseDirectories: [ {(File name: fileName) zip} ] ].
+	    ifFalse: [ (PackageFile on: file) srcdir: self srcdir; yourself ]
+	    ifTrue: [ StarPackageFile on: file ].
 
 	packageFile refresh.
 	^packageFile
@@ -96,25 +127,6 @@ Kernel.PackageDirectories subclass: PackageFiles [
 
     addFile: fileName [
 	self add: (self parse: fileName).
-    ]
-
-    baseDirsFor: file [
-	| srcdirFile builddirPrefix |
-	self srcdir isNil ifTrue: [ ^{ file path } ].
-
-	"See if the file is in srcdir or builddir.  In any case, we want to
-	 look for files first in the builddir, and secondarily in srcdir."
-	srcdirFile := file pathFrom: self srcdir.
-	builddirPrefix := Directory working pathFrom: self srcdir.
-	^(srcdirFile startsWith: builddirPrefix, Directory pathSeparatorString)
-	    ifFalse: [ {
-		"file is in srcdir."
-		(File name: srcdirFile) parent.
-		file parent } ]
-	    ifTrue: [ {
-		"file is in builddir."
-		file parent.
-		(self srcdir / (file pathFrom: Directory working)) parent } ]
     ]
 
     filesDo: aBlock [
