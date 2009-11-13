@@ -68,7 +68,7 @@ Kernel.PackageContainer subclass: StarPackageFile [
 	^self new file: aFile; name: aString; yourself
     ]
 
-    baseDirectories [
+    baseDirectoriesFor: aPackage [
 	^self file zip
     ]
 
@@ -93,6 +93,8 @@ Kernel.PackageContainer subclass: RemotePackageFile [
 	^self new file: aFile; yourself
     ]
 
+    testPackageValidity: package [ ]
+
     refresh: loadDate [
         | file |
 	self file withReadStreamDo: [ :fileStream |
@@ -115,7 +117,7 @@ Kernel.PackageContainer subclass: PackageFile [
 	srcdir := aString
     ]
 
-    baseDirectories [
+    baseDirectoriesFor: aPackage [
 	| srcdirFile builddirPrefix |
 	self srcdir isNil ifTrue: [ ^{ file path } ].
 
@@ -143,7 +145,7 @@ Kernel.PackageContainer subclass: PackageFile [
 
 
 Kernel.PackageContainer subclass: PackageCheckout [
-    | url checkoutDirectory |
+    | url checkoutDirectory mainPackage |
 
     PackageCheckout class >> cacheRoot [
 	^Directory userBase / 'cache'
@@ -153,8 +155,12 @@ Kernel.PackageContainer subclass: PackageCheckout [
 	^self new url: anURL; yourself
     ]
 
-    baseDirectories [
-	^{ self checkoutDirectory }
+    baseDirectoriesFor: aPackage [
+	mainPackage isNil ifTrue: [ ^{ self checkoutDirectory } ].
+	aPackage name = mainPackage name ifTrue: [ ^{ self checkoutDirectory } ].
+
+	^{ self checkoutDirectory
+	    / (aPackage name copyFrom: mainPackage name size + 2) }
     ]
 
     checkoutDirectory [
@@ -179,6 +185,30 @@ Kernel.PackageContainer subclass: PackageCheckout [
 	url := anURL
     ]
 
+    parseFile: aFile [
+	aFile withReadStreamDo: [ :fileStream |
+	    self parse: fileStream ]
+    ]
+
+    parse: aFileStream [
+	| addedPackages |
+	addedPackages := super parse: aFileStream.
+	addedPackages size > 1 ifTrue: [ ^addedPackages ].
+
+	"TODO: recursively find subpackages maybe?  or decide its a bad idea..."
+	mainPackage isNil ifFalse: [ ^addedPackages ].
+
+	mainPackage := addedPackages first.
+	mainPackage prerequisites do: [ :each || file |
+	    ((each startsWith: mainPackage name, '-') and: [
+		(file := self checkoutDirectory
+		    / (each copyFrom: mainPackage name size + 2)
+		    / 'package.xml') exists ])
+			ifTrue: [ self parseFile: file ]
+	].
+	^addedPackages
+    ]
+
     refresh: loadDate [
 	self checkout.
 	(self checkoutDirectory / 'package.xml') exists ifFalse: [
@@ -186,8 +216,7 @@ Kernel.PackageContainer subclass: PackageCheckout [
 	    ^self error: 'cannot find package.xml in checked out repository'].
 
 	self file: self checkoutDirectory / 'package.xml'.
-	self file withReadStreamDo: [ :fileStream |
-	    self parse: fileStream ].
+	self parseFile: self file.
     ]
 ]
 

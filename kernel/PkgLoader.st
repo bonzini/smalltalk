@@ -315,7 +315,7 @@ XML.'>
 	^self packages includesKey: aString
     ]
 
-    baseDirectories [
+    baseDirectoriesFor: aPackage [
 	<category: 'refreshing'>
 	self subclassResponsibility
     ]
@@ -330,8 +330,9 @@ XML.'>
 
     parse: file [
 	<category: 'refreshing'>
-	| open ch cdata tag package |
+	| open ch cdata tag package allPackages |
 	open := false.
+	allPackages := OrderedCollection new.
 	
 	[cdata := cdata isNil 
 		    ifTrue: [file upTo: $<]
@@ -365,12 +366,18 @@ XML.'>
 				    [package name isNil 
 					ifTrue: [^self error: 'missing package name in ' , self fileName].
 				    
-				    [package baseDirectories: self baseDirectories.
-				    self packages at: package name put: package] 
+				    [self testPackageValidity: package.
+				    self packages at: package name put: package.
+				    allPackages add: package] 
 					    on: PackageSkip
 					    do: [:ex | ex return].
-				    open ifFalse: [^self]].
-			    package := nil]]
+				    open ifFalse: [^allPackages]].
+			    package := nil]].
+	^allPackages
+    ]
+
+    testPackageValidity: package [
+	package baseDirectories: (self baseDirectoriesFor: package).
     ]
 ]
 
@@ -388,7 +395,7 @@ PackageContainer subclass: PackageDirectory [
 	    baseDirectories: aBlock
     ]
 
-    baseDirectories [
+    baseDirectoriesFor: aPacakge [
 	<category: 'accessing'>
 	baseDirCache isNil ifTrue: [self refresh].
 	^baseDirCache

@@ -1861,9 +1861,8 @@ approach based on ephemeron objects.
 @chapter Packages
 
 @gst{} includes a packaging system which allows one to file in components
-(often called @dfn{goodies} in Smalltalk's very folkloristic
-terminology) without caring of whether they need other goodies to be
-loaded first.
+(often called @dfn{goodies} in Smalltalk lore) without caring of whether
+they need other goodies to be loaded first.
 
 The packaging system is implemented by a Smalltalk class,
 @code{PackageLoader}, which looks for information about packages in
@@ -2084,6 +2083,26 @@ There is a short form for specifying @file{package.xml} file on
     gst-package http://smalltalk.gnu.org/project/Iliad/package.xml
     gst-package --download Iliad
 @end example
+
+When downloading remote @file{package.xml} files, @command{gst-package}
+also performs a special check to detect multiple packages in the same
+repository.  If the following conditions are met:
+@itemize @bullet
+@item
+a package named @code{@var{package}} has a prerequisite
+@code{@var{package}-@var{subpackage}};
+
+@item
+there is a toplevel subdirectory @var{subpackage} in the repository;
+
+@item
+the subdirectory has a @file{package.xml} file in it
+@end itemize
+
+@noindent
+then the @file{@var{subpackage}/package.xml} will be installed as well.
+@command{gst-package} does not check if the file actually defines a
+package with the correct name, but this may change in future versions.
 
 Alternatively, @code{gst-package} can be used to create a skeleton
 @gnu{} style source tree.  This includes a @file{configure.ac} that will
