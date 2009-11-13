@@ -144,8 +144,10 @@ Kernel.PackageContainer subclass: PackageFile [
 ]
 
 
+DynamicVariable subclass: MainPackage []
+
 Kernel.PackageContainer subclass: PackageCheckout [
-    | url checkoutDirectory mainPackage |
+    | url checkoutDirectory |
 
     PackageCheckout class >> cacheRoot [
 	^Directory userBase / 'cache'
@@ -156,10 +158,12 @@ Kernel.PackageContainer subclass: PackageCheckout [
     ]
 
     baseDirectoriesFor: aPackage [
+	| mainPackage |
+	mainPackage := MainPackage value.
 	mainPackage isNil ifTrue: [ ^{ self checkoutDirectory } ].
-	aPackage name = mainPackage name ifTrue: [ ^{ self checkoutDirectory } ].
+	aPackage = mainPackage ifTrue: [ ^{ self checkoutDirectory } ].
 
-	^{ self checkoutDirectory
+	^{ mainPackage baseDirectories first
 	    / (aPackage name copyFrom: mainPackage name size + 2) }
     ]
 
@@ -191,21 +195,19 @@ Kernel.PackageContainer subclass: PackageCheckout [
     ]
 
     parse: aFileStream [
-	| addedPackages |
+	| addedPackages mainPackage |
 	addedPackages := super parse: aFileStream.
 	addedPackages size > 1 ifTrue: [ ^addedPackages ].
 
-	"TODO: recursively find subpackages maybe?  or decide its a bad idea..."
-	mainPackage isNil ifFalse: [ ^addedPackages ].
-
 	mainPackage := addedPackages first.
-	mainPackage prerequisites do: [ :each || file |
-	    ((each startsWith: mainPackage name, '-') and: [
-		(file := self checkoutDirectory
-		    / (each copyFrom: mainPackage name size + 2)
-		    / 'package.xml') exists ])
-			ifTrue: [ self parseFile: file ]
-	].
+	MainPackage use: mainPackage during: [
+	    mainPackage prerequisites printNl do: [ :each || file |
+	        ((each startsWith: mainPackage name, '-') and: [
+		    (file := mainPackage baseDirectories first
+		        / (each copyFrom: mainPackage name size + 2)
+		        / 'package.xml') exists ])
+			    ifTrue: [ self parseFile: file ]]].
+
 	^addedPackages
     ]
 
