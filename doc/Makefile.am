@@ -91,7 +91,7 @@ PUBLISHED_CLASSES = Smalltalk.* SystemExceptions.* NetClients.* VFS.*
 $(srcdir)/blox.texi: $(top_srcdir)/packages/blox/tk/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=BloxTK | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -n BLOX -o $(srcdir)/blox.texi BLOX.* || \
 	  rm -f $(srcdir)/blox.texi
 	test -f $(srcdir)/blox.texi && touch $(srcdir)/gst-libs.texi 
@@ -99,7 +99,7 @@ $(srcdir)/blox.texi: $(top_srcdir)/packages/blox/tk/stamp-classes
 $(srcdir)/sockets.texi: $(top_srcdir)/packages/sockets/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=Sockets | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -n Sockets -o $(srcdir)/sockets.texi Sockets.* || \
 	  rm -f $(srcdir)/sockets.texi
 	test -f $(srcdir)/sockets.texi && touch $(srcdir)/gst-libs.texi 
@@ -107,7 +107,7 @@ $(srcdir)/sockets.texi: $(top_srcdir)/packages/sockets/stamp-classes
 $(srcdir)/complex.texi: $(top_srcdir)/packages/complex/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=Complex | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -o $(srcdir)/complex.texi Complex || \
 	  rm -f $(srcdir)/complex.texi
 	test -f $(srcdir)/complex.texi && touch $(srcdir)/gst-libs.texi 
@@ -115,7 +115,7 @@ $(srcdir)/complex.texi: $(top_srcdir)/packages/complex/stamp-classes
 $(srcdir)/debug.texi: $(top_srcdir)/packages/debug/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=DebugTools | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -o $(srcdir)/debug.texi Debugger* || \
 	  rm -f $(srcdir)/debug.texi
 	test -f $(srcdir)/debug.texi && touch $(srcdir)/gst-libs.texi 
@@ -123,7 +123,7 @@ $(srcdir)/debug.texi: $(top_srcdir)/packages/debug/stamp-classes
 $(srcdir)/zlib.texi: $(top_srcdir)/packages/zlib/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=ZLib | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -n ZLib -o $(srcdir)/zlib.texi ZLib.* || \
 	  rm -f $(srcdir)/zlib.texi
 	test -f $(srcdir)/zlib.texi && touch $(srcdir)/gst-libs.texi 
@@ -131,7 +131,7 @@ $(srcdir)/zlib.texi: $(top_srcdir)/packages/zlib/stamp-classes
 $(srcdir)/dbi.texi: $(top_srcdir)/packages/dbi/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=DBI | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -n DBI -o $(srcdir)/dbi.texi DBI.* || \
 	  rm -f $(srcdir)/dbi.texi
 	test -f $(srcdir)/dbi.texi && touch $(srcdir)/gst-libs.texi 
@@ -139,7 +139,7 @@ $(srcdir)/dbi.texi: $(top_srcdir)/packages/dbi/stamp-classes
 $(srcdir)/i18n.texi: $(top_srcdir)/packages/iconv/stamp-classes $(top_srcdir)/packages/i18n/stamp-classes
 	$(GST_PACKAGE) $(patsubst %, %/package.xml, $(^D)) \
 	  --load --list-files=Iconv --list-files=I18N | \
-	  sed s,^,-f, | \
+	  tr -d \\r | sed 'y,\\,/,;s,^,-f,' | \
 	  xargs $(GST_DOC) -n I18N -o $(srcdir)/i18n.texi I18N.* || \
 	  rm -f $(srcdir)/i18n.texi
 	test -f $(srcdir)/i18n.texi && touch $(srcdir)/gst-libs.texi 
