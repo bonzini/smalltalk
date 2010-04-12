@@ -55,7 +55,6 @@
  ***********************************************************************/
 
 #include "gstpriv.h"
-#include "lock.h"
 
 /* The local regs concept hopes, by caching the values of IP and SP in
    local register variables, to increase performance.  You only need
@@ -247,7 +246,7 @@ static int class_cache_prim;
 #endif
 
 /* Queue for async (outside the interpreter) semaphore signals */
-gl_lock_define (static, async_queue_lock);
+static GStaticMutex async_queue_lock = G_STATIC_MUTEX_INIT;
 static mst_Boolean async_queue_enabled = true;
 static int async_queue_index;
 static int async_queue_size;
@@ -1619,7 +1618,7 @@ _gst_async_call (void (*func) (OOP), OOP arg)
     {
       /* Thread-safe version for the masses.  */
 
-      gl_lock_lock (async_queue_lock);
+      g_static_mutex_lock (&async_queue_lock);
       if (async_queue_index == async_queue_size)
         {
           async_queue_size *= 2;
@@ -1630,7 +1629,7 @@ _gst_async_call (void (*func) (OOP), OOP arg)
 
       queued_async_signals[async_queue_index].func = func;
       queued_async_signals[async_queue_index++].data = arg;
-      gl_lock_unlock (async_queue_lock);
+      g_static_mutex_unlock (&async_queue_lock);
       _gst_wakeup ();
     }
   
@@ -2216,7 +2215,6 @@ _gst_init_interpreter (void)
   async_queue_index_sig = 0;
   async_queue_size = 32;
   queued_async_signals = malloc (sizeof (async_queue_entry) * async_queue_size);
-  gl_lock_init (async_queue_lock);
 
   for (i = 0; i < MAX_LIFO_DEPTH; i++)
     lifo_contexts[i].flags = F_POOLED | F_CONTEXT;

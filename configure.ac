@@ -211,7 +211,6 @@ if test "$have_glib" = no; then
 fi
 
 GST_C_SYNC_BUILTINS
-GST_LOCK
 AC_SYS_LARGEFILE
 AC_C_INLINE
 AC_C_RESTRICT

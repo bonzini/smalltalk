@@ -414,7 +414,7 @@ _gst_interpret (OOP processOOP)
         /* First, deal with any async signals.  */
         if (async_queue_enabled)
           {
-	    gl_lock_lock (async_queue_lock);
+            g_static_mutex_lock (&async_queue_lock);
 	    _gst_disable_interrupts (false);
             __sync_synchronize ();
 
@@ -430,7 +430,7 @@ _gst_interpret (OOP processOOP)
 	      }
 
 	    _gst_enable_interrupts (false);
-	    gl_lock_unlock (async_queue_lock);
+            g_static_mutex_unlock (&async_queue_lock);
 	  }
 
         thisContext =
