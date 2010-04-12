@@ -58,6 +58,7 @@
 
 #include <sys/types.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <setjmp.h>

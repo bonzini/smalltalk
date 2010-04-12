@@ -149,12 +149,6 @@ extern time_t _gst_get_time (void)
 extern mst_Boolean _gst_file_is_newer (const char *file1, const char *file2)
   ATTRIBUTE_HIDDEN;
 
-/* Sets the time when FILENAME was last modified.  The times are in
-   seconds, relative to 1 Jan 2000.  */
-extern int _gst_set_file_access_times (const char *name, long new_atime,
-				       long new_mtime)
-  ATTRIBUTE_HIDDEN;
-
 /* Converts the given time (expressed in seconds since midnight Jan 1,
    1970, and in Universal Coordinated Time) into a local time.  */
 extern time_t _gst_adjust_time_zone (time_t t)
@@ -166,13 +160,6 @@ extern long _gst_current_time_zone_bias (void)
 
 /* Returns the full path name for a given file.  */
 extern char *_gst_get_full_file_name (const char *fileName)
-  ATTRIBUTE_HIDDEN;
-
-/* Returns the path name for the current directory, without trailing
-   delimiter.  The return value is a pointer to allocated string for
-   current path name.  Caller has responsibility for freeing the
-   returned value when through.  */
-extern char *_gst_get_cur_dir_name (void)
   ATTRIBUTE_HIDDEN;
 
 /* Returns the name of the current time zone.  */

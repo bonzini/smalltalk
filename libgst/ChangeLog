@@ -1,3 +1,16 @@
+2010-04-12  Paolo Bonzini <bonzini@gnu.org>
+
+	* libgst/gstpriv.h: Include glib/gstdio.h.
+	* libgst/cint.c: Use glib file functions.
+	* libgst/files.c: Likewise.
+	* libgst/prims.def: Likewise.
+	* libgst/sysdep/posix/findexec.c: Likewise.
+	* libgst/sysdep/win32/files.c: Likewise.
+	* libgst/sysdep/common/files.c: Likewise.  Remove
+	_gst_set_file_access_times and _gst_get_cur_dir_name.
+	* libgst/sysdep.h: Remove _gst_set_file_access_times and
+	_gst_get_cur_dir_name.
+
 2010-04-12  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/interp.c: Use GStaticMutex.

@@ -5396,7 +5396,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
       fileName = _gst_to_cstring (oopVec[1]);
       if (IS_INT (oopVec[2]) && arg1 == PRIM_OPEN_FILE)
         {
-          fd = open ((char *) fileName, TO_INT (oopVec[2]));
+          fd = g_open ((char *) fileName, TO_INT (oopVec[2]), 0666);
 	  access = TO_INT (oopVec[2]) && (O_RDONLY | O_WRONLY | O_RDWR);
 	}
 
@@ -5442,7 +5442,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
   case PRIM_MK_TEMP:
     fileName = _gst_to_cstring (oopVec[1]);
     asprintf (&fileName2, "%sXXXXXX", fileName);
-    fd = mkstemp ((char *) fileName2);
+    fd = g_mkstemp ((char *) fileName2);
 
     xfree (fileName);
     if (fd < 0)

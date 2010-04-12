@@ -54,10 +54,7 @@
 #include "gstpriv.h"
 #include <pthread.h>
 #include <poll.h>
-
-#ifdef HAVE_UTIME_H
-# include <utime.h>
-#endif
+#include <utime.h>
 
 #ifdef HAVE_SYS_TIMES_H
 # include <sys/times.h>

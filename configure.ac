@@ -299,7 +299,7 @@ AC_DEFINE_UNQUOTED([STDLIB_NSIG], [$ac_cv_lib_NSIG],
 AC_HEADER_ASSERT
 AC_CHECK_HEADERS_ONCE(stdint.h inttypes.h unistd.h poll.h sys/ioctl.h \
 	sys/resource.h sys/utsname.h stropts.h sys/param.h stddef.h limits.h \
-	sys/timeb.h termios.h sys/mman.h sys/file.h execinfo.h utime.h \
+	sys/timeb.h termios.h sys/mman.h sys/file.h execinfo.h \
 	sys/select.h sys/wait.h fcntl.h, [], [], [AC_INCLUDES_DEFAULT])
 
 AC_CHECK_MEMBERS([struct stat.st_mtim.tv_nsec, struct stat.st_mtimensec,
@@ -334,7 +334,7 @@ AC_REPLACE_FUNCS(putenv strdup strerror strsignal mkstemp getpagesize \
 	acosl atanl logl expl tanl sinl cosl powl truncl lrintl truncf lrintf \
         lrint trunc strsep strpbrk symlink mkdtemp)
 AC_CHECK_FUNCS_ONCE(gethostname memcpy memmove sighold uname usleep lstat \
-	grantpt popen getrusage gettimeofday fork strchr utimes utime readlink \
+	grantpt popen getrusage gettimeofday fork strchr readlink \
 	sigsetmask alarm select mprotect madvise waitpid accept4 \
 	setsid spawnl pread pwrite _NSGetExecutablePath \
 	chown getgrnam getpwnam endgrent endpwent setgroupent setpassent)
