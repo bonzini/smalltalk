@@ -1,5 +1,9 @@
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>
 
+	* libgst/oop.c: Convert to g_slice allocator.
+
+2010-04-12  Paolo Bonzini <bonzini@gnu.org>
+
 	* libgst/sym.c: Convert to g_slice allocator.
 
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>
