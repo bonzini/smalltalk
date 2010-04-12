@@ -167,7 +167,7 @@ find_executable (const char *argv0)
 	  p_next = strchr (p, ':');
 	  /* An empty PATH element designates the current directory.  */
 	  if (p_next == p + 1)
-	    concat_name = xstrdup (argv0);
+	    concat_name = g_strdup (argv0);
 	  else if (!p_next)
 	    asprintf (&concat_name, "%s/%s", p, argv0);
 	  else

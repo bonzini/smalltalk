@@ -152,12 +152,6 @@ extern PTR xcalloc (size_t n, size_t s)
 extern PTR xrealloc (PTR p, size_t n)
   ATTRIBUTE_HIDDEN;
 
-/* Allocate memory for a copy of the null-terminated string S using malloc,
-   duplicate the contents of S, and return the pointer to the copy.  Exit
-   if the memory cannot be allocated.  */
-extern char *xstrdup (const char *s)
-  ATTRIBUTE_HIDDEN;
-
 /* Free the chunk pointed to by P, which was allocated using malloc.  */
 extern void xfree (PTR p)
   ATTRIBUTE_HIDDEN;

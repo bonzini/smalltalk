@@ -112,7 +112,7 @@ _gst_current_time_zone_name (void)
   	  ? tzi.StandardName : tzi.DaylightName;
 
   WideCharToMultiByte (CP_ACP, 0, name, lstrlenW (name), zone, 32, NULL, NULL);
-  return xstrdup (zone);
+  return g_strdup (zone);
 }
 
 void

@@ -335,7 +335,7 @@ _gst_initialize (const char *kernel_dir,
   /* By default, apply this kludge fpr OSes such as Windows and MS-DOS
      which have no concept of home directories.  */
   if (home == NULL)
-    home = xstrdup (currentDirectory);
+    home = g_strdup (currentDirectory);
 
   asprintf ((char **) &_gst_user_file_base_path, "%s/%s",
 	    home, LOCAL_BASE_DIR_NAME);
@@ -409,7 +409,7 @@ _gst_initialize (const char *kernel_dir,
       else
 	{
           free (str);
-          _gst_image_file_path = xstrdup (currentDirectory);
+          _gst_image_file_path = g_strdup (currentDirectory);
 	}
 
       flags |= GST_IGNORE_BAD_IMAGE_PATH;
@@ -603,7 +603,7 @@ _gst_find_file (const char *fileName,
   char *fullFileName, *localFileName;
 
   if (dir == GST_DIR_ABS)
-    return xstrdup (fileName);
+    return g_strdup (fileName);
 
   asprintf (&fullFileName, "%s/%s%s", _gst_kernel_file_path,
 	    dir == GST_DIR_KERNEL ? "" : "../",
