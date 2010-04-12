@@ -311,7 +311,6 @@ _gst_smalltalk_args (int argc,
   smalltalk_argv = argv;
 }
 
-   
 int
 _gst_initialize (const char *kernel_dir,
 		 const char *image_file,

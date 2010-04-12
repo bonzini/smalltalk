@@ -1189,32 +1189,6 @@ adjustment_get_page_size (GtkAdjustment *adj)
   return (GTK_ADJUSTMENT(adj)->page_size);
 }
 
-void my_log_handler (const gchar * log_domain,
-		     GLogLevelFlags log_level,
-		     const gchar * message, gpointer unused_data)
-{
-  /* Do not pass fatal flags so that we can show the backtrace.  */
-  g_log_default_handler (log_domain, log_level & G_LOG_LEVEL_MASK, message,
-			 unused_data);
-
-  switch ((log_level & G_LOG_FATAL_MASK) ? G_LOG_LEVEL_ERROR : log_level)
-    {
-    case G_LOG_LEVEL_ERROR:
-    case G_LOG_LEVEL_CRITICAL:
-    case G_LOG_LEVEL_WARNING:
-    case G_LOG_LEVEL_MESSAGE:
-      _gst_vm_proxy->showBacktrace (stderr);
-       break;
-
-    default:
-      _gst_vm_proxy->showBacktrace (stdout);
-       break;
-    }
-
-  if (log_level & G_LOG_FATAL_MASK)
-    abort ();
-}
-
 int
 gst_type_oop ()
 {
@@ -1248,21 +1222,6 @@ gst_initModule (proxy)
 
   q_gst_object = g_quark_from_string ("gst_object");
   g_type_init ();
-  g_log_set_handler (NULL,
-		     G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL
-		     | G_LOG_LEVEL_ERROR
-		     | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION,
-		     my_log_handler, NULL);
-  g_log_set_handler ("Gtk",
-		     G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL
-		     | G_LOG_LEVEL_ERROR
-		     | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION,
-		     my_log_handler, NULL);
-  g_log_set_handler ("GLib",
-		     G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL
-		     | G_LOG_LEVEL_ERROR
-		     | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION,
-		     my_log_handler, NULL);
 
   gtype_oop_info.value_table = &gtype_oop_value_table;
   G_TYPE_OOP = g_type_register_static (G_TYPE_BOXED, "OOP", &gtype_oop_info, 0);

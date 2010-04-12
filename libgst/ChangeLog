@@ -1,3 +1,8 @@
+2010-04-12  Paolo Bonzini <bonzini@gnu.org>
+
+	* libgst/gstpriv.h: Include gstpriv.h.
+	* libgst/interp.c: Add log handler.
+
 2010-04-11  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/cint.c: Fix warnings on platforms with no lstat.

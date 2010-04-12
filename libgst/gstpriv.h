@@ -57,6 +57,7 @@
 #include "config.h"
 
 #include <sys/types.h>
+#include <glib.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <setjmp.h>
