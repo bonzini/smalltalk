@@ -66,22 +66,6 @@
 #include <sys/timeb.h>
 #endif
 
-uint64_t
-_gst_get_milli_time (void)
-{
-#if defined HAVE_CLOCK_GETTIME && defined _POSIX_MONOTONIC_CLOCK
-  struct timespec tp;
-  clock_gettime (CLOCK_MONOTONIC, &tp);
-  return (tp.tv_sec * (uint64_t) 1000 + tp.tv_nsec / 1000000);
-
-#else
-  struct timeval t;
-  gettimeofday (&t, NULL);
-  t.tv_sec %= 86400;
-  return (t.tv_sec * (uint64_t) 1000 + t.tv_usec / 1000);
-#endif
-}
-
 char *
 _gst_current_time_zone_name (void)
 {

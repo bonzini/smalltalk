@@ -622,4 +622,8 @@ extern int _gst_get_var (enum gst_var_index index)
 extern int _gst_set_var (enum gst_var_index index, int value)
   ATTRIBUTE_HIDDEN;
 
+/* Returns the value of the VM millisecond clock.  */
+extern uint64_t _gst_get_milli_time (void)
+  ATTRIBUTE_HIDDEN;
+
 #endif /* GST_INTERP_H */

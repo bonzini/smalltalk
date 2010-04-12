@@ -71,33 +71,6 @@
 # include <windows.h>
 #endif
 
-uint64_t
-_gst_get_milli_time (void)
-{
-  static long frequency = 0, frequencyH;
-  long milli;
-  LARGE_INTEGER counter;
-
-  if (!frequency)
-    {
-      QueryPerformanceFrequency (&counter);
-      /* frequencyH = 1000 * 2^32 / frequency */
-      frequency = counter.LowPart;
-      frequencyH = MulDiv (1000 * (1 << 16), (1 << 16), counter.LowPart);
-    }
-
-  QueryPerformanceCounter (&counter);
-  /* milli = (high * 2^32 + low) * 1000 / freq =
-     high * (1000 * 2^32 / freq) + (low * 1000 / freq) =
-     (high * frequencyH) + (low / 4) * 4000 / freq)
-     
-     Dividing and multiplying counter.LowPart by 4 is needed because
-     MulDiv accepts signed integers but counter.LowPart is unsigned.  */
-  milli = counter.HighPart * frequencyH;
-  milli += MulDiv (counter.LowPart >> 2, 4000, frequency);
-  return milli;
-}
-
 char *
 _gst_current_time_zone_name (void)
 {

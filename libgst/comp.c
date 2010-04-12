@@ -613,8 +613,9 @@ _gst_execute_statements (tree_node temps,
 			 enum undeclared_strategy undeclared,
 			 mst_Boolean quiet)
 {
+  static GTimer *timer;
   tree_node messagePattern;
-  int startTime, endTime, deltaTime;
+  double deltaTime;
   unsigned long cacheHits;
 #ifdef HAVE_GETRUSAGE
   struct rusage startRusage, endRusage;
@@ -679,7 +680,9 @@ _gst_execute_statements (tree_node temps,
       _gst_self_returns = _gst_inst_var_returns = _gst_literal_returns =
       _gst_sample_counter = 0;
 
-  startTime = _gst_get_milli_time ();
+  if (!timer)
+    timer = g_timer_new();
+  g_timer_start (timer);
 #ifdef HAVE_GETRUSAGE
   getrusage (RUSAGE_SELF, &startRusage);
 #endif
@@ -691,7 +694,7 @@ _gst_execute_statements (tree_node temps,
   _gst_last_returned_value = _gst_nvmsg_send (_gst_nil_oop, methodOOP, NULL, 0);
   INC_ADD_OOP (_gst_last_returned_value);
 
-  endTime = _gst_get_milli_time ();
+  deltaTime = g_timer_elapsed (timer, NULL);
 #ifdef HAVE_GETRUSAGE
   getrusage (RUSAGE_SELF, &endRusage);
 #endif
@@ -727,12 +730,11 @@ _gst_execute_statements (tree_node temps,
   if (quiet || _gst_verbosity < 3)
     return (_gst_last_returned_value);
 
-  deltaTime = endTime - startTime;
 #ifdef ENABLE_JIT_TRANSLATION
-  printf ("Execution took %.3f seconds", deltaTime / 1000.0);
+  printf ("Execution took %.3f seconds", deltaTime);
 #else
   printf ("%lu byte codes executed\nwhich took %.3f seconds",
-	  _gst_bytecode_counter, deltaTime / 1000.0);
+	  _gst_bytecode_counter, deltaTime);
 #endif
 
 #ifdef HAVE_GETRUSAGE

@@ -1,5 +1,15 @@
 2010-04-12  Paolo Bonzini  <bonzini@gnu.org>
 
+	* libgst/comp.c: Replace _gst_get_milli_time with GTimer.
+	* libgst/files.c: Call g_thread_init.
+	* libgst/interp.c: Implement _gst_get_milli_time using GTimer.
+	* libgst/interp.h: Add _gst_get_milli_time prototype.
+	* libgst/sysdep.h: Remove _gst_get_milli_time.
+	* libgst/sysdep/posix/time.c: Remove _gst_get_milli_time.
+	* libgst/sysdep/win32/time.c: Remove _gst_get_milli_time.
+
+2010-04-12  Paolo Bonzini  <bonzini@gnu.org>
+
 	* libgst/Makefile.am: Remove memzero.h.
 	* libgst/memzero.h: Remove.
 	* libgst/dict.c: Remove memzero.
