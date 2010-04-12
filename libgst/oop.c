@@ -606,7 +606,7 @@ _gst_make_oop_non_weak (OOP oop)
       if (entry->oop == oop)
         {
           rb_erase (&entry->rb, (rb_node_t **) &_gst_mem.weak_areas);
-          xfree (entry);
+          g_slice_free (weak_area_tree, entry);
           break;
         }
 
@@ -637,7 +637,7 @@ _gst_make_oop_weak (OOP oop)
 	return;
     }
 
-  entry = (weak_area_tree *) xmalloc (sizeof (weak_area_tree));
+  entry = g_slice_new (weak_area_tree);
   entry->oop = oop;
   entry->rb.rb_parent = &node->rb;
   entry->rb.rb_left = entry->rb.rb_right = NULL;
@@ -877,7 +877,7 @@ oldspace_before_freeing (heap_data *h, heap_block *blk, size_t sz)
   
         _gst_mem.rememberedTableEntries--;
 	*next = node->next;
-	xfree (node);
+	g_slice_free (grey_area_node, node);
       }
     else
       {
@@ -1026,7 +1026,7 @@ _gst_compact (size_t new_heap_limit)
       {
         _gst_mem.rememberedTableEntries--;
         *next = node->next;
-        xfree (node);
+        g_slice_free (grey_area_node, node);
       }
 
   _gst_mem.grey_pages.tail = last;
@@ -1653,7 +1653,7 @@ add_grey_object (OOP oop)
       base = &(obj->data[1]); 
     }
 
-  entry = (grey_area_node *) xmalloc (sizeof (grey_area_node));
+  entry = g_slice_new (grey_area_node);
   entry->base = base;
   entry->n = numFields;
   entry->oop = oop;
@@ -1669,7 +1669,7 @@ add_grey_object (OOP oop)
 void
 add_to_grey_list (OOP *base, int n)
 {
-  grey_area_node *entry = (grey_area_node *) xmalloc (sizeof (grey_area_node));
+  grey_area_node *entry = g_slice_new (grey_area_node);
   entry->base = base;
   entry->n = n;
   entry->oop = NULL;
@@ -1855,7 +1855,7 @@ scan_grey_pages ()
 	  _gst_mem.rememberedTableEntries--;
 	  _gst_mem_protect ((PTR) node->base, node->n * sizeof(OOP), PROT_READ);
 	  *next = node->next;
-	  xfree (node);
+	  g_slice_free (grey_area_node, node);
 	}
       else
 #endif
@@ -1913,7 +1913,7 @@ scan_grey_objects()
 	}
 
       _gst_mem.grey_areas.head = next = node->next;
-      xfree (node);
+      g_slice_free (grey_area_node, node);
       if (!next)
         _gst_mem.grey_areas.tail = NULL;
 
