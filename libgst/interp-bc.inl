@@ -526,7 +526,7 @@ monitor_byte_codes:
   /* First, deal with any async signals.  */
   if (async_queue_enabled)
     {
-      gl_lock_lock (async_queue_lock);
+      g_static_mutex_lock (&async_queue_lock);
       _gst_disable_interrupts (false);
       __sync_synchronize ();
 
@@ -542,7 +542,7 @@ monitor_byte_codes:
 	}
 
       _gst_enable_interrupts (false);
-      gl_lock_unlock (async_queue_lock);
+      g_static_mutex_unlock (&async_queue_lock);
     }
 
   if UNCOMMON (time_to_preempt)

@@ -23,7 +23,7 @@ CLEANFILES = genprims$(EXEEXT) genbc$(EXEEXT) genvm$(EXEEXT) \
 
 libgst_la_LIBADD=$(top_builddir)/lib-src/library.la $(SOCKET_LIBS) \
 	$(LIBSIGSEGV) $(LIBFFI) $(LIBSNPRINTFV) $(LIBREADLINE) $(LIBLTDL) \
-	$(LIBGMP) $(LIBTHREAD) $(GLIB_LIBS) $(GTHREAD_LIBS)
+	$(LIBGMP) $(GLIB_LIBS) $(GTHREAD_LIBS)
 
 libgst_la_DEPENDENCIES=$(top_builddir)/lib-src/library.la $(LIBSNPRINTFV)
 

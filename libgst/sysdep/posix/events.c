@@ -52,8 +52,7 @@
 
 
 #include "gstpriv.h"
-#include "lock.h"
-
+#include <pthread.h>
 #include <poll.h>
 
 #ifdef HAVE_UTIME_H
@@ -351,16 +350,12 @@ file_polling_handler (int sig)
   _gst_wakeup ();
 }
 
-#ifdef USE_POSIX_THREADS
-pthread_t waiting_thread;
-#endif
+static pthread_t waiting_thread;
 
 void
 _gst_pause (void)
 {
-#ifdef USE_POSIX_THREADS
-  waiting_thread = pthread_in_use () ? pthread_self () : 0;
-#endif
+  waiting_thread = pthread_self ();
   _gst_disable_interrupts (false);
   if (!_gst_have_pending_async_calls ())
     {
@@ -370,22 +365,17 @@ _gst_pause (void)
       sigemptyset (&set);
       sigsuspend (&set);
     }
-#ifdef USE_POSIX_THREADS
   waiting_thread = 0;
-#endif
   _gst_enable_interrupts (false);
 }
 
 void
 _gst_wakeup (void)
 {
-#ifdef USE_POSIX_THREADS
   __sync_synchronize ();
-  if (pthread_in_use ()
-      && waiting_thread
+  if (waiting_thread
       && pthread_self () != waiting_thread)
     pthread_kill (waiting_thread, SIGUSR2);
-#endif
 }
 
 int
