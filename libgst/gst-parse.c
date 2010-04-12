@@ -413,7 +413,7 @@ expected (gst_parser *p, int token, ...)
 
     msg = fildelete (out_fil);
   _gst_errorf ("%s", msg);
-  free (msg);
+  g_free (msg);
   recover_error (p);
 }
 
@@ -1059,7 +1059,7 @@ parse_instance_variables (gst_parser *p, OOP classOOP, mst_Boolean extend)
 	{
 	  char *s = _gst_to_cstring (*instVars);
           filprintf (fil, "%s ", s);
-	  xfree (s);
+	  g_free (s);
 	}
     }
 
@@ -1073,7 +1073,7 @@ parse_instance_variables (gst_parser *p, OOP classOOP, mst_Boolean extend)
 
   vars = fildelete (fil);
   _gst_msg_sendf (NULL, "%v %o instanceVariableNames: %S", classOOP, vars);
-  free (vars);
+  g_free (vars);
 }
 
 static void

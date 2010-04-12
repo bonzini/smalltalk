@@ -408,7 +408,7 @@ _gst_initialize (const char *kernel_dir,
         _gst_image_file_path = str;
       else
 	{
-          free (str);
+          g_free (str);
           _gst_image_file_path = g_strdup (currentDirectory);
 	}
 
@@ -421,14 +421,14 @@ _gst_initialize (const char *kernel_dir,
       str = _gst_relocate_path (KERNEL_PATH);
       if (!_gst_file_is_readable (str))
 	{
-          free (str);
+          g_free (str);
 	  asprintf (&str, "%s/kernel", _gst_image_file_path);
 	}
 
       kernel_dir = str;
     }
 
-  xfree (currentDirectory);
+  g_free (currentDirectory);
 
   /* Uff, we're done with the complicated part.  Set variables to mirror
      what we've decided in the above marathon.  */
@@ -552,7 +552,7 @@ ok_to_load_binary (void)
       char *fullFileName = _gst_find_file (fileName, GST_DIR_KERNEL);
       mst_Boolean ok = _gst_file_is_newer (_gst_binary_image_name,
 					   fullFileName);
-      xfree (fullFileName);
+      g_free (fullFileName);
       if (!ok)
         return (false);
     }
@@ -618,17 +618,17 @@ _gst_find_file (const char *fileName,
 
       if (_gst_file_is_newer (localFileName, fullFileName))
 	{
-	  xfree (fullFileName);
+	  g_free (fullFileName);
 	  return localFileName;
 	}
       else
-	xfree (localFileName);
+	g_free (localFileName);
     }
 
   if (_gst_file_is_readable (fullFileName))
     return fullFileName;
 
-  xfree (fullFileName);
+  g_free (fullFileName);
   return NULL;
 }
 
@@ -643,7 +643,7 @@ find_user_file (const char *fileName)
   asprintf (&fullFileName, "%s/%s", _gst_user_file_base_path, fileName);
   if (!_gst_file_is_readable (fullFileName))
     {
-      xfree (fullFileName);
+      g_free (fullFileName);
       return NULL;
     }
   else

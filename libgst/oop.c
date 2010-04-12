@@ -240,7 +240,7 @@ void
 init_survivor_space (struct surv_space *space, size_t size)
 {
   space->totalSize = size;
-  space->minPtr = (OOP *) xmalloc (size);
+  space->minPtr = (OOP *) g_malloc (size);
   space->maxPtr = (OOP *) ((char *)space->minPtr + size);
 
   reset_survivor_space (space);
@@ -301,10 +301,9 @@ _gst_init_mem (size_t eden, size_t survivor, size_t old,
   if (eden)
     {
       _gst_mem.eden.totalSize = eden;
-      _gst_mem.eden.minPtr = (OOP *) xmalloc (eden);
+      _gst_mem.eden.minPtr = (OOP *) g_malloc (eden);
       _gst_mem.eden.allocPtr = _gst_mem.eden.minPtr;
-      _gst_mem.eden.maxPtr = (OOP *)
-        ((char *)_gst_mem.eden.minPtr + eden);
+      _gst_mem.eden.maxPtr = (OOP *) ((char *)_gst_mem.eden.minPtr + eden);
     }
 
   if (survivor)
@@ -1049,7 +1048,7 @@ _gst_compact (size_t new_heap_limit)
         }
     }
 
-  xfree (_gst_mem.old);
+  g_free (_gst_mem.old);
   _gst_mem.old = new_heap;
   new_heap->nomemory = oldspace_nomemory;
 
@@ -2300,11 +2299,9 @@ _gst_mark_an_oop_internal (OOP oop,
 void
 _gst_inc_init_registry (void)
 {
-  _gst_mem.inc_base =
-    (OOP *) xmalloc (INIT_NUM_INCUBATOR_OOPS * sizeof (OOP *));
+  _gst_mem.inc_base = g_new (OOP, INIT_NUM_INCUBATOR_OOPS);
   _gst_mem.inc_ptr = _gst_mem.inc_base;
-  _gst_mem.inc_end =
-    _gst_mem.inc_base + INIT_NUM_INCUBATOR_OOPS;
+  _gst_mem.inc_end = _gst_mem.inc_base + INIT_NUM_INCUBATOR_OOPS;
 
   /* Make the incubated objects part of the root set */
   _gst_register_oop_array (&_gst_mem.inc_base, &_gst_mem.inc_ptr);
@@ -2323,9 +2320,7 @@ _gst_inc_grow_registry (void)
 
   newRegistrySize = oldRegistrySize + INCUBATOR_CHUNK_SIZE;
 
-  _gst_mem.inc_base =
-    (OOP *) xrealloc (_gst_mem.inc_base,
-		      newRegistrySize * sizeof (OOP *));
+  _gst_mem.inc_base = g_renew (OOP, _gst_mem.inc_base, newRegistrySize);
   _gst_mem.inc_ptr = _gst_mem.inc_base + oldPtrOffset;
   _gst_mem.inc_end = _gst_mem.inc_base + newRegistrySize;
 }

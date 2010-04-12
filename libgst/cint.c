@@ -483,12 +483,7 @@ my_utime (const char *name, long new_atime, long new_mtime)
 int
 my_putenv (const char *str)
 {
-  char *clone;
-  int len;
-
-  len = strlen (str) + 1;	/* hold the null */
-  clone = (char *) xmalloc (len);
-  strcpy (clone, str);
+  char *clone = g_strdup (str);
   return (putenv (clone));
 }
 
@@ -609,9 +604,9 @@ _gst_dladdsearchdir (const char *dir)
 void
 _gst_dlpushsearchpath (void)
 {
-  struct search_path_stack *entry = xmalloc (sizeof (struct search_path_stack));
+  struct search_path_stack *entry = g_slice_new (struct search_path_stack);
   const char *path = lt_dlgetsearchpath ();
-  entry->saved_search_path = path ? strdup (path) : NULL;
+  entry->saved_search_path = g_strdup (path);
   entry->next = search_paths;
   search_paths = entry;
 }
@@ -625,8 +620,8 @@ _gst_dlpopsearchpath (void)
 
   lt_dlsetsearchpath (path->saved_search_path);
   search_paths = path->next;
-  free (path->saved_search_path);
-  free (path);
+  g_free (path->saved_search_path);
+  g_slice_free (struct search_path_stack, path);
 }
 
 
@@ -639,7 +634,7 @@ init_dld (void)
 
   modules = _gst_relocate_path (MODULE_PATH);
   lt_dladdsearchdir (modules);
-  free (modules);
+  g_free (modules);
 
   if ((modules = getenv ("SMALLTALK_MODULES")))
     lt_dladdsearchdir (modules);
@@ -740,7 +735,7 @@ _gst_define_cfunc (const char *funcName,
 	}
     }
 
-  node = (cfunc_info *) xcalloc(sizeof(cfunc_info), 1);
+  node = g_new0 (cfunc_info, 1);
   node->avl.avl_parent = (avl_node_t *) cfi;
   node->avl.avl_left = node->avl.avl_right = NULL;
   node->funcName = strdup (funcName);
@@ -868,7 +863,7 @@ _gst_invoke_croutine (OOP cFuncOOP,
 
   p_slot = pointer_map_insert (cif_cache, cFuncOOP);
   if (!*p_slot)
-    *p_slot = xcalloc (1, sizeof (cfunc_cif_cache));
+    *p_slot = g_new0 (cfunc_cif_cache, 1);
 
   desc = (gst_c_callable) OOP_TO_OBJ (cFuncOOP);
   argTypes = OOP_TO_OBJ (desc->argTypesOOP)->data;
@@ -991,7 +986,7 @@ _gst_invoke_croutine (OOP cFuncOOP,
 	    break;
           }
 
-        xfree (arg->u.ptrVal);
+        g_free (arg->u.ptrVal);
       }
 
   INC_RESTORE_POINTER (incPtr);
@@ -1368,7 +1363,7 @@ c_to_smalltalk (cparam *result, OOP receiverOOP, OOP returnTypeOOP)
 	{
 	  resultOOP = _gst_intern_string ((char *) result->u.ptrVal);
 	  if (returnType == CDATA_SYMBOL_OUT)
-	    xfree (result->u.ptrVal);
+	    g_free (result->u.ptrVal);
 	}
       else if (returnType == CDATA_COBJECT)
 	{
@@ -1381,13 +1376,13 @@ c_to_smalltalk (cparam *result, OOP receiverOOP, OOP returnTypeOOP)
 	{
 	  resultOOP = _gst_string_new ((char *) result->u.ptrVal);
 	  if (returnType == CDATA_STRING_OUT)
-	    xfree (result->u.ptrVal);
+	    g_free (result->u.ptrVal);
 	}
       else if (returnType == CDATA_WSTRING || returnType == CDATA_WSTRING_OUT)
 	{
 	  resultOOP = _gst_unicode_string_new ((wchar_t *) result->u.ptrVal);
 	  if (returnType == CDATA_WSTRING_OUT)
-	    xfree (result->u.ptrVal);
+	    g_free (result->u.ptrVal);
 	}
       else
 	abort ();
@@ -1545,8 +1540,8 @@ my_chown (const char *file, const char *user, const char *group)
 #endif
 	}
 
-      free (save_user);
-      free (save_group);
+      g_free (save_user);
+      g_free (save_group);
       save_user = save_group = NULL;
       return 0;
     }
@@ -1583,8 +1578,8 @@ my_chown (const char *file, const char *user, const char *group)
       if (recursive_depth)
 	{
 	  if (save_user)
-	    free (save_user);
-          save_user = strdup (user);
+	    g_free (save_user);
+          save_user = g_strdup (user);
 	  save_uid = uid;
 	}
     }
@@ -1607,8 +1602,8 @@ my_chown (const char *file, const char *user, const char *group)
       if (recursive_depth)
 	{
 	  if (save_group)
-	    free (save_group);
-          save_group = strdup (group);
+	    g_free (save_group);
+          save_group = g_strdup (group);
 	  save_gid = gid;
 	}
     }

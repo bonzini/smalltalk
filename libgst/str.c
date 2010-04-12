@@ -75,12 +75,12 @@ _gst_add_buf_pointer (PTR ptr)
       if (max_buf_len)
 	{
 	  max_buf_len += (max_buf_len / 2) + sizeof (PTR);
-	  buf_base = (char *) xrealloc (buf_base, max_buf_len);
+	  buf_base = g_realloc (buf_base, max_buf_len);
 	}
       else
 	{
 	  max_buf_len = STRING_BASE_SIZE;
-	  buf_base = (char *) xmalloc (max_buf_len);
+	  buf_base = g_malloc (max_buf_len);
 	}
     }
 
@@ -97,12 +97,12 @@ _gst_add_buf_data (PTR ptr,
       if (max_buf_len)
 	{
 	  max_buf_len += (max_buf_len / 2) + n;
-	  buf_base = (char *) xrealloc (buf_base, max_buf_len);
+	  buf_base = (char *) g_realloc (buf_base, max_buf_len);
 	}
       else
 	{
 	  max_buf_len = STRING_BASE_SIZE + n;
-	  buf_base = (char *) xmalloc (max_buf_len);
+	  buf_base = (char *) g_malloc (max_buf_len);
 	}
     }
 

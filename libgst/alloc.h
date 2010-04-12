@@ -136,31 +136,11 @@ extern heap_data *_gst_mem_new_heap (size_t heap_allocation_size,
 				     size_t heap_limit)
   ATTRIBUTE_HIDDEN;
 
-/* Allocate a chunk of N bytes using malloc.  Exit if this amount of
-   memory cannot be allocated.  */
-extern PTR xmalloc (size_t n)
-  ATTRIBUTE_HIDDEN;
-
-/* Allocate a chunk of S*N bytes using malloc, clear it and return a pointer
-   to its base.  Exit if memory cannot be allocated.  */
-extern PTR xcalloc (size_t n, size_t s)
-  ATTRIBUTE_HIDDEN;
-
-/* Resize the memory chunk pointed to by P, which was allocated using
-   malloc, so that its size becomes N.  Return the new pointer, or exit
-   if the memory cannot be allocated.  */
-extern PTR xrealloc (PTR p, size_t n)
-  ATTRIBUTE_HIDDEN;
-
-/* Free the chunk pointed to by P, which was allocated using malloc.  */
-extern void xfree (PTR p)
-  ATTRIBUTE_HIDDEN;
-
 /* Print an error message, and exit if FATAL is non-zero.  */
 extern void nomemory (int fatal)
   ATTRIBUTE_HIDDEN;
 
-#define obstack_chunk_alloc xmalloc
-#define obstack_chunk_free xfree
+#define obstack_chunk_alloc g_malloc
+#define obstack_chunk_free g_free
 
 #endif

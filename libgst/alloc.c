@@ -118,11 +118,12 @@ static size_t max_small_object_size;
 static size_t pagesize;
 
 
-/* Create a new memory heap  */
+/* Create a new memory heap.  Do not use slice allocator as we restrict
+   that by policy to data that does not leave the module.  */
 heap_data *
 _gst_mem_new_heap (size_t heap_allocation_size, size_t heap_limit)
 {
-  heap_data *h = (heap_data *) malloc (sizeof (heap_data));
+  heap_data *h = g_new (heap_data, 1);
   init_heap (h, heap_allocation_size, heap_limit);
   return h;
 }
@@ -681,12 +682,8 @@ heap_system_alloc (heap_data *h, size_t sz)
 PTR
 morecore (size_t size)
 {
-  heap just_allocated_heap = NULL;
-
-  /* _gst_heap_sbrk is actually the same as sbrk as long as
-     current_heap is NULL.  But we cannot do that unless we
-     can replace malloc (which we cannot do on MacOS X, see above).  */
   static heap current_heap = NULL;
+  heap just_allocated_heap = NULL;
 
   if (current_heap == NULL)
     {
@@ -730,49 +727,6 @@ morecore (size_t size)
 }
 
 
-PTR 
-xmalloc (size_t n)
-{
-  PTR block;
-
-  block = malloc(n);
-  if (!block && n)
-    nomemory(1);
-
-  return (block);
-}
-
-PTR 
-xcalloc (size_t n, size_t s)
-{
-  PTR block;
-
-  block = calloc(n, s);
-  if (!block && n && s)
-    nomemory(1);
-
-  return (block);
-}
-
-PTR 
-xrealloc (PTR p, size_t n)
-{
-  PTR block;
-
-  block = realloc(p, n);
-  if (!block && n)
-    nomemory(1);
-
-  return (block);
-}
-
-void
-xfree (PTR p)
-{
-  if (p)
-    free(p);
-}
-
 void
 nomemory (int fatal)
 {

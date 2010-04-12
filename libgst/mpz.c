@@ -66,7 +66,7 @@ gst_mpz_realloc (gst_mpz *m, mp_size_t new_size)
   if (new_size > m->alloc)
     {
       m->alloc = new_size;
-      m->d = (mp_ptr) xrealloc (m->d, new_size * SIZEOF_MP_LIMB_T);
+      m->d = g_renew (mp_limb_t, m->d, new_size);
     }
 
   return (void *) m->d;
@@ -134,7 +134,7 @@ void
 _gst_mpz_clear (gst_mpz *m)
 {
   if (m->alloc)
-    xfree (m->d);
+    g_free (m->d);
 }
 
 void
@@ -703,10 +703,10 @@ _gst_mpz_mul (gst_mpz *w, const gst_mpz *u, const gst_mpz *v)
 	  free_me_size = w->alloc;
 	}
       else
-	xfree (wp);
+	g_free (wp);
 
       w->alloc = wsize;
-      wp = (mp_ptr) xmalloc (wsize * SIZEOF_MP_LIMB_T);
+      wp = g_new (mp_limb_t, wsize);
       w->d = wp;
     }
   else
@@ -715,7 +715,7 @@ _gst_mpz_mul (gst_mpz *w, const gst_mpz *u, const gst_mpz *v)
       if (wp == up)
 	{
 	  /* W and U are identical.  Allocate temporary space for U.  */
-	  up = (mp_ptr) alloca (usize * SIZEOF_MP_LIMB_T);
+	  up = g_newa (mp_limb_t, usize);
 	  /* Is V identical too?  Keep it identical with U.  */
 	  if (wp == vp)
 	    vp = up;
@@ -725,7 +725,7 @@ _gst_mpz_mul (gst_mpz *w, const gst_mpz *u, const gst_mpz *v)
       else if (wp == vp)
 	{
 	  /* W and V are identical.  Allocate temporary space for V.  */
-	  vp = (mp_ptr) alloca (vsize * SIZEOF_MP_LIMB_T);
+	  vp = g_newa (mp_limb_t, vsize);
 	  /* Copy to the temporary space.  */
 	  MPN_COPY (vp, wp, vsize);
 	}
@@ -734,7 +734,7 @@ _gst_mpz_mul (gst_mpz *w, const gst_mpz *u, const gst_mpz *v)
   mpn_mul (wp, up, usize, vp, vsize);
   w->size = sign_product < 0 ? -wsize : wsize;
   if (free_me != NULL)
-    xfree (free_me);
+    g_free (free_me);
 
   alloca (0);
 }
@@ -1685,7 +1685,7 @@ _gst_mpz_from_oop(gst_mpz *mpz, OOP srcOOP)
   else
     {
       /* Point directly in the bytes */
-      xfree (mpz->d);
+      g_free (mpz->d);
       mpz->alloc = 0;
       mpz->size = n;
       mpz->d = src;

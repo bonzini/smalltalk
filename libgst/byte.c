@@ -76,12 +76,11 @@ _gst_extract_bytecodes (OOP byteArrayOOP)
 
   byteArray = (gst_byte_array) OOP_TO_OBJ (byteArrayOOP);
   len = oop_num_fields (byteArrayOOP);
-  result = (bc_vector) xmalloc (sizeof (struct bytecode_array));
+  result = g_slice_new (struct bytecode_array);
 
-  result->base = (gst_uchar *) xmalloc (len);
+  result->base = g_memdup (byteArray->bytes, len);
   result->ptr = result->base + len;
   result->maxLen = len;
-  memcpy (result->base, byteArray->bytes, len);
   return (result);
 }
 
@@ -173,8 +172,8 @@ _gst_free_bytecodes (bc_vector bytecodes)
 {
   if (bytecodes != NULL)
     {
-      xfree (bytecodes->base);
-      xfree (bytecodes);
+      g_free (bytecodes->base);
+      g_slice_free (struct bytecode_array, bytecodes);
     }
 }
 
@@ -465,8 +464,8 @@ _gst_alloc_bytecodes ()
 {
   bc_vector newBytecodes;
 
-  newBytecodes = (bc_vector) xmalloc (sizeof (struct bytecode_array));
-  newBytecodes->base = (gst_uchar *) xmalloc (BYTECODE_CHUNK_SIZE);
+  newBytecodes = g_slice_new (struct bytecode_array);
+  newBytecodes->base = g_malloc (BYTECODE_CHUNK_SIZE);
   newBytecodes->ptr = newBytecodes->base;
   newBytecodes->maxLen = BYTECODE_CHUNK_SIZE;
 
@@ -484,8 +483,7 @@ realloc_bytecodes (bc_vector bytecodes,
 
   size = bytecodes->ptr - bytecodes->base;
 
-  bytecodes->base =
-    (gst_uchar *) xrealloc (bytecodes->base, bytecodes->maxLen + delta);
+  bytecodes->base = g_realloc (bytecodes->base, bytecodes->maxLen + delta);
   bytecodes->ptr = bytecodes->base + size;
   bytecodes->maxLen += delta;
 }

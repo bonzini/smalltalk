@@ -576,7 +576,7 @@ generate_do_send_code (void)
 void
 generate_run_time_code (void)
 {
-  PTR area = xmalloc (10000);
+  PTR area = g_malloc (10000);
 
   _gst_run_native_code = jit_set_ip (area).pptr;
   generate_run_native_code ();
@@ -632,7 +632,7 @@ new_method_entry (OOP methodOOP, OOP receiverClass, int size)
     size = GET_METHOD_NUM_ARGS (methodOOP) * 2 + 10;
 
   current =
-    (method_entry *) xmalloc (MAX_BYTES_PER_BYTECODE * (size + 2));
+    (method_entry *) g_malloc_n (size + 2, MAX_BYTES_PER_BYTECODE);
   current->methodOOP = methodOOP;
   current->receiverClass = receiverClass;
   current->inlineCaches = NULL;
@@ -663,14 +663,13 @@ finish_method_entry (void)
   codePtr = (char *) jit_get_label ();
   jit_flush_code (current->nativeCode, codePtr);
 
-  result =
-    (method_entry *) xrealloc (current, codePtr - (char *) current);
+  result = g_realloc (current, codePtr - (char *) current);
   current = NULL;
 
   /* Copy the IP map, adding a final dummy entry */
   define_ip_map_entry (-1);
   size = _gst_buffer_size ();
-  result->ipMap = (ip_map *) xmalloc (size);
+  result->ipMap = (ip_map *) g_malloc (size);
   _gst_copy_buffer (result->ipMap);
 
   hashEntry = OOP_INDEX (result->methodOOP) % HASH_TABLE_SIZE;
@@ -3071,8 +3070,7 @@ emit_user_defined_method_call (OOP methodOOP, int numArgs,
   char *bp = method->bytecodes;
   static OOP arrayAssociation;
 
-  current->inlineCaches = curr_inline_cache =
-    (inline_cache *) xmalloc (2 * sizeof (inline_cache));
+  current->inlineCaches = curr_inline_cache = g_new (inline_cache, 2);
 
   /* Emit code similar to
      <method> valueWithReceiver: <self> withArguments: { arg1. arg2. ... } */
@@ -3626,9 +3624,8 @@ translate_method (OOP methodOOP, OOP receiverClass, int size)
 
   if (inlineCacheCount)
     {
-      current->inlineCaches = curr_inline_cache =
-	(inline_cache *) xmalloc (inlineCacheCount *
-				  sizeof (inline_cache));
+      current->inlineCaches =
+        curr_inline_cache = g_new (inline_cache, inlineCacheCount);
     }
 
   stackPos = alloca ((1 + size) * sizeof (code_stack_pointer *));
@@ -3831,7 +3828,7 @@ _gst_free_released_native_code (void)
   while ((method = released))
     {
       released = released->next;
-      xfree (method);
+      g_free (method);
     }
 }
 
@@ -3856,7 +3853,7 @@ walk_and_remove_method (OOP methodOOP, method_entry **ptrNext)
 
       /* Mark the method as freed */
       if (method->inlineCaches)
-	xfree (method->inlineCaches);
+	g_free (method->inlineCaches);
 
       method->receiverClass = NULL;
       method->inlineCaches = NULL;

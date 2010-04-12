@@ -1557,7 +1557,7 @@ _gst_add_all_symbol_completions (void)
 	  string = _gst_to_cstring (link->symbol);
 	  len = _gst_string_oop_len (link->symbol);
 	  _gst_add_symbol_completion (string, len);
-	  xfree (string);
+	  g_free (string);
 	}
     }
 }

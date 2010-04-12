@@ -110,8 +110,7 @@ myGetHostByAddr (char *addr, int len, int type)
 
   if (hostEnt)
     {
-      result = malloc (128);	/* out of a hat */
-      strncpy (result, hostEnt->h_name, 128);
+      result = g_strdup (hostEnt->h_name);
 #if HAVE_GETIPNODEBYADDR
       freehostent (hostEnt);
 #endif
@@ -139,9 +138,6 @@ get_aiAddr (struct addrinfo *ai)
 static char *
 myGetHostName (void)
 {
-  char *result;
-
-  result = malloc (128);
 #ifdef HAVE_UNAME
   {
     struct utsname utsname;
@@ -151,20 +147,20 @@ myGetHostName (void)
     if (ret < 0)
       return NULL;
 
-    strncpy (result, utsname.nodename, 128);
-    result[127] = '\0';
+    return g_strdup (utsname.nodename);
   }
 #else
 #ifdef HAVE_GETHOSTNAME
   {
+    char buf[128];
     extern int gethostname ();
-    gethostname (result, 128);
+    gethostname (buf, 128);
+    return g_strdup (buf);
   }
 #else
-  strcpy (result, "localhost");	/* terrible guess */
+  return g_strdup ("localhost");	/* terrible guess */
 #endif
 #endif
-  return (result);
 }
 
 #define constantFunction(name, constant) \
