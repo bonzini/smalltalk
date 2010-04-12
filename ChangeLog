@@ -1,3 +1,8 @@
+2010-04-14  Paolo Bonzini <bonzini@gnu.org>
+
+	* tests/strings.st: Add test case for changed behavior.
+	* tests/strings.ok: Regenerate.
+
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>
 
 	* kernel/File.st: Remove extractDirentName call, readdir returns
