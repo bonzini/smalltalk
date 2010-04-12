@@ -2161,10 +2161,48 @@ _gst_set_var (enum gst_var_index index, int value)
 }
 
 
+void my_log_handler (const gchar * log_domain,
+		     GLogLevelFlags log_level,
+		     const gchar * message, gpointer unused_data)
+{
+  mst_Boolean fatal = (log_level & G_LOG_FATAL_MASK) != 0;
+  mst_Boolean backtrace = reentrancy_jmp_buf != NULL;
+
+  /* Do not pass fatal flags so that we can show the backtrace.  */
+  if (backtrace)
+    log_level &= G_LOG_LEVEL_MASK;
+
+  g_log_default_handler (log_domain, log_level, message, unused_data);
+
+  if (!backtrace)
+    return;
+
+  switch (fatal ? G_LOG_LEVEL_ERROR : log_level)
+    {
+    case G_LOG_LEVEL_ERROR:
+    case G_LOG_LEVEL_CRITICAL:
+    case G_LOG_LEVEL_WARNING:
+      _gst_show_backtrace (stderr);
+       break;
+
+    case G_LOG_LEVEL_MESSAGE:
+      _gst_show_backtrace (stdout);
+       break;
+
+    default:
+       break;
+    }
+
+  if (fatal)
+    abort ();
+}
+
 void
 _gst_init_interpreter (void)
 {
   unsigned int i;
+
+  g_log_set_default_handler (my_log_handler, NULL);
 
 #ifdef ENABLE_JIT_TRANSLATION
   _gst_init_translator ();
