@@ -76,5 +76,5 @@ _gst_set_executable_path (const char *argv0)
   if (length <= 0)
     _gst_executable_path = NULL;
   else
-    _gst_executable_path = xstrdup (location);
+    _gst_executable_path = g_strdup (location);
 }

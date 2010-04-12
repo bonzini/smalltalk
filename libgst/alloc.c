@@ -730,15 +730,6 @@ morecore (size_t size)
 }
 
 
-char *
-xstrdup (const char *str)
-{
-  int  length = strlen (str) + 1;
-  char *newstr = (char *) xmalloc (length);
-  memcpy(newstr, str, length);
-  return (newstr);
-}
-
 PTR 
 xmalloc (size_t n)
 {

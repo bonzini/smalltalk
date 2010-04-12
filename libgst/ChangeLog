@@ -1,5 +1,18 @@
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>
 
+	* libgst/alloc.c: Remove xstrdup.
+	* libgst/alloc.h: Remove xstrdup.
+	* libgst/files.c: Use g_strdup.
+	* libgst/input.c: Use g_strdup.
+	* libgst/lex.c: Use g_strdup.
+	* libgst/sysdep/common/files.c: Use g_strdup.
+	* libgst/sysdep/posix/findexec.c: Use g_strdup.
+	* libgst/sysdep/posix/time.c: Use g_strdup.
+	* libgst/sysdep/win32/findexec.c: Use g_strdup.
+	* libgst/sysdep/win32/time.c: Use g_strdup.
+
+2010-04-12  Paolo Bonzini <bonzini@gnu.org>
+
 	* libgst/oop.c: Convert to g_slice allocator.
 
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>

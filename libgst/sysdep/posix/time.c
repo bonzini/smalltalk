@@ -90,7 +90,7 @@ _gst_current_time_zone_name (void)
   if (!zone)
     zone = "XXX";
 
-  return xstrdup (zone);
+  return g_strdup (zone);
 }
 
 void

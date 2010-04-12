@@ -113,7 +113,7 @@ _gst_file_is_newer (const char *file1, const char *file2)
     {
       if (prev_file1)
 	xfree (prev_file1);
-      prev_file1 = xstrdup (file1);
+      prev_file1 = g_strdup (file1);
 
       if (!_gst_file_is_readable (file1))
         return false;
@@ -171,10 +171,10 @@ _gst_relocate_path (const char *path)
 #if defined(MSDOS) || defined(WIN32) || defined(__OS2__)
   if ((path[0] && path[1] == ':')
       || path[0] == '/' || path[0] == '\\')
-    return xstrdup (path);
+    return g_strdup (path);
 #else
   if (path[0] == '/')
-    return xstrdup (path);
+    return g_strdup (path);
 #endif
 
   /* Remove filename from executable path.  */

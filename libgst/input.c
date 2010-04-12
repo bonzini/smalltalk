@@ -294,7 +294,7 @@ _gst_push_cstring (const char *string)
 
   newStream = push_new_stream (STREAM_STRING);
 
-  newStream->st_str.strBase = xstrdup (string);
+  newStream->st_str.strBase = g_strdup (string);
   newStream->st_str.str = newStream->st_str.strBase;
   newStream->fileName = "a C string";
 }

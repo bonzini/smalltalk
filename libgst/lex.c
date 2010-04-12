@@ -644,7 +644,7 @@ scan_bin_op_1 (int c,
       buf[1] = 0;
     }
 
-  lvalp->sval = xstrdup (buf);
+  lvalp->sval = g_strdup (buf);
 
   if ((buf[0] == '|' || buf[0] == '<' || buf[0] == '>' || buf[0] == '-')
       && buf[1] == '\0')
