@@ -130,7 +130,7 @@ fhev_unref (struct handle_events *ev)
   if (ev && InterlockedDecrement (&ev->refcount) != 0)
     return ev;
   
-  xfree (ev);
+  g_slice_free (struct handle_events, ev);
   return NULL;
 }
 
@@ -176,7 +176,7 @@ fhev_new (HANDLE handle, enum fhev_kind kind)
       ev = *p_ev;
       if (!ev)
 	{
-	  ev = xcalloc (1, sizeof (struct handle_events));
+          ev = g_slice_new0 (struct handle_events);
 	  ev->refcount = 2;
 	  ev->kind = kind;
 	  ev->handle = handle;
@@ -269,7 +269,7 @@ signal_semaphores (struct handle_events *ev, LONG lEvents)
       {
 	_gst_async_signal_and_unregister (node->semaphoreOOP);
 	*pprev = node->next;
-	xfree (node);
+	g_slice_free (struct semaphore_list, node);
       }
     else
       pprev = &node->next;
@@ -559,7 +559,7 @@ _gst_async_file_polling (int fd,
       return 1;
     }
 
-  node = (struct semaphore_list *) xcalloc (1, sizeof (struct semaphore_list));
+  node = g_slice_new0 (struct semaphore_list);
   node->semaphoreOOP = semaphoreOOP;
   node->mask = masks[cond];
   node->next = ev->list;

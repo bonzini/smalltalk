@@ -133,7 +133,7 @@ find_executable (const char *argv0)
      enclosed in brackets, which we cannot use here.  */
   {
     char buf[6 + 10 + 5];
-    char *location = xmalloc (path_max + 1);
+    char *location = g_malloc (path_max + 1);
     ssize_t n;
 
     sprintf (buf, "/proc/%d/exe", getpid ());
@@ -176,11 +176,11 @@ find_executable (const char *argv0)
 	  if (maybe_executable (concat_name))
 	    {
 	      char *full_path = _gst_get_full_file_name (concat_name);
-	      free (concat_name);
+	      g_free (concat_name);
 	      return full_path;
 	    }
 
-	  free (concat_name);
+	  g_free (concat_name);
 	}
       /* Not found in the PATH, assume the current directory.  */
     }

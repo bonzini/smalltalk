@@ -300,7 +300,7 @@ _gst_save_to_file (const char *fileName)
 #endif /* SNAPSHOT_TRACE */
 
   save_all_objects (imageFd);
-  xfree (myOOPTable);
+  g_free (myOOPTable);
 
 #ifdef SNAPSHOT_TRACE
   printf ("After saving all objects: %lld\n",
@@ -338,8 +338,7 @@ make_oop_table_to_be_saved (struct save_file_header *header)
 	  _gst_mem.ot_size - _gst_mem.num_free_oops);
 #endif /* SNAPSHOT_TRACE */
 
-  myOOPTable = xmalloc (sizeof (struct oop_s) * num_used_oops);
-
+  myOOPTable = g_new (struct oop_s, num_used_oops);
   for (i = 0, oop = _gst_mem.ot; i < num_used_oops; oop++, i++)
     {
       if (IS_OOP_VALID_GC (oop))
@@ -397,7 +396,7 @@ save_object (int imageFd,
     abort ();
 
   numBytes = sizeof (OOP) * TO_INT (object->objSize);
-  if (numBytes < 262144)
+  if (numBytes < 16384)
     {
       saveObject = alloca (numBytes);
       fixup_object (oop, saveObject, object, numBytes);
@@ -405,10 +404,10 @@ save_object (int imageFd,
     }
   else
     {
-      saveObject = malloc (numBytes);
+      saveObject = g_malloc (numBytes);
       fixup_object (oop, saveObject, object, numBytes);
       buffer_write (imageFd, saveObject, numBytes);
-      free (saveObject);
+      g_free (saveObject);
     }
 }
 
@@ -786,7 +785,7 @@ fixup_byte_order (PTR buf,
 void
 buffer_write_init (int imageFd, int numBytes)
 {
-  buf = xmalloc (numBytes);
+  buf = g_malloc (numBytes);
   buf_size = numBytes;
   buf_pos = 0;
 }
@@ -795,7 +794,7 @@ void
 buffer_write_flush (int imageFd)
 {
   _gst_full_write (imageFd, buf, buf_pos);
-  xfree (buf);
+  g_free (buf);
   buf_pos = 0;
 }
 
@@ -852,7 +851,7 @@ buffer_read_init (int imageFd, int numBytes)
   /* Non-mmaped input.  */
   buf_used_mmap = false;
   buf_size = numBytes;
-  buf = xmalloc (buf_size);
+  buf = g_malloc (buf_size);
   buffer_fill (imageFd);
   return NULL;
 }
@@ -863,7 +862,7 @@ buffer_read_free (int imageFd)
   if (buf_used_mmap)
     _gst_osmem_free (buf, buf_size);
   else
-    xfree (buf);
+    g_free (buf);
 }
 
 PTR

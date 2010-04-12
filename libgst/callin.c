@@ -457,7 +457,7 @@ _gst_class_name_to_oop (const char *name)
   if (!name || !*name)
     return NULL;
 
-  s = strdup (name);
+  s = g_strdup (name);
   if (!_gst_smalltalk_initialized)
     _gst_initialize (NULL, NULL, GST_NO_TTY);
 
@@ -470,7 +470,7 @@ _gst_class_name_to_oop (const char *name)
 	return NULL;
     }
 
-  free (s);
+  g_free (s);
   return (result);
 }
 
@@ -989,7 +989,7 @@ _gst_register_oop (OOP oop)
 	}
     }
 
-  node = (oop_registry *) xmalloc(sizeof(oop_registry));
+  node = g_slice_new (oop_registry);
   node->rb.rb_parent = (rb_node_t *) entry;
   node->rb.rb_left = node->rb.rb_right = NULL;
   node->usage = 1;
@@ -1017,7 +1017,7 @@ _gst_unregister_oop (OOP oop)
 	  if (!--entry->usage)
 	    {
 	      rb_erase (&entry->rb, (rb_node_t **) &oop_registry_root);
-	      xfree (entry);
+	      g_slice_free (oop_registry, entry);
 	    }
 	  break;
 	}
@@ -1047,7 +1047,7 @@ _gst_register_oop_array (OOP **first, OOP **last)
 	entry->usage++;
     }
 
-  node = (oop_array_registry *) xmalloc(sizeof(oop_array_registry));
+  node = g_slice_new (oop_array_registry);
   node->rb.rb_parent = (rb_node_t *) entry;
   node->rb.rb_left = node->rb.rb_right = NULL;
   node->usage = 1;
@@ -1070,7 +1070,7 @@ _gst_unregister_oop_array (OOP **first)
 	  if (!--entry->usage)
 	    {
 	      rb_erase (&entry->rb, (rb_node_t **) &oop_array_registry_root);
-	      xfree (entry);
+	      g_slice_free (oop_array_registry, entry);
 	    }
 	  break;
 	}
@@ -1174,9 +1174,5 @@ _gst_init_vmproxy (void)
 struct VMProxy *
 _gst_get_vmproxy (void)
 {
-  struct VMProxy *result;
-
-  result = xmalloc (sizeof (struct VMProxy));
-  memcpy (result, &gst_interpreter_proxy, sizeof (struct VMProxy));
-  return result;
+  return g_memdup (&gst_interpreter_proxy, sizeof (struct VMProxy));
 }

@@ -406,9 +406,9 @@ void _gst_init_snprintfv ()
 {
   spec_entry *spec;
 
-  snv_malloc = xmalloc;
-  snv_realloc = xrealloc;
-  snv_free = xfree;
+  snv_malloc = g_malloc;
+  snv_realloc = g_realloc;
+  snv_free = g_free;
   spec = register_printf_function ('O', printf_generic,
 				   printf_oop_arginfo);
 

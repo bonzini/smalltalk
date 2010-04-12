@@ -224,25 +224,25 @@ _gst_pop_stream (mst_Boolean closeIt)
   switch (stream->type)
     {
     case STREAM_STRING:
-      xfree (stream->st_str.strBase);
+      g_free (stream->st_str.strBase);
       break;
 
 #ifdef HAVE_READLINE
     case STREAM_READLINE:
 #endif /* HAVE_READLINE */
     case STREAM_OOP:
-      xfree (stream->st_oop.buf);
+      g_free (stream->st_oop.buf);
       _gst_unregister_oop (stream->st_oop.oop);
       break;
 
     case STREAM_FILE:
-      xfree (stream->st_file.buf);
+      g_free (stream->st_file.buf);
       if (closeIt)
         close (stream->st_file.fd);
       break;
     }
 
-  xfree (stream);
+  g_slice_free (struct input_stream, stream);
 }
 
 void
@@ -253,7 +253,7 @@ _gst_push_unix_file (int fd,
 
   newStream = push_new_stream (STREAM_FILE);
   newStream->st_file.fd = fd;
-  newStream->st_file.buf = xmalloc (1024);
+  newStream->st_file.buf = g_malloc (1024);
   newStream->st_file.ptr = newStream->st_file.buf;
   newStream->st_file.end = newStream->st_file.buf;
   newStream->fileName = fileName;
@@ -330,7 +330,7 @@ push_new_stream (stream_type type)
 {
   input_stream newStream;
 
-  newStream = (input_stream) xmalloc (sizeof (struct input_stream));
+  newStream = g_slice_new (struct input_stream);
 
   newStream->pushedBackCount = 0;
   newStream->line = 1;
@@ -370,7 +370,7 @@ refill_stream (input_stream stream, char *buf, int new_line)
   size_t size = old_size + strlen (buf);
 
   /* Leave space for the '\0' at the end.  */
-  stream->st_oop.buf = xrealloc (stream->st_oop.buf, size + new_line + 1);
+  stream->st_oop.buf = g_realloc (stream->st_oop.buf, size + new_line + 1);
   stream->st_oop.ptr = stream->st_oop.buf + old_size;
   stream->st_oop.end = stream->st_oop.buf + size + new_line;
 
@@ -383,7 +383,7 @@ refill_stream (input_stream stream, char *buf, int new_line)
   else
     stream->st_oop.ptr[size - old_size] = '\0';
 
-  free (buf);
+  g_free (buf);
 }
 
 int
@@ -855,7 +855,7 @@ _gst_process_file (const char *fileName, enum gst_file_dir dir)
       errno = 0;
     }
 
-  xfree (f);
+  g_free (f);
   return (fd != -1);
 }
 
@@ -917,15 +917,12 @@ void
 add_completion (const char *str,
 		int len)
 {
-  char *s = xmalloc (len + 1);
-  memcpy (s, str, len);
-  s[len] = 0;
+  char *s = g_strndup (str, len);
 
   if (!free_items)
     {
       free_items += 50;
-      completions =
-	(char **) xrealloc (completions, sizeof (char *) * (count + 50));
+      completions = g_renew (char *, completions, count + 50);
     }
 
   free_items--;

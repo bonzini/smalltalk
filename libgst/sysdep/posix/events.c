@@ -302,7 +302,7 @@ signal_polled_files (int fd, mst_Boolean try_again)
 	      if (p_tail_next == &node->next)
 		p_tail_next = pprev;
 
-	      xfree (node);
+	      g_slice_free (polling_queue, node);
 	    }
 	  else
 	    {
@@ -390,7 +390,7 @@ _gst_async_file_polling (int fd,
   if (result != 0)
     return (result);
 
-  new = (polling_queue *) xmalloc (sizeof (polling_queue));
+  new = g_slice_new (polling_queue);
   new->poll = num_used_pollfds;
   new->semaphoreOOP = semaphoreOOP;
   new->next = NULL;
@@ -398,8 +398,7 @@ _gst_async_file_polling (int fd,
   if (num_used_pollfds == num_total_pollfds)
     {
       num_total_pollfds += 64;
-      pollfds = (struct pollfd *)
-	xrealloc (pollfds, num_total_pollfds * sizeof (struct pollfd));
+      pollfds = g_renew (struct pollfd, pollfds, num_total_pollfds);
     }
 
   pollfds[num_used_pollfds].fd = fd;
@@ -439,7 +438,7 @@ _gst_async_file_polling (int fd,
       _gst_sync_wait (semaphoreOOP);
     }
   else
-    xfree (new);
+    g_slice_free (polling_queue, new);
 
   return (result);
 }

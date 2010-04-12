@@ -551,7 +551,7 @@ _gst_init_compiler (void)
   /* Prepare the literal vector for use.  The literal vector is where the
      compiler will store any literals that are used by the method being
      compiled.  */
-  literal_vec = (OOP *) xmalloc (LITERAL_VEC_CHUNK_SIZE * sizeof (OOP));
+  literal_vec = g_new (OOP, LITERAL_VEC_CHUNK_SIZE);
 
   literal_vec_curr = literal_vec;
   literal_vec_max = literal_vec + LITERAL_VEC_CHUNK_SIZE;
@@ -2514,8 +2514,7 @@ process_attribute (OOP messageOOP)
     }
   else
     {
-      method_attributes *new_attr = (method_attributes *)
-        xmalloc (sizeof (method_attributes));
+      method_attributes *new_attr = g_slice_new (method_attributes);
 
       new_attr->count = method_attrs ? method_attrs->count + 1 : 0;
       new_attr->oop = messageOOP;
@@ -2530,14 +2529,11 @@ process_attribute (OOP messageOOP)
 void
 realloc_literal_vec (void)
 {
-  int size;
-  ptrdiff_t delta;
+  int current = literal_vec_curr - literal_vec;
+  int size = literal_vec_max - literal_vec + LITERAL_VEC_CHUNK_SIZE;
 
-  size = literal_vec_max - literal_vec + LITERAL_VEC_CHUNK_SIZE;
-  delta = ((OOP *) xrealloc (literal_vec, size * sizeof (OOP))) - literal_vec;
-
-  literal_vec += delta;
-  literal_vec_curr += delta;
+  literal_vec = g_renew (OOP, literal_vec, size);
+  literal_vec_curr = literal_vec + current;
   literal_vec_max = literal_vec + size;
 }
 
@@ -2933,7 +2929,7 @@ method_info_new (OOP class,
       methodInfo->attributes[attrs->count] = attrs->oop;
       next = attrs->next;
       _gst_unregister_oop (attrs->oop);
-      free (attrs);
+      g_slice_free (method_attributes, attrs);
       attrs = next;
     }
 			     

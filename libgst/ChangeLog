@@ -1,3 +1,32 @@
+2010-04-13  Paolo Bonzini <bonzini@gnu.org>
+
+	* libgst/alloc.c: Remove x*alloc and xfree.
+	* libgst/alloc.h: Likewise. Use g_malloc and g_free for obstacks.
+	* libgst/byte.c: Use glib memory allocation functions.
+	* libgst/callin.c: Likewise.
+	* libgst/cint.c: Likewise.
+	* libgst/comp.c: Likewise.
+	* libgst/dict.c: Likewise.
+	* libgst/files.c: Likewise.
+	* libgst/gst-parse.c: Likewise.
+	* libgst/input.c: Likewise.
+	* libgst/interp.c: Likewise.
+	* libgst/mpz.c: Likewise.
+	* libgst/oop.c: Likewise.
+	* libgst/prims.def: Likewise.
+	* libgst/print.c: Likewise.
+	* libgst/save.c: Likewise.
+	* libgst/sockets.c: Likewise.
+	* libgst/str.c: Likewise.
+	* libgst/sym.c: Likewise.
+	* libgst/sysdep/common/files.c: Likewise.
+	* libgst/sysdep/posix/events.c: Likewise.
+	* libgst/sysdep/posix/files.c: Likewise.
+	* libgst/sysdep/posix/findexec.c: Likewise.
+	* libgst/sysdep/win32/events.c: Likewise.
+	* libgst/sysdep/win32/files.c: Likewise.
+	* libgst/xlat.c: Likewise.
+
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>
 
 	* libgst/alloc.c: Remove xstrdup.

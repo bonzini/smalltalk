@@ -1066,7 +1066,7 @@ relocate_path_oop (const char *s)
   else
     resultOOP = _gst_nil_oop;
 
-  free (path);
+  g_free (path);
   return resultOOP;
 }
 
@@ -1992,7 +1992,7 @@ _gst_to_cstring (OOP stringOOP)
 
   string = (gst_string) OOP_TO_OBJ (stringOOP);
   len = oop_num_fields (stringOOP);
-  result = (char *) xmalloc (len + 1);
+  result = (char *) g_malloc (len + 1);
   memcpy (result, string->chars, len);
   result[len] = '\0';
 
@@ -2009,7 +2009,7 @@ _gst_to_wide_cstring (OOP stringOOP)
 
   string = (gst_unicode_string) OOP_TO_OBJ (stringOOP);
   len = oop_num_fields (stringOOP);
-  result = (wchar_t *) xmalloc (len + 1);
+  result = (wchar_t *) g_malloc (len + 1);
   if (sizeof (wchar_t) == 4)
     memcpy (result, string->chars, len * sizeof (wchar_t));
   else
@@ -2045,7 +2045,7 @@ _gst_to_byte_array (OOP byteArrayOOP)
 
   byteArray = (gst_byte_array) OOP_TO_OBJ (byteArrayOOP);
   len = oop_num_fields (byteArrayOOP);
-  result = (gst_uchar *) xmalloc (len);
+  result = (gst_uchar *) g_malloc (len);
   memcpy (result, byteArray->bytes, len);
 
   return (result);
@@ -2118,7 +2118,7 @@ _gst_free_cobject (OOP cObjOOP)
   if (!IS_NIL (cObject->storage))
     cObject->storage = _gst_nil_oop;
   else
-    xfree ((PTR) COBJECT_OFFSET_OBJ (cObject));
+    g_free ((PTR) COBJECT_OFFSET_OBJ (cObject));
 
   /* make it not point to falsely valid storage */
   SET_COBJECT_OFFSET_OBJ (cObject, NULL);

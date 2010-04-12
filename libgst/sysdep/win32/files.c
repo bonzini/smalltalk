@@ -87,7 +87,7 @@ _gst_get_full_file_name (const char *name)
 
   path_max = PATH_MAX;
 
-  rpath = malloc (path_max);
+  rpath = g_malloc (path_max);
   if (rpath == NULL)
     return NULL;
 
@@ -102,7 +102,7 @@ _gst_get_full_file_name (const char *name)
 
   {
     int saved_errno = errno;
-    free (rpath);
+    g_free (rpath);
     errno = saved_errno;
   }
   return NULL;

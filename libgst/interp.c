@@ -797,7 +797,7 @@ alloc_new_chunk (void)
          _gst_empty_context_pool resets the status but doesn't free
          the memory.  */
       cur_chunk_begin = *chunk = (gst_context_part)
-        xcalloc (1, SIZE_TO_BYTES (CHUNK_SIZE));
+        g_malloc0 (SIZE_TO_BYTES (CHUNK_SIZE));
 
       newContext = (gst_method_context) cur_chunk_begin;
     }
@@ -2214,7 +2214,7 @@ _gst_init_interpreter (void)
   async_queue_index = 0;
   async_queue_index_sig = 0;
   async_queue_size = 32;
-  queued_async_signals = malloc (sizeof (async_queue_entry) * async_queue_size);
+  queued_async_signals = g_new (async_queue_entry, async_queue_size);
 
   for (i = 0; i < MAX_LIFO_DEPTH; i++)
     lifo_contexts[i].flags = F_POOLED | F_CONTEXT;

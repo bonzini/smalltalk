@@ -112,7 +112,7 @@ _gst_file_is_newer (const char *file1, const char *file2)
   if (!prev_file1 || strcmp (file1, prev_file1))
     {
       if (prev_file1)
-	xfree (prev_file1);
+	g_free (prev_file1);
       prev_file1 = g_strdup (file1);
 
       if (!_gst_file_is_readable (file1))
