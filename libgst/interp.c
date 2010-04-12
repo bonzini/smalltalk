@@ -245,6 +245,9 @@ static OOP class_cache_class;
 static int class_cache_prim;
 #endif
 
+/* Backend for the millisecond clock.  */
+static GTimer *millisecond_clock;
+
 /* Queue for async (outside the interpreter) semaphore signals */
 static GStaticMutex async_queue_lock = G_STATIC_MUTEX_INIT;
 static mst_Boolean async_queue_enabled = true;
@@ -2096,6 +2099,14 @@ create_callin_process (OOP contextOOP)
 
   _gst_invalidate_method_cache ();
   return (initialProcessOOP);
+}
+
+uint64_t
+_gst_get_milli_time (void)
+{
+  if (!millisecond_clock)
+    millisecond_clock = g_timer_new ();
+  return (uint64_t) (g_timer_elapsed (millisecond_clock, NULL) * 1000);
 }
 
 int

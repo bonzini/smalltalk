@@ -323,6 +323,8 @@ _gst_initialize (const char *kernel_dir,
   int rebuild_image_flags =
     flags & (GST_REBUILD_IMAGE | GST_MAYBE_REBUILD_IMAGE);
 
+  g_thread_init (NULL);
+
   /* Even though we're nowhere near through initialization, we set this
      to make sure we don't invoke a callin function which would recursively
      invoke us.  */
