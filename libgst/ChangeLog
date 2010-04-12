@@ -1,3 +1,7 @@
+2010-04-14  Paolo Bonzini  <bonzini@gnu.org>
+
+	* lib-src/re.c: Use GRegex.
+
 2010-04-12  Paolo Bonzini  <bonzini@gnu.org>
 
 	* libgst/comp.c: Replace _gst_get_milli_time with GTimer.

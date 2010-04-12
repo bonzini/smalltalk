@@ -55,7 +55,6 @@
 #endif
 
 #include "gstpriv.h"
-#include "regex.h"
 #include "re.h"
 
 #if STDC_HEADERS
@@ -67,26 +66,15 @@
 
 #define REGEX_CACHE_SIZE 10
 
-typedef enum RegexCachingEnum
-{
-  REGEX_NOT_CACHED,
-  REGEX_CACHE_HIT,
-  REGEX_CACHE_MISS
-}
-RegexCaching;
-
 typedef struct RegexCacheEntry
 {
   OOP patternOOP;
-  struct pre_pattern_buffer *regex;
+  GRegex *regex;
 }
 RegexCacheEntry;
 
-static RegexCaching lookupRegex (OOP patternOOP,
-				 struct pre_pattern_buffer **pRegex);
-static const char *compileRegex (OOP patternOOP,
-				 struct pre_pattern_buffer *regex);
-static struct pre_pattern_buffer *allocateNewRegex (void);
+static GRegex *compileRegex (OOP patternOOP, int flags);
+static GRegex *lookupRegex (OOP patternOOP);
 static void markRegexAsMRU (int i);
 static void init_re (void);
 
@@ -95,34 +83,26 @@ static RegexCacheEntry cache[REGEX_CACHE_SIZE];
 /* Smalltalk globals */
 static OOP regexClassOOP, resultsClassOOP;
 
-/* Allocate a buffer to be passed to the regular expression matcher */
-struct pre_pattern_buffer *
-allocateNewRegex (void)
-{
-  struct pre_pattern_buffer *regex;
-  regex = (struct pre_pattern_buffer *)
-    calloc (1, sizeof (struct pre_pattern_buffer));
-
-  regex->allocated = 0;
-  regex->fastmap = malloc (1 << BYTEWIDTH);
-
-  return regex;
-}
-
 /* Compile a pattern that's stored into an OOP.  Answer an error, or NULL. */
-const char *
-compileRegex (OOP patternOOP, struct pre_pattern_buffer *regex)
+GRegex *
+compileRegex (OOP patternOOP, int flags)
 {
   int patternLength;
-  const char *pattern;
-  const char *ress;
+  char *pattern;
+  GRegex *regex;
 
   pattern = &STRING_OOP_AT (OOP_TO_OBJ (patternOOP), 1);
   patternLength = _gst_basic_size (patternOOP);
+  if (memchr (pattern, 0, patternLength))
+    return NULL;
 
   /* compile pattern */
-  ress = pre_compile_pattern (pattern, patternLength, regex);
-  return ress;
+  pattern = g_strndup (pattern, patternLength);
+  regex = g_regex_new (pattern,
+		       flags | G_REGEX_RAW | G_REGEX_NEWLINE_LF,
+		       0, NULL);
+  g_free (pattern);
+  return regex;
 }
 
 /* Move the i-th entry of the cache to the first position */
@@ -149,47 +129,40 @@ markRegexAsMRU (int i)
    responsibility to compile the regex into the buffer that is returned.
    If the patternOOP is not a Regex (i.e. REGEX_NOT_CACHED returned), the
    caller will also have to free the buffer pointed to by pRegex.  */
-RegexCaching
-lookupRegex (OOP patternOOP, struct pre_pattern_buffer **pRegex)
+GRegex *
+lookupRegex (OOP patternOOP)
 {
   int i;
-  RegexCaching result;
-
   if (!IS_OOP_READONLY (patternOOP))
-    {
-      *pRegex = allocateNewRegex ();
-      return REGEX_NOT_CACHED;
-    }
+    return compileRegex (patternOOP, 0);
 
   /* Search for the Regex object in the cache */
   for (i = 0; i < REGEX_CACHE_SIZE; i++)
     if (cache[i].patternOOP == patternOOP)
       break;
 
-  if (i < REGEX_CACHE_SIZE)
-    result = REGEX_CACHE_HIT;
-
-  else
+  if (i == REGEX_CACHE_SIZE)
     {
+      GRegex *compiled = compileRegex (patternOOP, G_REGEX_OPTIMIZE);
+      if (!compiled)
+        return NULL;
+
       /* Kick out the least recently used regexp */
-      i--;
-      result = REGEX_CACHE_MISS;
+      if (cache[--i].patternOOP)
+        {
+          _gst_unregister_oop (cache[i].patternOOP);
+          g_regex_unref (cache[i].regex);
+        }
 
       /* Register the objects we're caching with the virtual machine */
-      if (cache[i].patternOOP)
-	_gst_unregister_oop (cache[i].patternOOP);
-
       _gst_register_oop (patternOOP);
       cache[i].patternOOP = patternOOP;
+      cache[i].regex = compiled;
     }
 
   /* Mark the object as most recently used */
-  if (!cache[i].regex)
-    cache[i].regex = allocateNewRegex ();
-
   markRegexAsMRU (i);
-  *pRegex = cache[0].regex;
-  return result;
+  return g_regex_ref (cache[0].regex);
 }
 
 /* Create a Regex object.  We look for one that points to the same string
@@ -203,7 +176,7 @@ _gst_re_make_cacheable (OOP patternOOP)
   OOP regexOOP;
   const char *pattern;
   char *regex;
-  struct pre_pattern_buffer *compiled;
+  GRegex *compiled;
   int patternLength;
   int i;
 
@@ -240,11 +213,14 @@ _gst_re_make_cacheable (OOP patternOOP)
   /* Put it in the cache (we must compile it to check that it
    * is well-formed).
    */
-  lookupRegex (regexOOP, &compiled);
-  if (compileRegex (patternOOP, compiled) != NULL)
-    return _gst_nil_oop;
+  compiled = lookupRegex (regexOOP);
+  if (compiled)
+    {
+      g_regex_unref (compiled);
+      return regexOOP;
+    }
   else
-    return regexOOP;
+    return _gst_nil_oop;
 }
 
 
@@ -268,39 +244,43 @@ typedef struct _gst_registers
 } *gst_registers;
 
 static OOP
-make_re_results (OOP srcOOP, struct pre_registers *regs)
+make_re_results (OOP srcOOP, GMatchInfo *info)
 {
   OOP resultsOOP;
   gst_registers results;
-
-  int i;
-  if (!regs->beg || regs->beg[0] == -1)
-    return _gst_nil_oop;
+  int start, end;
+  int i, count, num_captures;
 
   resultsOOP = _gst_object_alloc (resultsClassOOP, 0);
   results = (gst_registers) OOP_TO_OBJ (resultsOOP);
   results->subjectOOP = srcOOP;
-  results->fromOOP = FROM_INT (regs->beg[0] + 1);
-  results->toOOP = FROM_INT (regs->end[0]);
-  if (regs->num_regs > 1)
+
+  g_match_info_fetch_pos (info, 0, &start, &end);
+  results->fromOOP = FROM_INT (start + 1);
+  results->toOOP = FROM_INT (end);
+
+  num_captures = g_regex_get_capture_count (g_match_info_get_regex (info));
+  if (num_captures > 0)
     {
-      OOP registersOOP = _gst_object_alloc (_gst_array_class, regs->num_regs - 1);
+      OOP registersOOP = _gst_object_alloc (_gst_array_class, num_captures);
       results = (gst_registers) OOP_TO_OBJ (resultsOOP);
       results->registersOOP = registersOOP;
     }
 
-  for (i = 1; i < regs->num_regs; i++)
+  count = g_match_info_get_match_count (info);
+  for (i = 1; i < count; i++)
     {
       OOP intervalOOP;
-      if (regs->beg[i] == -1)
+      g_match_info_fetch_pos (info, i, &start, &end);
+      if (start == -1)
 	intervalOOP = _gst_nil_oop;
       else
 	{
           gst_interval interval;
 	  intervalOOP = _gst_object_alloc (_gst_interval_class, 0);
           interval = (gst_interval) OOP_TO_OBJ (intervalOOP);
-          interval->fromOOP = FROM_INT (regs->beg[i] + 1);
-          interval->toOOP = FROM_INT (regs->end[i]);
+          interval->fromOOP = FROM_INT (start + 1);
+          interval->toOOP = FROM_INT (end);
           interval->stepOOP = FROM_INT (1);
 	}
 
@@ -317,31 +297,30 @@ make_re_results (OOP srcOOP, struct pre_registers *regs)
 OOP
 _gst_re_search (OOP srcOOP, OOP patternOOP, int from, int to)
 {
-  int res = 0;
+  mst_Boolean eol;
+  int res;
   const char *src;
-  struct pre_pattern_buffer *regex;
-  struct pre_registers *regs;
-  RegexCaching caching;
+  GRegex *regex;
+  GMatchInfo *info;
   OOP resultOOP;
 
   if (!regexClassOOP)
     init_re ();
 
-  caching = lookupRegex (patternOOP, &regex);
-  if (caching != REGEX_CACHE_HIT && compileRegex (patternOOP, regex) != NULL)
+  regex = lookupRegex (patternOOP);
+  if (!regex)
     return NULL;
 
   /* now search */
   src = &STRING_OOP_AT (OOP_TO_OBJ (srcOOP), 1);
-  regs = (struct pre_registers *) calloc (1, sizeof (struct pre_registers));
-  res = pre_search (regex, src, to, from - 1, to - from + 1, regs);
+  eol = (to == _gst_basic_size (srcOOP));
+  res = g_regex_match_full (regex, src, to, from - 1, 
+                            (eol ? G_REGEX_MATCH_NOTEOL : 0),
+                            &info, NULL);
 
-  if (caching == REGEX_NOT_CACHED)
-    pre_free_pattern (regex);
-
-  resultOOP = make_re_results (srcOOP, regs);
-  pre_free_registers(regs);
-  free(regs);
+  g_regex_unref (regex);
+  resultOOP = res ? make_re_results (srcOOP, info) : _gst_nil_oop;
+  g_match_info_free(info);
   return resultOOP;
 }
 
@@ -353,53 +332,40 @@ _gst_re_match (OOP srcOOP, OOP patternOOP, int from, int to)
 {
   int res = 0;
   const char *src;
-  struct pre_pattern_buffer *regex;
-  RegexCaching caching;
+  mst_Boolean eol;
+  GRegex *regex;
+  GMatchInfo *info;
+  int start, end;
 
   if (!regexClassOOP)
     init_re ();
 
-  caching = lookupRegex (patternOOP, &regex);
-  if (caching != REGEX_CACHE_HIT && compileRegex (patternOOP, regex) != NULL)
+  regex = lookupRegex (patternOOP);
+  if (!regex)
     return -100;
 
   /* now search */
   src = &STRING_OOP_AT (OOP_TO_OBJ (srcOOP), 1);
-  res = pre_match (regex, src, to, from - 1, NULL);
+  eol = (to == _gst_basic_size (srcOOP));
+  res = g_regex_match_full (regex, src, to, from - 1, 
+                            G_REGEX_MATCH_ANCHORED
+                            | (eol ? G_REGEX_MATCH_NOTEOL : 0),
+                            &info, NULL);
+  if (res)
+    g_match_info_fetch_pos (info, 0, &start, &end);
+  else
+    end = -1;
 
-  if (caching == REGEX_NOT_CACHED)
-    pre_free_pattern (regex);
-
-  return res;
+  g_match_info_free (info);
+  g_regex_unref (regex);
+  return end;
 }
 
 
-
 /* Initialize regex.c */
 static void
 init_re (void)
 {
-  /* This is a ASCII downcase-table.  We don't make any assumptions
-     about what bytes >=128 are, so can't downcase them. */
-  static const char casetable[256] =
-    {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 
-     16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 
-     ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', 
-     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', 
-     '@', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 
-     'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '[', '\\', ']', '^', '_', 
-     '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 
-     'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', 127, 
-     128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 
-     144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 
-     160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 
-     176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 
-     192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 
-     208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 
-     224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 
-     240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255};
-  pre_set_casetable (casetable);
-
   regexClassOOP = _gst_class_name_to_oop ("Regex");
   resultsClassOOP = _gst_class_name_to_oop ("Kernel.MatchingRegexResults");
 }
