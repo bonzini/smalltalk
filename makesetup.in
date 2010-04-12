@@ -253,7 +253,8 @@ add_section basic \
   ./libgst*.dll \
   image/gst.im
 
-add_mingw_rpms $basic mingw32-runtime
+add_mingw_rpms $basic mingw32-runtime \
+  mingw32-glib2 mingw32-gettext mingw32-iconv
 
 add_section ide \
   "IDE" \
@@ -272,12 +273,10 @@ add_section ide \
   modules/gst-gtk.la
 
 add_mingw_rpms $ide \
-  mingw32-glib2 mingw32-gtk2 mingw32-pango mingw32-atk \
+  mingw32-gtk2 mingw32-pango mingw32-atk \
   mingw32-cairo mingw32-pixman \
   mingw32-fontconfig mingw32-freetype \
   mingw32-jasper mingw32-libjpeg mingw32-libpng \
-  mingw32-gettext \
-  mingw32-iconv \
   mingw32-zlib
 
 add_section devel \
@@ -370,12 +369,10 @@ add_section gtk \
   modules/gst-gtk.la
 
 add_mingw_rpms $gtk \
-  mingw32-glib2 mingw32-gtk2 mingw32-pango mingw32-atk \
+  mingw32-gtk2 mingw32-pango mingw32-atk \
   mingw32-cairo mingw32-pixman \
   mingw32-fontconfig mingw32-freetype \
   mingw32-jasper mingw32-libjpeg mingw32-libpng \
-  mingw32-gettext \
-  mingw32-iconv \
   mingw32-zlib
 
 

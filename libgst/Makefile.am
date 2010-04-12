@@ -5,7 +5,8 @@ AM_LFLAGS = -Cfe -o$(LEX_OUTPUT_ROOT).c
 AM_YFLAGS = -vy
 AM_CPPFLAGS = $(RELOC_CPPFLAGS) \
   -I$(top_srcdir)/lib-src -I$(top_builddir)/lib-src \
-  $(INCFFI) $(INCLIGHTNING) $(INCSNPRINTFV) $(INCSIGSEGV) $(INCLTDL)
+  $(INCFFI) $(INCLIGHTNING) $(INCSNPRINTFV) $(INCSIGSEGV) $(INCLTDL) \
+  $(GLIB_CFLAGS)
 
 if !HAVE_INSTALLED_LIGHTNING
 AM_CPPFLAGS += -I$(top_srcdir)/lightning -I$(top_builddir)/lightning \
@@ -22,7 +23,7 @@ CLEANFILES = genprims$(EXEEXT) genbc$(EXEEXT) genvm$(EXEEXT) \
 
 libgst_la_LIBADD=$(top_builddir)/lib-src/library.la $(SOCKET_LIBS) \
 	$(LIBSIGSEGV) $(LIBFFI) $(LIBSNPRINTFV) $(LIBREADLINE) $(LIBLTDL) \
-	$(LIBGMP) $(LIBTHREAD)
+	$(LIBGMP) $(LIBTHREAD) $(GLIB_LIBS) $(GTHREAD_LIBS)
 
 libgst_la_DEPENDENCIES=$(top_builddir)/lib-src/library.la $(LIBSNPRINTFV)
 

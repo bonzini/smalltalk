@@ -202,6 +202,14 @@ dnl ------------------------------ C COMPILER / OS ------------
 
 { echo; echo "${term_bold}Platform environment:${term_norm}"; } >& AS_MESSAGE_FD
 
+have_glib=no
+AM_PATH_GLIB_2_0(2.14.0,
+  [PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.14.0, [have_glib=yes])],
+  [], gobject)
+if test "$have_glib" = no; then
+  AC_MSG_ERROR([glib 2.14 or later is needed to compile GNU Smalltalk])
+fi
+
 GST_C_SYNC_BUILTINS
 GST_LOCK
 AC_SYS_LARGEFILE
@@ -412,15 +420,9 @@ GST_PACKAGE_ENABLE([GTK], [gtk], [
   if test "$enable_gtk" != no; then
     maybe_enable_gtk=$enable_gtk
     enable_gtk=no
-    AM_PATH_GLIB_2_0(2.0.0, [
-      AM_PATH_GTK_2_0(2.0.0, [
-        PKG_CHECK_MODULES(ATK, atk >= 1.0.0, [
-          PKG_CHECK_MODULES(PANGO, pango >= 1.0.0, [
-            PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.0.0, [enable_gtk=$maybe_enable_gtk])
-          ])
-        ])
-      ])
-    ], [], gobject)
+    AM_PATH_GTK_2_0(2.0.0,
+      [PKG_CHECK_MODULES(ATK, atk >= 1.0.0,
+      [PKG_CHECK_MODULES(PANGO, pango >= 1.0.0, [enable_gtk=$maybe_enable_gtk])])])
   fi],
   [enable_gtk gst_cv_cairo],
   [Makefile], [gst-gtk.la])
