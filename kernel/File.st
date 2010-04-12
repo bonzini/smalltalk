@@ -292,13 +292,13 @@ FilePath subclass: File [
 
     extractDirentName: dirent [
 	<category: 'private-C call-outs'>
-	<cCall: 'extractDirentName' returning: #string args: #(#cObject)>
+	^dirent
 	
     ]
 
     readDir: dirObject [
 	<category: 'private-C call-outs'>
-	<cCall: 'readdir' returning: #cObject args: #(#cObject)>
+	<cCall: 'readdir' returning: #string args: #(#cObject)>
 	
     ]
 

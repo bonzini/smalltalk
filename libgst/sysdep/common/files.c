@@ -101,66 +101,6 @@
 #define MAXSYMLINKS 5
 #endif
 
-char *
-_gst_get_cur_dir_name (void)
-{
-  char *cwd;
-  char *ret;
-  unsigned path_max;
-  int save_errno;
-
-  path_max = (unsigned) PATH_MAX;
-  path_max += 2;		/* The getcwd docs say to do this.  */
-
-  cwd = xmalloc (path_max);
-
-  errno = 0;
-  do
-    {
-      ret = getcwd (cwd, path_max);
-      if (ret)
-	return (cwd);
-
-      if (errno != ERANGE)
-	break;
-
-      errno = 0;
-      path_max += 128;
-      cwd = xrealloc (cwd, path_max);
-    }
-  while (!errno);
-
-  save_errno = errno;
-  xfree (cwd);
-  errno = save_errno;
-  return (NULL);
-}
-
-
-int
-_gst_set_file_access_times (const char *name, long new_atime, long new_mtime)
-{
-  int result;
-#if defined HAVE_UTIMES
-  struct timeval times[2];
-  times[0].tv_sec = new_atime + 86400 * 10957;
-  times[1].tv_sec = new_mtime + 86400 * 10957;
-  times[0].tv_usec = times[1].tv_usec = 0;
-  result = utimes (name, times);
-#elif defined HAVE_UTIME
-  struct utimbuf utb;
-  utb.actime = new_atime + 86400 * 10957;
-  utb.modtime = new_mtime + 86400 * 10957;
-  result = utime (name, &utb);
-#else
-#warning neither utime nor utimes are available.
-  errno = ENOSYS;
-  result = -1;
-#endif
-  if (!result)
-    errno = 0;
-  return (result);
-}
 
 mst_Boolean
 _gst_file_is_newer (const char *file1, const char *file2)
@@ -206,19 +146,19 @@ _gst_file_is_newer (const char *file1, const char *file2)
 mst_Boolean
 _gst_file_is_readable (const char *fileName)
 {
-  return (access (fileName, R_OK) == 0);
+  return (g_access (fileName, R_OK) == 0);
 }
 
 mst_Boolean
 _gst_file_is_writeable (const char *fileName)
 {
-  return (access (fileName, W_OK) == 0);
+  return (g_access (fileName, W_OK) == 0);
 }
 
 mst_Boolean
 _gst_file_is_executable (const char *fileName)
 {
-  return (access (fileName, X_OK) == 0);
+  return (g_access (fileName, X_OK) == 0);
 }
 
 char *
@@ -298,10 +238,9 @@ _gst_open_file (const char *filename,
 #endif
 
   if (create)
-    fd = open (filename, oflags | access | O_CREAT, 0666);
-  else
-    fd = open (filename, oflags | access);
+    oflags |= O_CREAT;
 
+  fd = g_open (filename, oflags | access, 0666);
   if (fd < 0)
     return -1;
 

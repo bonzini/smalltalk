@@ -157,7 +157,7 @@ _gst_open_pipe (const char *command,
       if (!hMaster)
 	return -1;
 
-      slave = open (slavenam, O_RDWR | O_BINARY);
+      slave = g_open (slavenam, O_RDWR | O_BINARY, 0);
       break;
     }
 

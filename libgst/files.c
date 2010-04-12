@@ -316,7 +316,7 @@ _gst_initialize (const char *kernel_dir,
 		 const char *image_file,
 		 int flags)
 {
-  char *currentDirectory = _gst_get_cur_dir_name ();
+  char *currentDirectory = g_get_current_dir ();
   const char *home = getenv ("HOME");
   char *str;
   mst_Boolean loadBinary, abortOnFailure;
@@ -483,7 +483,7 @@ _gst_initialize (const char *kernel_dir,
           && !_gst_file_is_writeable (_gst_image_file_path)
 	  && (flags & GST_IGNORE_BAD_IMAGE_PATH))
         {
-          _gst_image_file_path = _gst_get_cur_dir_name ();
+          _gst_image_file_path = g_get_current_dir ();
           asprintf (&str, "%s/gst.im", _gst_image_file_path);
 	  _gst_binary_image_name = str;
           loadBinary = (rebuild_image_flags == GST_MAYBE_REBUILD_IMAGE

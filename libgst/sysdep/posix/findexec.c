@@ -144,7 +144,7 @@ find_executable (const char *argv0)
         return location;
       }
     if (executable_fd < 0)
-      executable_fd = open (buf, O_RDONLY, 0);
+      executable_fd = g_open (buf, O_RDONLY, 0);
   }
 #endif
 

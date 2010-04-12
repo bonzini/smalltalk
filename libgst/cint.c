@@ -58,6 +58,7 @@
 
 #include "ffi.h"
 #include <ltdl.h>
+#include <utime.h>
 
 #ifdef HAVE_GETGRNAM
 #include <grp.h>
@@ -170,6 +171,9 @@ static void init_dld (void);
    in the library.  */
 static PTR dld_open (const char *filename);
 
+/* Convert a GError into an errno value.  A bit backwards, I know.  */
+static int errno_from_g_error(GError *error);
+
 /* Callout to tests callins and callbacks.  */
 static void test_callin (OOP oop, int(*callback)(const char *));
 
@@ -187,20 +191,19 @@ static int my_stat_old (const char *name,
 		        struct gst_stat_struct * out);
 static int my_stat (const char *name,
 		    OOP out);
-#ifdef HAVE_LSTAT
 static int my_lstat_old (const char *name,
 		         struct gst_stat_struct * out);
 static int my_lstat (const char *name,
 		     OOP out);
-#endif
+static int my_utime (const char *name,
+		     long new_atime,
+		     long new_mtime);
 static int my_putenv (const char *str);
-static int my_chdir (const char *str);
 static int my_chown (const char *file, const char *owner, const char *group);
 static int my_symlink (const char* oldpath, const char* newpath);
 static char *my_mkdtemp (char* template);
-static int my_mkdir (const char* name, int mode);
-static DIR *my_opendir (const char *str);
-static char *extract_dirent_name (struct dirent *dir);
+static GDir *my_opendir (const char *str);
+static const char *extract_dirent_name (const char *name);
 
 /* Provide access to the arguments passed via -a.  */
 static int get_argc (void);
@@ -292,14 +295,102 @@ adjust_time (time_t t)
   return _gst_adjust_time_zone (t) - 86400 * 10957;
 }
 
-static inline int
+int
+errno_from_g_error(GError *error)
+{
+  if (error->domain != G_FILE_ERROR)
+    return EINVAL;
+
+  switch (error->code)
+  {
+#ifdef EEXIST
+  case G_FILE_ERROR_EXIST: return EEXIST;
+#endif
+#ifdef EISDIR
+  case G_FILE_ERROR_ISDIR: return EISDIR;
+#endif
+#ifdef EACCES
+  case G_FILE_ERROR_ACCES: return EACCES;
+#endif
+#ifdef ENAMETOOLONG
+  case G_FILE_ERROR_NAMETOOLONG: return ENAMETOOLONG;
+#endif
+#ifdef ENOENT
+  case G_FILE_ERROR_NOENT: return ENOENT;
+#endif
+#ifdef ENOTDIR
+  case G_FILE_ERROR_NOTDIR: return ENOTDIR;
+#endif
+#ifdef ENXIO
+  case G_FILE_ERROR_NXIO: return ENXIO;
+#endif
+#ifdef ENODEV
+  case G_FILE_ERROR_NODEV: return ENODEV;
+#endif
+#ifdef EROFS
+  case G_FILE_ERROR_ROFS: return EROFS;
+#endif
+#ifdef ETXTBSY
+  case G_FILE_ERROR_TXTBSY: return ETXTBSY;
+#endif
+#ifdef EFAULT
+  case G_FILE_ERROR_FAULT: return EFAULT;
+#endif
+#ifdef ELOOP
+  case G_FILE_ERROR_LOOP: return ELOOP;
+#endif
+#ifdef ENOSPC
+  case G_FILE_ERROR_NOSPC: return ENOSPC;
+#endif
+#ifdef ENOMEM
+  case G_FILE_ERROR_NOMEM: return ENOMEM;
+#endif
+#ifdef EMFILE
+  case G_FILE_ERROR_MFILE: return EMFILE;
+#endif
+#ifdef ENFILE
+  case G_FILE_ERROR_NFILE: return ENFILE;
+#endif
+#ifdef EBADF
+  case G_FILE_ERROR_BADF: return EBADF;
+#endif
+#ifdef EPIPE
+  case G_FILE_ERROR_PIPE: return EPIPE;
+#endif
+#ifdef EAGAIN
+  case G_FILE_ERROR_AGAIN: return EAGAIN;
+#endif
+#ifdef EINTR
+  case G_FILE_ERROR_INTR: return EINTR;
+#endif
+#ifdef EIO
+  case G_FILE_ERROR_IO: return EIO;
+#endif
+#ifdef EPERM
+  case G_FILE_ERROR_PERM: return EPERM;
+#endif
+#ifdef ENOSYS
+  case G_FILE_ERROR_NOSYS: return ENOSYS;
+#endif
+  case G_FILE_ERROR_INVAL:
+  default:
+    return EINVAL;
+  }
+}
+
+
+#ifndef _g_stat_struct
+#define _g_stat_struct stat
+#endif
+
+int
 my_stat_old (const char *name,
 	     struct gst_stat_struct * out)
 {
   int result;
-  struct stat statOut;
+  struct _g_stat_struct statOut;
 
-  result = stat (name, &statOut);
+  result = g_stat (name, &statOut);
   if (!result)
     {
       errno = 0;
@@ -317,9 +408,9 @@ my_stat (const char *name,
 	 OOP out)
 {
   int result;
-  struct stat statOut;
+  struct _g_stat_struct statOut;
 
-  result = stat (name, &statOut);
+  result = g_stat (name, &statOut);
   if (!result)
     {
       gst_stat obj = (gst_stat) OOP_TO_OBJ (out);
@@ -333,15 +424,14 @@ my_stat (const char *name,
   return (result);
 }
 
-#ifdef HAVE_LSTAT
-static inline int
+int
 my_lstat_old (const char *name,
 	      struct gst_stat_struct * out)
 {
   int result;
-  struct stat statOut;
+  struct _g_stat_struct statOut;
 
-  result = lstat (name, &statOut);
+  result = g_lstat (name, &statOut);
   if (!result)
     {
       errno = 0;
@@ -359,9 +449,9 @@ my_lstat (const char *name,
 	 OOP out)
 {
   int result;
-  struct stat statOut;
+  struct _g_stat_struct statOut;
 
-  result = lstat (name, &statOut);
+  result = g_lstat (name, &statOut);
   if (!result)
     {
       gst_stat obj = (gst_stat) OOP_TO_OBJ (out);
@@ -374,10 +464,21 @@ my_lstat (const char *name,
     }
   return (result);
 }
-#else
-#define my_lstat my_stat
-#define my_lstat_old my_stat_old
-#endif
+
+int
+my_utime (const char *name, long new_atime, long new_mtime)
+{
+  int result;
+
+  /* The times are in seconds, relative to 1 Jan 2000.  */
+  struct utimbuf utb;
+  utb.actime = new_atime + 86400 * 10957;
+  utb.modtime = new_mtime + 86400 * 10957;
+  result = g_utime (name, &utb);
+  if (!result)
+    errno = 0;
+  return (result);
+}
 
 int
 my_putenv (const char *str)
@@ -392,42 +493,20 @@ my_putenv (const char *str)
 }
 
 
-int
-my_chdir (const char *dir)
-{
-  int status;
-
-  status = chdir (dir);
-
-  if (status == 0)
-    errno = 0;
-  return (status);
-}
-
-static int 
-my_mkdir (const char* name,
-	  int mode)
-{
-  int retstat;
-#ifdef __MSVCRT__
-  retstat = mkdir (name);
-  if (retstat == 0)
-    retstat = chmod (name, mode);
-#else
-  retstat = mkdir (name, mode);
-#endif
-  return retstat;
-}
-
-DIR *
+GDir *
 my_opendir (const char *dir)
 {
-  DIR *result;
+  GDir *result;
+  GError *error;
 
-  result = opendir (dir);
+  result = g_dir_open (dir, 0, &error);
+  if (result == 0)
+    {
+      int new_errno = errno_from_g_error (error);
+      g_error_free (error);
+      errno = new_errno;
+    }
 
-  if (result != 0)
-    errno = 0;
   return (result);
 }
 
@@ -460,10 +539,10 @@ test_cobject_ptr (const void **string)
   *string = "this is a test";
 }
 
-char *
-extract_dirent_name (struct dirent *dir)
+const char *
+extract_dirent_name (const char *name)
 {
-  return (dir->d_name);
+  return (name);
 }
 
 int
@@ -600,24 +679,24 @@ _gst_init_cfuncs (void)
   _gst_define_cfunc ("lstat", my_lstat_old);
   _gst_define_cfunc ("stat_obj", my_stat);
   _gst_define_cfunc ("lstat_obj", my_lstat);
-  _gst_define_cfunc ("utime", _gst_set_file_access_times);
-  _gst_define_cfunc ("chmod", chmod);
+  _gst_define_cfunc ("utime", my_utime);
+  _gst_define_cfunc ("chmod", g_chmod);
   _gst_define_cfunc ("chown", my_chown);
 
   _gst_define_cfunc ("opendir", my_opendir);
-  _gst_define_cfunc ("closedir", closedir);
-  _gst_define_cfunc ("readdir", readdir);
-  _gst_define_cfunc ("rewinddir", rewinddir);
+  _gst_define_cfunc ("closedir", g_dir_close);
+  _gst_define_cfunc ("readdir", g_dir_read_name);
+  _gst_define_cfunc ("rewinddir", g_dir_rewind);
   _gst_define_cfunc ("extractDirentName", extract_dirent_name);
 
   _gst_define_cfunc ("symlink", my_symlink);
-  _gst_define_cfunc ("unlink", unlink);
-  _gst_define_cfunc ("rename", rename);
-  _gst_define_cfunc ("rmdir", rmdir);
-  _gst_define_cfunc ("chdir", my_chdir);
-  _gst_define_cfunc ("mkdir", my_mkdir);
+  _gst_define_cfunc ("unlink", g_unlink);
+  _gst_define_cfunc ("rename", g_rename);
+  _gst_define_cfunc ("rmdir", g_rmdir);
+  _gst_define_cfunc ("chdir", g_chdir);
+  _gst_define_cfunc ("mkdir", g_mkdir);
   _gst_define_cfunc ("mkdtemp", my_mkdtemp);
-  _gst_define_cfunc ("getCurDirName", _gst_get_cur_dir_name);
+  _gst_define_cfunc ("getCurDirName", g_get_current_dir);
 
   _gst_define_cfunc ("fileIsReadable", _gst_file_is_readable);
   _gst_define_cfunc ("fileIsWriteable", _gst_file_is_writeable);
@@ -1427,6 +1506,7 @@ _gst_free_closure (OOP callbackOOP)
   set_cobject_value (callbackOOP, NULL);
 }
 
+
 void
 _gst_set_errno(int errnum)
 {
@@ -1537,20 +1617,22 @@ my_chown (const char *file, const char *user, const char *group)
     return 0;
   else
     return chown (file, uid, gid);
+#else
+  errno = ENOSYS;
+  return -1;
 #endif
 }
-
-/* TODO: check if this can be changed to an extern declaration and/or
-   an AC_CHECK_DECLS test.  */
 
 int
 my_symlink (const char* oldpath, const char* newpath)
 {
+  /* TODO: send patch to glib... */
   return symlink (oldpath,  newpath);
 }
  
 char*
 my_mkdtemp(char* template)
 {
+  /* TODO: send patch to glib... */
   return mkdtemp(template);
 }
