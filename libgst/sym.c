@@ -63,37 +63,33 @@ typedef struct
 }
  *sym_link;
 
-typedef struct symbol_list *symbol_list;
-
 struct symbol_list
 {
   OOP symbol;
   mst_Boolean readOnly;
   int index;
-  symbol_list prevSymbol;
+  struct symbol_list *prevSymbol;
 };
 
 /* Represents all the identifiers, both arguments and temporaries,
    which are declared in a given scope.  Nested scopes result in
    nested instances of the scope struct, with the current scope always
    being the innermost at any point during the compilation.  */
-typedef struct scope *scope;
 struct scope
 {
-  scope prevScope;
+  struct scope *prevScope;
   unsigned int numArguments;
   unsigned int numTemporaries;
-  symbol_list symbols;
+  struct symbol_list *symbols;
 };
 
 /* Represents all the pools (namespaces) which are declared in the
    current scope.  This information is relatively complex to compute,
    so it's kept cached.  */
-typedef struct pool_list *pool_list;
 struct pool_list
 {
   OOP poolOOP;
-  pool_list next;
+  struct pool_list *next;
 };
 
 
@@ -203,7 +199,7 @@ static OOP alloc_symlink (OOP symbolOOP, uintptr_t index);
 static mst_Boolean is_white_space (char c);
 
 /* Free the list of symbols declared in the given SCOPE.  */
-static void free_scope_symbols (scope scope);
+static void free_scope_symbols (struct scope *scope);
 
 /* Scans a variable name (letters and digits, initial letter), and
    return a symbol for it. PP is a pointer to a pointer to the start
@@ -259,7 +255,7 @@ static mst_Boolean is_instance_variable_read_only (int index);
 /* This looks for SYMBOL among the arguments and temporary variables
    that the current scope sees, and returns the entry in the symbol
    list for the variable if it is found.  */
-static symbol_list find_local_var (scope scope,
+static struct symbol_list *find_local_var (struct scope *scope,
 				   OOP symbol);
 
 /* This looks for SYMBOL among the global variables that the current
@@ -267,8 +263,8 @@ static symbol_list find_local_var (scope scope,
    the symbol list for the variable if it is found.  */
 static OOP find_class_variable (OOP varName);
 
-static scope cur_scope = NULL;
-static pool_list linearized_pools = NULL;
+static struct scope *cur_scope = NULL;
+static struct pool_list *linearized_pools = NULL;
 
 /* This is an array of symbols which the virtual machine knows about,
    and is used to restore the global variables upon image load.  */
@@ -365,8 +361,8 @@ _gst_get_temp_count (void)
 void
 _gst_push_new_scope (void)
 {
-  scope newScope;
-  newScope = (scope) xmalloc (sizeof (*newScope));
+  struct scope *newScope;
+  newScope = g_slice_new (struct scope);
   newScope->prevScope = cur_scope;
   newScope->symbols = NULL;
   newScope->numArguments = 0;
@@ -377,19 +373,19 @@ _gst_push_new_scope (void)
 void
 _gst_pop_old_scope (void)
 {
-  scope oldScope;
+  struct scope *oldScope;
 
   oldScope = cur_scope;
   cur_scope = cur_scope->prevScope;
 
   free_scope_symbols (oldScope);
-  xfree (oldScope);
+  g_slice_free (struct scope, oldScope);
 }
 
 void
 _gst_pop_all_scopes (void)
 {
-  pool_list next;
+  struct pool_list *next;
 
   while (cur_scope)
     _gst_pop_old_scope ();
@@ -397,7 +393,7 @@ _gst_pop_all_scopes (void)
   while (linearized_pools)
     {
       next = linearized_pools->next;
-      xfree (linearized_pools);
+      g_slice_free (struct pool_list, linearized_pools);
       linearized_pools = next;
     }
 }
@@ -453,11 +449,11 @@ _gst_declare_block_arguments (tree_node args)
 void
 _gst_undeclare_name (void)
 {
-  symbol_list oldList;
+  struct symbol_list *oldList;
 
   oldList = cur_scope->symbols;
   cur_scope->symbols = cur_scope->symbols->prevSymbol;
-  xfree (oldList);
+  g_slice_free (struct symbol_list, oldList);
 }
 
 
@@ -466,13 +462,13 @@ _gst_declare_name (const char *name,
 		   mst_Boolean writeable,
 		   mst_Boolean allowDup)
 {
-  symbol_list newList;
+  struct symbol_list *newList;
   OOP symbol = _gst_intern_string (name);
 
   if (!allowDup && find_local_var (cur_scope, symbol) != NULL)
     return -1;
 
-  newList = (symbol_list) xmalloc (sizeof (struct symbol_list));
+  newList = g_slice_new (struct symbol_list);
   newList->symbol = symbol;
   newList->index = cur_scope->numArguments + cur_scope->numTemporaries;
   newList->readOnly = !writeable;
@@ -488,15 +484,15 @@ _gst_declare_name (const char *name,
 
 
 static void
-free_scope_symbols (scope scope)
+free_scope_symbols (struct scope *scope)
 {
-  symbol_list oldList;
+  struct symbol_list *oldList;
 
   for (oldList = scope->symbols; oldList != NULL;
        oldList = scope->symbols)
     {
       scope->symbols = oldList->prevSymbol;
-      xfree (oldList);
+      g_slice_free (struct symbol_list, oldList);
     }
 }
 
@@ -620,14 +616,14 @@ _gst_get_class_object (OOP classOOP)
 /* Add poolOOP after the node whose next pointer is in P_END.  Return
    the new next node (actually its next pointer).  */
 
-static pool_list *
-add_pool (OOP poolOOP, pool_list *p_end)
+static struct pool_list **
+add_pool (OOP poolOOP, struct pool_list **p_end)
 {
-  pool_list entry;
+  struct pool_list *entry;
   if (IS_NIL (poolOOP))
     return p_end;
 
-  entry = xmalloc (sizeof (struct pool_list));
+  entry = g_slice_new (struct pool_list);
   entry->poolOOP = poolOOP;
   entry->next = NULL;
 
@@ -660,15 +656,15 @@ make_with_all_superspaces_set (OOP poolOOP)
 }
 
 /* predeclared for add_namespace */
-static pool_list *combine_local_pools
-  (OOP sharedPoolsOOP, struct pointer_set_t *white, pool_list *p_end);
+static struct pool_list **combine_local_pools
+  (OOP sharedPoolsOOP, struct pointer_set_t *white, struct pool_list **p_end);
 
 /* Add, after the node whose next pointer is in P_END, the namespace
    POOLOOP and all of its superspaces except those in EXCEPT.
    The new last node is returned (actually its next pointer).  */
 
-static pool_list *
-add_namespace (OOP poolOOP, struct pointer_set_t *except, pool_list *p_end)
+static struct pool_list **
+add_namespace (OOP poolOOP, struct pointer_set_t *except, struct pool_list **p_end)
 {
   if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_class_class))
     poolOOP = _gst_class_variable_dictionary (poolOOP);
@@ -722,9 +718,9 @@ add_namespace (OOP poolOOP, struct pointer_set_t *except, pool_list *p_end)
 static void
 visit_pool (OOP poolOOP, struct pointer_set_t *grey,
 	    struct pointer_set_t *white,
-	    pool_list *p_head, pool_list *p_tail)
+	    struct pool_list **p_head, struct pool_list **p_tail)
 {
-  pool_list entry;
+  struct pool_list *entry;
 
   if (is_a_kind_of (OOP_CLASS (poolOOP), _gst_class_class))
     poolOOP = _gst_class_variable_dictionary (poolOOP);
@@ -754,7 +750,7 @@ visit_pool (OOP poolOOP, struct pointer_set_t *grey,
   /* Add an entry for this one at the beginning of the list.  We need
      to maintain the tail too, because combine_local_pools must return
      it.  */
-  entry = xmalloc (sizeof (struct pool_list));
+  entry = g_slice_new (struct pool_list);
   entry->poolOOP = poolOOP;
   entry->next = *p_head;
   *p_head = entry;
@@ -768,12 +764,12 @@ visit_pool (OOP poolOOP, struct pointer_set_t *grey,
    in the list are tacked after the node whose next pointer is
    in P_END.  The new last node is returned (actually its next pointer).  */
 
-static pool_list *
-combine_local_pools (OOP sharedPoolsOOP, struct pointer_set_t *white, pool_list *p_end)
+static struct pool_list **
+combine_local_pools (OOP sharedPoolsOOP, struct pointer_set_t *white, struct pool_list **p_end)
 {
   struct pointer_set_t *grey = pointer_set_create ();
-  pool_list head = NULL;
-  pool_list tail = NULL;
+  struct pool_list *head = NULL;
+  struct pool_list *tail = NULL;
   int numPools, i;
 
   /* Visit right-to-left because visit_pool adds to the beginning.  */
@@ -804,8 +800,8 @@ combine_local_pools (OOP sharedPoolsOOP, struct pointer_set_t *white, pool_list 
    excluding those reachable also from the environment of
    the superclass.  */
 
-static pool_list *
-add_local_pool_resolution (OOP class_oop, pool_list *p_end)
+static struct pool_list **
+add_local_pool_resolution (OOP class_oop, struct pool_list **p_end)
 {
   OOP environmentOOP;
   gst_class class;
@@ -839,12 +835,12 @@ add_local_pool_resolution (OOP class_oop, pool_list *p_end)
 OOP
 find_class_variable (OOP varName)
 {
-  pool_list pool;
+  struct pool_list *pool;
   OOP assocOOP;
 
   if (!linearized_pools)
     {
-      pool_list *p_end = &linearized_pools;
+      struct pool_list **p_end = &linearized_pools;
       OOP myClass;
 
       /* Add pools separately for each class.  */
@@ -947,8 +943,8 @@ _gst_find_variable (symbol_entry * se,
   tree_node resolved;
   int index;
   unsigned int scopeDistance;
-  scope scope;
-  symbol_list s;
+  struct scope *scope;
+  struct symbol_list *s;
   OOP varAssoc;
   OOP symbol;
 
@@ -1051,11 +1047,11 @@ instance_variable_index (OOP symbol)
 }
 
 
-static symbol_list
-find_local_var (scope scope,
+static struct symbol_list *
+find_local_var (struct scope *scope,
 		OOP symbol)
 {
-  symbol_list s;
+  struct symbol_list *s;
 
   for (s = scope->symbols; s != NULL && symbol != s->symbol;
        s = s->prevSymbol);
@@ -1366,14 +1362,14 @@ _gst_intern_string_oop (OOP stringOOP)
   if (len < sizeof (copyBuf))
     copyPtr = copyBuf;
   else
-    copyPtr = (char *) xmalloc (len);
+    copyPtr = (char *) g_malloc (len);
 
   memcpy (copyPtr, STRING_OOP_CHARS (stringOOP), len);
 
   symbolOOP = intern_counted_string (copyPtr, len);
 
   if (len >= sizeof (copyBuf))
-    xfree (copyPtr);
+    g_free (copyPtr);
 
   return symbolOOP;
 }
