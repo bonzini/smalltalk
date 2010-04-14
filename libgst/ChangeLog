@@ -1,3 +1,18 @@
+2010-04-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/Makefile.am: Remove memzero.h.
+	* libgst/memzero.h: Remove.
+	* libgst/dict.c: Remove memzero.
+	* libgst/dict.inl: Remove memzero.
+	* libgst/gstpriv.h: Remove memzero.
+	* libgst/heap.c: Remove memzero.
+	* libgst/lex.c: Remove memzero.
+	* libgst/mpz.c: Remove memzero.
+	* libgst/opt.c: Remove memzero.
+	* libgst/prims.def: Remove memzero.
+	* libgst/save.c: Remove memzero.
+	* libgst/xlat.c: Remove memzero.
+
 2010-04-13  Paolo Bonzini <bonzini@gnu.org>
 
 	* libgst/cint.c: Use g_setenv and g_unsetenv.
