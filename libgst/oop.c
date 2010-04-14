@@ -347,6 +347,8 @@ _gst_init_mem (size_t eden, size_t survivor, size_t old,
       _gst_inc_init_registry ();
     }
 
+  _gst_mem.marked_ephemerons = g_ptr_array_new ();
+  _gst_mem.mourned_objects = g_ptr_array_new ();
 }
 
 void _gst_update_object_memory_oop (OOP oop)
@@ -1476,12 +1478,10 @@ void
 mourn_objects (void)
 {
   gst_object array;
-  long size;
+  long len;
   gst_processor_scheduler processor;
 
-  size = _gst_buffer_size () / sizeof (OOP);
-  if (!size)
-    return;
+  len = _gst_mem.mourned_objects->len;
 
   processor = (gst_processor_scheduler) OOP_TO_OBJ (_gst_processor_oop);
   if (!IS_NIL (processor->gcArray))
@@ -1492,8 +1492,8 @@ mourn_objects (void)
   else
     {
       /* Copy the buffer into an Array */
-      array = new_instance_with (_gst_array_class, size, &processor->gcArray);
-      _gst_copy_buffer (array->data);
+      array = new_instance_with (_gst_array_class, len, &processor->gcArray);
+      memcpy (array->data, _gst_mem.mourned_objects->pdata, len * sizeof (OOP));
       if (!IS_NIL (processor->gcSemaphore))
         _gst_async_signal (processor->gcSemaphore);
       else
@@ -1502,6 +1502,8 @@ mourn_objects (void)
 	  abort ();
 	}
     }
+
+  g_ptr_array_set_size (_gst_mem.mourned_objects, 0);
 }
 
 
@@ -1725,14 +1727,14 @@ check_weak_refs ()
         }
 
       if (mourn)
-        _gst_add_buf_pointer (area->oop);
+        g_ptr_array_add (_gst_mem.mourned_objects, oop);
     }
 }
 
 void
 copy_oops (void)
 {
-  _gst_reset_buffer ();
+  assert (_gst_mem.mourned_objects->len == 0);
 
   /* Do the flip! */
   _gst_mem.live_flags ^= F_SPACES;
@@ -1907,7 +1909,7 @@ scan_grey_objects()
 	  if (!IS_OOP_COPIED (key))
 	    {
 	      _gst_copy_an_oop (key);
-              _gst_add_buf_pointer (oop);
+              g_ptr_array_add (_gst_mem.mourned_objects, oop);
 	    }
 	}
 
@@ -2097,7 +2099,8 @@ _gst_copy_an_oop (OOP oop)
 void
 mark_oops (void)
 {
-  _gst_reset_buffer ();
+  assert (_gst_mem.marked_ephemerons->len == 0);
+  assert (_gst_mem.mourned_objects->len == 0);
   _gst_mark_registered_oops ();
   _gst_mark_processor_registers ();
   mark_ephemeron_oops ();
@@ -2109,59 +2112,59 @@ mark_ephemeron_oops (void)
   OOP *pOOP, *pDeadOOP, *base;
   int i, size;
 
-  /* Make a local copy of the buffer */
-  size = _gst_buffer_size ();
-  base = alloca (size);
-  _gst_copy_buffer (base);
-  _gst_reset_buffer ();
-  size /= sizeof (PTR);
-
-  /* First pass: distinguish objects whose key was reachable from
-     the outside by clearing their F_EPHEMERON bit.  */
-  for (pOOP = base, i = size; i--; pOOP++)
+  while (_gst_mem.marked_ephemerons->len)
     {
-      OOP oop = *pOOP;
-      gst_object obj = OOP_TO_OBJ(oop);
-      OOP key = obj->data[0];
+      /* Make a local copy of the array.  Needs g_ptr_array_steal or
+         g_ptr_array_dup.  */
+      base = (OOP *) _gst_mem.marked_ephemerons->pdata;
+      g_ptr_array_ref (_gst_mem.marked_ephemerons);
+      g_ptr_array_free (_gst_mem.marked_ephemerons, false);
+      g_ptr_array_unref (_gst_mem.marked_ephemerons);
 
-      if (key->flags & F_REACHABLE)
-        oop->flags &= ~F_EPHEMERON;
+      /* First pass: distinguish objects whose key was reachable from
+         the outside by clearing their F_EPHEMERON bit.  */
+      for (pOOP = base, i = size; i--; pOOP++)
+        {
+          OOP oop = *pOOP;
+          gst_object obj = OOP_TO_OBJ(oop);
+          OOP key = obj->data[0];
 
-      key->flags |= F_REACHABLE;
+          if (key->flags & F_REACHABLE)
+            oop->flags &= ~F_EPHEMERON;
+
+          key->flags |= F_REACHABLE;
+        }
+
+      for (pOOP = pDeadOOP = base, i = size; i--; )
+        {
+          OOP oop = *pOOP++;
+          gst_object obj = OOP_TO_OBJ(oop);
+          OOP key = obj->data[0];
+          int num = NUM_OOPS(obj);
+          int j;
+
+          /* Find if the key is reachable from the objects (so that
+             we can mourn the ephemeron if this is not so).  */
+          key->flags &= ~F_REACHABLE;
+
+          for (j = 1; j < num; j++)
+            MAYBE_MARK_OOP (obj->data[j]);
+
+          /* Remember that above we cleared F_EPHEMERON if the key
+             is alive.  */
+          if (!IS_OOP_MARKED (key) && (oop->flags & F_EPHEMERON))
+            g_ptr_array_add (_gst_mem.mourned_objects, oop);
+
+          /* Ok, now mark the key.  */
+          MAYBE_MARK_OOP (key);
+
+          /* Restore the flag in case it was cleared.  */
+          oop->flags |= F_EPHEMERON;
+        }
+
+      g_free (base);
+      /* If more ephemerons were reachable from the object, go on...  */
     }
-
-  for (pOOP = pDeadOOP = base, i = size; i--; )
-    {
-      OOP oop = *pOOP++;
-      gst_object obj = OOP_TO_OBJ(oop);
-      OOP key = obj->data[0];
-      int num = NUM_OOPS(obj);
-      int j;
-
-      /* Find if the key is reachable from the objects (so that
-         we can mourn the ephemeron if this is not so).  */
-      key->flags &= ~F_REACHABLE;
-
-      for (j = 1; j < num; j++)
-        MAYBE_MARK_OOP (obj->data[j]);
-
-      /* Remember that above we cleared F_EPHEMERON if the key
-         is alive.  */
-      if (!IS_OOP_MARKED (key) && (oop->flags & F_EPHEMERON))
-        *pDeadOOP++ = oop;
-
-      /* Ok, now mark the key.  */
-      MAYBE_MARK_OOP (key);
-
-      /* Restore the flag in case it was cleared.  */
-      oop->flags |= F_EPHEMERON;
-    }
-
-  /* If more ephemerons were reachable from the object, go on...  */
-  if (_gst_buffer_size ())
-    mark_ephemeron_oops ();
-
-  _gst_add_buf_data (base, (char *) pDeadOOP - (char *) base);
 }
 
 #define TAIL_MARK_OOP(newOOP) BEGIN_MACRO { \
@@ -2269,7 +2272,7 @@ _gst_mark_an_oop_internal (OOP oop,
 	  else if UNCOMMON (oop->flags & (F_EPHEMERON | F_WEAK))
 	    {
 	      if (oop->flags & F_EPHEMERON)
-	        _gst_add_buf_pointer (oop);
+	        g_ptr_array_add (_gst_mem.marked_ephemerons, oop);
 
 	      /* In general, there will be many instances of a class,
 		 but only the first time will it be unmarked.  So I'm

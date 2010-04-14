@@ -204,6 +204,7 @@ static OOP *literals;
 static OOP method_class;
 static code_stack_element t_stack[MAX_DEPTH];
 static code_stack_pointer t_sp;
+static GArray *ip_map_array;
 
 /* Current status of the code generator */
 static mst_Boolean self_cached, rec_var_cached;
@@ -638,8 +639,7 @@ new_method_entry (OOP methodOOP, OOP receiverClass, int size)
   current->inlineCaches = NULL;
   methodOOP->flags |= F_XLAT;
 
-  /* The buffer functions in str.c are used to deal with the ip_map.  */
-  _gst_reset_buffer ();
+  ip_map_array = g_array_new (FALSE, FALSE, sizeof (ip_map));
 
   obstack_init (&aux_data_obstack);
   jit_set_ip (current->nativeCode);
@@ -668,9 +668,8 @@ finish_method_entry (void)
 
   /* Copy the IP map, adding a final dummy entry */
   define_ip_map_entry (-1);
-  size = _gst_buffer_size ();
-  result->ipMap = (ip_map *) g_malloc (size);
-  _gst_copy_buffer (result->ipMap);
+  result->ipMap = (ip_map *) ip_map_array->data;
+  g_array_free (ip_map_array, false);
 
   hashEntry = OOP_INDEX (result->methodOOP) % HASH_TABLE_SIZE;
   result->next = methods_table[hashEntry];
@@ -964,7 +963,7 @@ define_ip_map_entry (int virtualIP)
   mapEntry.virtualIP = virtualIP;
   mapEntry.native_ip = jit_get_label ();
 
-  _gst_add_buf_data (&mapEntry, sizeof (mapEntry));
+  g_array_append_val (ip_map_array, mapEntry);
 }
 
 void

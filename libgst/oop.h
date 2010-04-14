@@ -238,6 +238,9 @@ struct memory_space
   /* These hold onto the object incubator's state */
   OOP *inc_base, *inc_ptr, *inc_end;
 
+  /* Used throughout the GC.  */
+  GPtrArray *marked_ephemerons, *mourned_objects;
+
   /* Objects that are at least this big (in bytes) are allocated outside
      the main heap, hoping to provide more locality of reference between
      small objects.  */

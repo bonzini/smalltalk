@@ -2550,25 +2550,25 @@ primitive VMpr_Object_allOwners [succeed]
   OOP oop2, lastOOP;
   OOP result;
   gst_object object;
+  GPtrArray *array;
+
   _gst_primitives_executed++;
 
   oop1 = STACKTOP ();
 
-  _gst_reset_buffer ();
+  array = g_ptr_array_sized_new (40);
   PREFETCH_START (_gst_mem.ot_base, PREF_READ | PREF_NTA);
   for (oop2 = _gst_mem.ot_base, lastOOP = &_gst_mem.ot[_gst_mem.ot_size];
        oop2 < lastOOP; oop2++)
     {
       PREFETCH_LOOP (oop2, PREF_READ | PREF_NTA);
       if UNCOMMON (IS_OOP_VALID (oop2) && is_owner(oop2, oop1))
-	_gst_add_buf_pointer (oop2);
+	g_ptr_array_add (array, oop2);
     }
 
-  object = new_instance_with (_gst_array_class,
-			      _gst_buffer_size() / sizeof (PTR),
-			      &result);
-
-  _gst_copy_buffer (object->data);
+  object = new_instance_with (_gst_array_class, array->len, &result);
+  memcpy (object->data, array->pdata, array->len * sizeof (OOP));
+  g_ptr_array_unref (array);
   SET_STACKTOP (result);
   PRIM_SUCCEEDED;
 }

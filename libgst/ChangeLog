@@ -1,3 +1,13 @@
+2010-04-13  Paolo Bonzini <bonzini@gnu.org>
+
+	* libgst/oop.c: Replace buffers with GPtrArrays.
+	* libgst/oop.h: Add two GPtrArrays to _gst_mem.
+	* libgst/prims.def: Replace buffers with GPtrArrays.
+	* libgst/xlat.c: Replace buffers with GArrays.
+	* libgst/str.c: Remove.
+	* libgst/str.h: Remove.
+	* libgst/gstpriv.h: Do not include it.
+
 2010-04-14  Paolo Bonzini  <bonzini@gnu.org>
 
 	* lib-src/re.c: Use GRegex.

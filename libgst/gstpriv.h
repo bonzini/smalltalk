@@ -612,7 +612,6 @@ extern OOP _gst_nil_oop
 #include "interp.h"
 #include "opt.h"
 #include "save.h"
-#include "str.h"
 #include "sysdep.h"
 #include "xlat.h"
 #include "mpz.h"
