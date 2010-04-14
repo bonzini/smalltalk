@@ -317,7 +317,7 @@ _gst_initialize (const char *kernel_dir,
 		 int flags)
 {
   char *currentDirectory = g_get_current_dir ();
-  const char *home = getenv ("HOME");
+  const char *home = g_getenv ("HOME");
   char *str;
   mst_Boolean loadBinary, abortOnFailure;
   int rebuild_image_flags =

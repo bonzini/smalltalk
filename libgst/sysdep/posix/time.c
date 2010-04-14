@@ -86,7 +86,7 @@ char *
 _gst_current_time_zone_name (void)
 {
   const char *zone;
-  zone = getenv ("TZ");
+  zone = g_getenv ("TZ");
   if (!zone)
     zone = "XXX";
 
