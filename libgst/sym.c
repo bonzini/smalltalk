@@ -390,12 +390,8 @@ _gst_pop_all_scopes (void)
   while (cur_scope)
     _gst_pop_old_scope ();
 
-  while (linearized_pools)
-    {
-      next = linearized_pools->next;
-      g_slice_free (struct pool_list, linearized_pools);
-      linearized_pools = next;
-    }
+  g_slice_free_chain (struct pool_list, linearized_pools, next);
+  linearized_pools = NULL;
 }
 
 
@@ -488,12 +484,8 @@ free_scope_symbols (struct scope *scope)
 {
   struct symbol_list *oldList;
 
-  for (oldList = scope->symbols; oldList != NULL;
-       oldList = scope->symbols)
-    {
-      scope->symbols = oldList->prevSymbol;
-      g_slice_free (struct symbol_list, oldList);
-    }
+  g_slice_free_chain (struct symbol_list, scope->symbols, prevSymbol);
+  scope->symbols = NULL;
 }
 
 /* Here are some notes on the design of the shared pool resolution order,
