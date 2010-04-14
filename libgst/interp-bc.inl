@@ -512,7 +512,7 @@ _gst_interpret (OOP processOOP)
   /* Prime the interpreter's registers.  */
   IMPORT_REGS ();
 
-  push_jmp_buf (&jb, true, processOOP);
+  push_jmp_buf (&jb, true, false, processOOP);
   if (setjmp (jb.jmpBuf) == 0)
     goto monitor_byte_codes;
   else

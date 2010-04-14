@@ -381,7 +381,7 @@ _gst_interpret (OOP processOOP)
 {
   interp_jmp_buf jb;
   gst_callin_process process;
-  push_jmp_buf (&jb, true, processOOP);
+  push_jmp_buf (&jb, true, false, processOOP);
 
   if (setjmp (jb.jmpBuf) == 0)
     for (;;)

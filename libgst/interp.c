@@ -124,8 +124,9 @@ typedef struct interp_jmp_buf
   jmp_buf jmpBuf;
   struct interp_jmp_buf *next;
   unsigned short suspended;
-  unsigned char interpreter;
-  unsigned char interrupted;
+  unsigned char in_c_call;
+  unsigned char interpreter : 1;
+  unsigned char interrupted : 1;
   OOP processOOP;
 }
 interp_jmp_buf;
@@ -524,6 +525,7 @@ static RETSIGTYPE preempt_smalltalk_process (int sig);
    sent #userInterrupt if the user presses Ctrl-C.  */
 static void push_jmp_buf (interp_jmp_buf *jb,
 			  int for_interpreter,
+			  int in_c_call,
 			  OOP processOOP);
 
 /* Pop an execution state.  Return true if the interruption has to
@@ -2764,12 +2766,13 @@ _gst_set_primitive_attributes (int primitive, prim_table_entry *pte)
 }
 
 void
-push_jmp_buf (interp_jmp_buf *jb, int for_interpreter, OOP processOOP)
+push_jmp_buf (interp_jmp_buf *jb, int for_interpreter, int in_c_call,
+	      OOP processOOP)
 {
   jb->next = reentrancy_jmp_buf;
   jb->processOOP = processOOP;
-  jb->suspended = 0;
   jb->interpreter = for_interpreter;
+  jb->in_c_call = in_c_call || (reentrancy_jmp_buf && reentrancy_jmp_buf->in_c_call);
   jb->interrupted = false;
   _gst_register_oop (processOOP);
   reentrancy_jmp_buf = jb;
@@ -2810,7 +2813,7 @@ parse_stream_with_protection (mst_Boolean method)
 {
   interp_jmp_buf jb;
 
-  push_jmp_buf (&jb, false, get_active_process ());
+  push_jmp_buf (&jb, false, false, get_active_process ());
   if (setjmp (jb.jmpBuf) == 0)
     _gst_parse_stream (method);
 

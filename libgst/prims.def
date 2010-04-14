@@ -5903,7 +5903,7 @@ primitive VMpr_CFuncDescriptor_asyncCall [succeed,fail]
     }
 
   cFuncOOP = STACKTOP ();
-  push_jmp_buf (&jb, false, _gst_nil_oop);
+  push_jmp_buf (&jb, false, true, _gst_nil_oop);
   if (setjmp (jb.jmpBuf) == 0)
     resultOOP = _gst_invoke_croutine (cFuncOOP, receiverOOP,
 				   context->contextStack);
@@ -5957,7 +5957,7 @@ primitive VMpr_CFuncDescriptor_call [succeed,fail]
      active process can change.  */
   PUSH_OOP (resultHolderOOP);
 
-  push_jmp_buf (&jb, false, get_active_process ());
+  push_jmp_buf (&jb, false, true, get_active_process ());
   if (setjmp (jb.jmpBuf) == 0)
     resultOOP = _gst_invoke_croutine (cFuncOOP, receiverOOP,
 				      context->contextStack);
