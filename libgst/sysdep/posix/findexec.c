@@ -68,42 +68,8 @@
 # include <mach-o/dyld.h>
 #endif
 
-#ifdef __linux__
-/* File descriptor of the executable, used for double checking.  */
-static int executable_fd = -1;
-#endif
-
 /* The path to the executable, derived from argv[0].  */
 const char *_gst_executable_path = NULL;
-
-/* Tests whether a given pathname may belong to the executable.  */
-static mst_Boolean
-maybe_executable (const char *filename)
-{
-  if (!_gst_file_is_executable (filename))
-    return false;
-
-#ifdef __linux__
-  if (executable_fd >= 0)
-    {
-      /* If we already have an executable_fd, check that filename points to
-	 the same inode.  */
-      struct stat statexe, statfile;
-
-      if (fstat (executable_fd, &statexe) < 0
-	  || stat (filename, &statfile) < 0
-	  || !(statfile.st_dev
-	       && statfile.st_dev == statexe.st_dev
-	       && statfile.st_ino == statexe.st_ino))
-	return false;
-
-      close (executable_fd);
-      executable_fd = -1;
-    }
-#endif
-
-  return true;
-}
 
 /* Determine the full pathname of the current executable, freshly allocated.
    Return NULL if unknown.  Guaranteed to work on Linux and Win32, Mac OS X.
@@ -143,57 +109,13 @@ find_executable (const char *argv0)
         location[n] = '\0';
         return location;
       }
-    if (executable_fd < 0)
-      executable_fd = g_open (buf, O_RDONLY, 0);
   }
 #endif
 
   if (*argv0 == '-')
     argv0++;
 
-  /* Guess the executable's full path.  We assume the executable has been
-     called via execlp() or execvp() with properly set up argv[0].
-     exec searches paths without slashes in the directory list given
-     by $PATH.  */
-  if (!strchr (argv0, '/'))
-    {
-      const char *p_next = getenv ("PATH");
-      const char *p;
-
-      while ((p = p_next) != NULL)
-	{
-	  char *concat_name;
-
-	  p_next = strchr (p, ':');
-	  /* An empty PATH element designates the current directory.  */
-	  if (p_next == p + 1)
-	    concat_name = g_strdup (argv0);
-	  else if (!p_next)
-	    asprintf (&concat_name, "%s/%s", p, argv0);
-	  else
-	    asprintf (&concat_name, "%.*s/%s", (int)(p_next++ - p), p, argv0);
-
-	  if (maybe_executable (concat_name))
-	    {
-	      char *full_path = _gst_get_full_file_name (concat_name);
-	      g_free (concat_name);
-	      return full_path;
-	    }
-
-	  g_free (concat_name);
-	}
-      /* Not found in the PATH, assume the current directory.  */
-    }
-
-  if (maybe_executable (argv0))
-    return _gst_get_full_file_name (argv0);
-
-  /* No way to find the executable.  */
-#ifdef __linux__
-  close (executable_fd);
-  executable_fd = -1;
-#endif
-  return NULL;
+  return g_find_program_in_path (argv0);
 }
 
 void

@@ -1,5 +1,12 @@
 2010-04-13  Paolo Bonzini <bonzini@gnu.org>
 
+	* libgst/cint.c: Use g_setenv and g_unsetenv.
+	* libgst/files.c: Use g_getenv.
+	* libgst/sysdep/posix/findexec.c: Use g_find_program_in_path.
+	* libgst/sysdep/posix/time.c: Use g_getenv.
+
+2010-04-13  Paolo Bonzini <bonzini@gnu.org>
+
 	* libgst/save.c: Pair mmap with munmap, not _gst_osmem_free.
 
 2010-04-13  Paolo Bonzini <bonzini@gnu.org>

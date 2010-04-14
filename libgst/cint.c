@@ -483,8 +483,20 @@ my_utime (const char *name, long new_atime, long new_mtime)
 int
 my_putenv (const char *str)
 {
-  char *clone = g_strdup (str);
-  return (putenv (clone));
+  char *delim = strchr (str, '=');
+  int rc;
+  if (delim)
+    {
+      *delim = '\0';
+      rc = g_setenv (str, delim + 1, true);
+      *delim = '=';
+      return (rc ? 0 : -1);
+    }
+  else
+    {
+      g_unsetenv (str);
+      return 0;
+    }
 }
 
 
