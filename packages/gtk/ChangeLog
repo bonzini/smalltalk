@@ -1,3 +1,9 @@
+2010-04-17  Paolo Bonzini <bonzini@gnu.org>
+
+	* gtk/GtkImpl.st: Remove main loop.
+	* gtk/MoreFuncs.st: Remove main loop.
+	* gtk/gst-gtk.c: Remove main loop.
+
 2010-04-12  Paolo Bonzini <bonzini@gnu.org>
 
 	* gst-gtk.c: Remove log handler.

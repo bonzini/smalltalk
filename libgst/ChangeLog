@@ -1,5 +1,18 @@
 2010-04-17  Paolo Bonzini  <bonzini@gnu.org>
 
+	* libgst/events.c: Add main loop code from GTK+ bindings.
+	Add _gst_pause and _gst_wakeup.
+	* libgst/events.h: Add _gst_main_context_iterate.
+	* libgst/interp-bc.inl: Add call to _gst_main_context_iterate.
+	* libgst/interp-jit.inl: Add call to _gst_main_context_iterate.
+	* libgst/interp.c: Add events_queued and _gst_main_loop_dispatch.
+	Call _gst_init_main_loop.
+	* libgst/interp.h: Add _gst_main_loop_dispatch.
+	* libgst/prims.def: Rewrite VMpr_Processor_pause, add warning.
+	* libgst/sysdep/posix/events.c: Remove _gst_pause and _gst_wakeup.
+
+2010-04-17  Paolo Bonzini  <bonzini@gnu.org>
+
 	* libgst/interp.c: Add field to struct interp_jmp_buf, change less
 	used char fields to bitfields.
 	* libgst/interp-bc.inl: Add a second bool parameter to push_jmp_buf

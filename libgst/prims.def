@@ -2934,16 +2934,19 @@ primitive VMpr_Process_yield [succeed,check_interrupt]
 primitive VMpr_Processor_pause [succeed,check_interrupt]
 {
   OOP oop1;
-  OOP activeProcessOOP;
 
   _gst_primitives_executed++;
   oop1 = POP_OOP ();
   if (would_reschedule_process ())
     {
-      if (oop1 == _gst_true_oop)
-	_gst_pause ();
-      else
-	_gst_usleep (20000);
+      if (reentrancy_jmp_buf->in_c_call)
+        {
+          /* FIXME: Hmm... I would like to know why this is not triggered when
+             GTK+ brings up a dialog.  Left to investigate.  */
+          g_warning ("System idle while in a C call");
+          reentrancy_jmp_buf->in_c_call = false;
+        }
+      _gst_pause ((oop1 == _gst_true_oop) ? -1 : 20000);
     }
 
   active_process_yield ();

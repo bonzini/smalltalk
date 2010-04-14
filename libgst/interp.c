@@ -267,6 +267,9 @@ const char *_gst_abort_execution = NULL;
 /* Set to non-nil if a process must preempt the current one.  */
 static OOP switch_to_process;
 
+/* Set to true if there are pending glib events to service.  */
+static mst_Boolean events_queued;
+
 /* Set to true if it is time to switch process in a round-robin
    time-sharing fashion.  */
 static mst_Boolean time_to_preempt;
@@ -1797,6 +1800,13 @@ activate_process (OOP processOOP)
   return processOOP;
 }
 
+void
+_gst_main_loop_dispatch (void)
+{
+  events_queued = true;
+  SET_EXCEPT_FLAG (true);
+}
+
 #ifdef ENABLE_PREEMPTION
 RETSIGTYPE
 preempt_smalltalk_process (int sig)
@@ -2234,6 +2244,7 @@ _gst_init_interpreter (void)
 
   _gst_init_async_events ();
   _gst_init_process_system ();
+  _gst_init_main_loop ();
 }
 
 OOP
@@ -2801,6 +2812,7 @@ stop_execution (void)
     {
       _gst_abort_execution = "userInterrupt";
       SET_EXCEPT_FLAG (true);
+      _gst_wakeup ();
       if (get_active_process () != reentrancy_jmp_buf->processOOP)
 	resume_process (reentrancy_jmp_buf->processOOP, true);
     }
