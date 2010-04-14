@@ -1,18 +1,6 @@
-GMainContext extend [
-    iterate [
-        <category: 'C call-outs'>
-        <asyncCCall: 'gstGtkMainContextIterate' args: #(#self )>
-
-    ]
-]
-
-
 Gtk class extend [
 
     main: aSemaphore [
-	<category: 'C call-outs'>
-	<cCall: 'gstGtkMain' returning: #{GMainLoop} args: #(#smalltalk )>
-	
     ]
 
     gstGtkInit [

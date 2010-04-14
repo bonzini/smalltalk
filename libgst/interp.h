@@ -626,4 +626,8 @@ extern int _gst_set_var (enum gst_var_index index, int value)
 extern uint64_t _gst_get_milli_time (void)
   ATTRIBUTE_HIDDEN;
 
+/* Tell the VM that there are glib events ready to dispatch.  */
+extern void _gst_main_loop_dispatch (void)
+  ATTRIBUTE_HIDDEN;
+
 #endif /* GST_INTERP_H */

@@ -523,7 +523,17 @@ _gst_interpret (OOP processOOP)
 monitor_byte_codes:
   SET_EXCEPT_FLAG (false);
 
-  /* First, deal with any async signals.  */
+  /* First deal with the Glib event loop, as that can cause async signals.  
+     However, events are not served during callins, because that confuses
+     GTK+. :-(  */
+  if (events_queued && !reentrancy_jmp_buf->in_c_call)
+    {
+      events_queued = false;
+      __sync_synchronize ();
+      _gst_main_context_iterate ();
+    }
+
+  /* Then, deal with any async signals.  */
   if (async_queue_enabled)
     {
       g_static_mutex_lock (&async_queue_lock);

@@ -496,30 +496,27 @@ GtkTextBuffer extend [
 
 
 Gtk class extend [
-    | loop |
+    | stack mutex |
+
+    initialize [
+	<category: 'initialization'>
+        stack := OrderedCollection new.
+        mutex := Semaphore forMutualExclusion.
+    ]
 
     mainQuit [
-        loop quit
+	<category: 'event loop'>
+        (mutex critical: [
+            stack isEmpty ifTrue: [ObjectMemory quit].
+            stack removeLast ]) signal
     ]
 
     main [
-	"Main loop implementation.  Same as gtk_main, but it splits
-         g_main_context_run in two threads so that Smalltalk processes
-         run.  Like gtk_main, it is ended with Gtk>>#mainQuit."
-
 	<category: 'event loop'>
-	| sem newLoop context |
+        | sem |
 	sem := Semaphore new.
-	newLoop := GTK.Gtk main: sem.
-        newLoop isNil ifTrue: [ ^self ].
-        loop := newLoop.
-        context := loop getContext.
-
-	[
-            [sem wait.
-	    context iterate.
-            loop isRunning] whileTrue]
-                 ensure: [loop unref]
+	mutex critical: [stack addLast: sem].
+        sem wait
     ]
 
 ]
@@ -1070,10 +1067,11 @@ GTK.GtkToolButton class extend [
 ]
 
 
-"Finish initialization.  This will be done upon #returnFromSnapshot on
- subsequent image loads."
-
 Eval [
+    GTK.Gtk initialize.
+
+    "Finish initialization.  This will be done upon #returnFromSnapshot on
+     subsequent image loads."
     GLib registerAllTypes
 ]
 

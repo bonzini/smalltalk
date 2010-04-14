@@ -126,10 +126,19 @@ extern int _gst_async_file_polling (int fd,
 				    OOP semaphoreOOP) 
   ATTRIBUTE_HIDDEN;
 
-/* Pause until a signal is received.  */
-extern void _gst_pause (void);
+extern void _gst_main_context_iterate (void)
+  ATTRIBUTE_HIDDEN;
+
+/* Pause until an event is received or USEC milliseconds have passed.  */
+extern void _gst_pause (int usec)
+  ATTRIBUTE_HIDDEN;
 
 /* Wake up from a pause.  */
-extern void _gst_wakeup (void);
+extern void _gst_wakeup (void)
+  ATTRIBUTE_HIDDEN;
+
+/* Initialize the interface to the glib main loop.  */
+extern void _gst_init_main_loop (void)
+  ATTRIBUTE_HIDDEN;
 
 #endif /* GST_EVENTS_H */

@@ -350,34 +350,6 @@ file_polling_handler (int sig)
   _gst_wakeup ();
 }
 
-static pthread_t waiting_thread;
-
-void
-_gst_pause (void)
-{
-  waiting_thread = pthread_self ();
-  _gst_disable_interrupts (false);
-  if (!_gst_have_pending_async_calls ())
-    {
-      /* We use sigsuspend to atomically replace the mask.  pause does
-         not allow that.  */
-      sigset_t set;
-      sigemptyset (&set);
-      sigsuspend (&set);
-    }
-  waiting_thread = 0;
-  _gst_enable_interrupts (false);
-}
-
-void
-_gst_wakeup (void)
-{
-  __sync_synchronize ();
-  if (waiting_thread
-      && pthread_self () != waiting_thread)
-    pthread_kill (waiting_thread, SIGUSR2);
-}
-
 int
 _gst_async_file_polling (int fd,
 			 int cond,
