@@ -1,3 +1,12 @@
+2010-04-17  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/interp.c: Add field to struct interp_jmp_buf, change less
+	used char fields to bitfields.
+	* libgst/interp-bc.inl: Add a second bool parameter to push_jmp_buf
+	calls.
+	* libgst/interp-jit.inl: Likewise.
+	* libgst/prims.inl: Likewise.
+
 2010-04-14  Paolo Bonzini  <bonzini@gnu.org>
 
 	* lib-src/re.c: Use GRegex.
