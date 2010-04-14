@@ -279,7 +279,7 @@ _gst_save_to_file (const char *fileName)
       return (false);
     }
 
-  memzero (&header, sizeof (header));
+  memset (&header, 0, sizeof (header));
   myOOPTable = make_oop_table_to_be_saved (&header);
 
   buffer_write_init (imageFd, WRITE_BUFFER_SIZE);

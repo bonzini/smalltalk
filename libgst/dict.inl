@@ -714,7 +714,7 @@ instantiate_with (OOP class_oop,
   else
     {
       nil_fill (p_instance->data, instanceSpec >> ISP_NUMFIXEDFIELDS);
-      memzero (&p_instance->data[instanceSpec >> ISP_NUMFIXEDFIELDS],
+      memset (&p_instance->data[instanceSpec >> ISP_NUMFIXEDFIELDS], 0,
 	       indexedBytes);
     }
 
