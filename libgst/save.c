@@ -859,9 +859,11 @@ buffer_read_init (int imageFd, int numBytes)
 void
 buffer_read_free (int imageFd)
 {
+#ifndef WIN32
   if (buf_used_mmap)
-    _gst_osmem_free (buf, buf_size);
+    munmap (buf, buf_size);
   else
+#endif
     g_free (buf);
 }
 

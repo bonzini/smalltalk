@@ -1,5 +1,9 @@
 2010-04-13  Paolo Bonzini <bonzini@gnu.org>
 
+	* libgst/save.c: Pair mmap with munmap, not _gst_osmem_free.
+
+2010-04-13  Paolo Bonzini <bonzini@gnu.org>
+
 	* libgst/alloc.c: Remove x*alloc and xfree.
 	* libgst/alloc.h: Likewise. Use g_malloc and g_free for obstacks.
 	* libgst/byte.c: Use glib memory allocation functions.
