@@ -786,20 +786,26 @@ int
 poll_and_read (int fd, char *buf, int n)
 {
   int result;
+  int first = 1;
 
-  _gst_wait_for_input (fd);
-  if (_gst_sync_file_polling (fd, 0))
+  while (!_gst_sync_file_polling (fd, 0))
     {
-      do
-	{
-	  errno = 0;
-	  result = _gst_read (fd, buf, n);
-	}
-      while ((result == -1) && (errno == EINTR));
-      return result;
+      if (first)
+        {
+          _gst_async_file_polling (fd, 0, NULL);
+          first = 0;
+        }
+      _gst_pause (-1);
+      _gst_main_context_iterate ();
     }
-  else
-    return -1;
+
+  do
+    {
+      errno = 0;
+      result = _gst_read (fd, buf, n);
+    }
+  while ((result == -1) && (errno == EINTR));
+  return result;
 }
 
 void

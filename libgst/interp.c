@@ -2242,9 +2242,7 @@ _gst_init_interpreter (void)
   for (i = 0; i < MAX_LIFO_DEPTH; i++)
     lifo_contexts[i].flags = F_POOLED | F_CONTEXT;
 
-  _gst_init_async_events ();
   _gst_init_process_system ();
-  _gst_init_main_loop ();
 }
 
 OOP

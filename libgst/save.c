@@ -136,6 +136,12 @@ static off_t file_pos;
 static mst_Boolean buf_used_mmap;
 
 
+/* Ensures that exactly SIZE bytes of BUFFER are written into the
+   file descriptor, FD.  */
+static ssize_t full_write (int fd,
+			   PTR buffer,
+			   int size);
+
 /* This function establishes a buffer of size NUMBYTES for writes.  */
 static void buffer_write_init (int imageFd,
 			       int numBytes);
@@ -790,10 +796,33 @@ buffer_write_init (int imageFd, int numBytes)
   buf_pos = 0;
 }
 
+static ssize_t
+full_write (int fd,
+	    PTR buffer,
+       	    int size)
+{
+  char *buf = (char *) buffer;
+  ssize_t num = 0, sofar = 0;
+
+  for (; size; buf += num, size -= num, sofar += num)
+    {
+      do
+        {
+          num = write (fd, buffer, size);
+          if (errno == EFAULT)
+            abort ();
+        }
+      while ((num == -1) && (errno == EINTR));
+      if (num < 0)
+        return num;
+    }
+
+  return sofar;
+}
 void
 buffer_write_flush (int imageFd)
 {
-  _gst_full_write (imageFd, buf, buf_pos);
+  full_write (imageFd, buf, buf_pos);
   g_free (buf);
   buf_pos = 0;
 }
@@ -805,12 +834,12 @@ buffer_write (int imageFd,
 {
   if UNCOMMON (buf_pos + numBytes > buf_size)
     {
-      _gst_full_write (imageFd, buf, buf_pos);
+      full_write (imageFd, buf, buf_pos);
       buf_pos = 0;
     }
 
   if UNCOMMON (numBytes > buf_size)
-    _gst_full_write (imageFd, data, numBytes);
+    full_write (imageFd, data, numBytes);
   else
     {
       memcpy (buf + buf_pos, data, numBytes);

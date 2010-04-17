@@ -102,9 +102,7 @@ noinst_HEADERS = \
 	sysdep/posix/findexec.c sysdep/posix/mem.c sysdep/posix/signals.c \
 	sysdep/posix/time.c sysdep/posix/timer.c sysdep/win32/files.c \
 	sysdep/win32/findexec.c sysdep/win32/mem.c sysdep/win32/signals.c \
-	sysdep/win32/time.c sysdep/win32/timer.c sysdep/posix/events.c \
-	sysdep/win32/events.c sysdep/cygwin/events.c \
-	$(BUILT_SOURCES)
+	sysdep/win32/time.c sysdep/win32/timer.c $(BUILT_SOURCES)
 
 # rules for invoking genbc
 # Try to economize in the rebuilds, by avoiding unnecessary

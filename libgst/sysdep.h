@@ -190,11 +190,6 @@ extern void _gst_set_executable_path (const char *argv0)
 char *_gst_relocate_path (const char *path)
   ATTRIBUTE_HIDDEN;
 
-/* Answer true if the file descriptor FD is associated to a pipe
-   (it cannot be seeked through).  */
-extern mst_Boolean _gst_is_pipe (int fd)
-  ATTRIBUTE_HIDDEN;
-
 /* Similar to popen, but supports two-way pipes (achieved through
    tty's) and returns a file descriptor.  */
 extern int _gst_open_pipe (const char *command,
@@ -204,39 +199,6 @@ extern int _gst_open_pipe (const char *command,
 /* Similar to fopen, but returns a file descriptor.  */
 extern int _gst_open_file (const char *filename,
 			   const char *mode)
-  ATTRIBUTE_HIDDEN;
-
-/* Read SIZE bytes into BUFFER from the file descriptor, FD.  */
-extern int _gst_read (int fd,
-		      PTR buffer,
-		      int size)
-  ATTRIBUTE_HIDDEN;
-
-/* Ensures that exactly SIZE bytes of BUFFER are written into the
-   file descriptor, FD.  */
-extern int _gst_full_write (int fd,
-		            PTR buffer,
-		            int size)
-  ATTRIBUTE_HIDDEN;
-
-/* Write SIZE bytes of BUFFER into the file descriptor, FD.  */
-extern int _gst_write (int fd,
-		       PTR buffer,
-		       int size)
-  ATTRIBUTE_HIDDEN;
-
-/* Read SIZE bytes into BUFFER from the file descriptor, FD.  */
-extern int _gst_recv (int fd,
-		      PTR buffer,
-		      int size,
-		      int flags)
-  ATTRIBUTE_HIDDEN;
-
-/* Write SIZE bytes of BUFFER into the socket descriptor, FD.  */
-extern int _gst_send (int fd,
-		      PTR buffer,
-		      int size,
-		      int flags)
   ATTRIBUTE_HIDDEN;
 
 /* Writes a debug message with the given formatting.  */

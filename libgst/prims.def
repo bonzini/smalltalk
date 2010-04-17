@@ -5361,7 +5361,9 @@ primitive VMpr_Stream_fileInLine [succeed,fail]
 
 /* FileDescriptor>>#fileOp..., variadic */
 
-primitive VMpr_FileDescriptor_fileOp [succeed,fail]
+primitive VMpr_FileDescriptor_fileOp :
+     prim_id VMpr_FileDescriptor_fileOp [succeed,fail],
+     prim_id VMpr_FileDescriptor_socketOp [succeed,fail]
 {
   char *fileName, *fileName2;
   gst_file_stream fileStream;
@@ -5468,13 +5470,12 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
   switch (arg1)
     {
     case PRIM_CLOSE_FILE:	/* FileDescriptor close */
-      _gst_remove_fd_polling_handlers (fd);
-      resultOOP = FROM_INT (close (fd));
+      resultOOP = FROM_INT (_gst_close (fd));
       goto succeed;
 
     case PRIM_FSEEK_SET:		/* FileDescriptor position: position */
       if (IS_OFF_T (oopVec[1]) &&
-	  lseek (fd, TO_OFF_T (oopVec[1]), SEEK_SET) < 0)
+	  _gst_lseek (fd, TO_OFF_T (oopVec[1]), SEEK_SET) < 0)
 	{
 	  errno = 0;
 	  break;
@@ -5484,7 +5485,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
 
     case PRIM_FTELL:		/* FileDescriptor position */
       {
-	off_t off = lseek(fd, 0, SEEK_CUR);
+	off_t off = _gst_lseek(fd, 0, SEEK_CUR);
         if (off < 0)
 	  {
 	    errno = 0;
@@ -5498,14 +5499,14 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
     case PRIM_FEOF:
       {				/* FileDescriptor atEnd */
 	off_t oldPos;
-	oldPos = lseek (fd, 0, SEEK_CUR);
-	if (oldPos >= 0 && lseek (fd, 0, SEEK_END) == oldPos)
+	oldPos = _gst_lseek (fd, 0, SEEK_CUR);
+	if (oldPos >= 0 && _gst_lseek (fd, 0, SEEK_END) == oldPos)
 	  resultOOP = _gst_true_oop;
 	else
 	  {
 	    resultOOP = _gst_false_oop;
 	    if (oldPos >= 0)
-	      lseek (fd, oldPos, SEEK_SET);
+	      _gst_lseek (fd, oldPos, SEEK_SET);
 	  }
 	errno = 0;
 	goto succeed;
@@ -5588,21 +5589,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
 		 generate a SIGSEGV and for this reason we must
 		 touch them manually.  */
 	      _gst_grey_oop_range (data + from - 1, to - from + 1);
-#if HAVE_PREAD
-	      result = pread (fd, data + from - 1, to - from + 1, ofs);
-#else
-	      {
-		off_t save = lseek (fd, ofs, SEEK_SET);
-		if (save != -1)
-		  {
-		    result = _gst_read (fd, data + from - 1, to - from + 1);
-		    lseek (fd, save, SEEK_SET);
-		  }
-		else
-		  result = -1;
-	      }
-#endif
-
+	      result = _gst_pread (fd, data + from - 1, to - from + 1, ofs);
 	      if (result >= 0)
 		{
 		  resultOOP = FROM_INT (result);
@@ -5630,21 +5617,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
 		 generate a SIGSEGV and for this reason we must
 		 touch them manually.  */
 	      _gst_grey_oop_range (data + from - 1, to - from + 1);
-#if HAVE_PWRITE
-	      result = pwrite (fd, data + from - 1, to - from + 1, ofs);
-#else
-	      {
-		off_t save = lseek (fd, ofs, SEEK_SET);
-		if (save != -1)
-		  {
-		    result = _gst_write (fd, data + from - 1, to - from + 1);
-		    lseek (fd, save, SEEK_SET);
-		  }
-		else
-		  result = -1;
-	      }
-#endif
-
+	      result = _gst_pwrite (fd, data + from - 1, to - from + 1, ofs);
 	      if (result >= 0)
 		{
 		  resultOOP = FROM_INT (result);
@@ -5657,7 +5630,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
     case PRIM_FTRUNCATE:
       {
 	off_t pos;
-	pos = lseek (fd, 0, SEEK_CUR);
+	pos = _gst_lseek (fd, 0, SEEK_CUR);
 	if (pos < 0)
 	  break;
 
@@ -5667,7 +5640,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
 
     case PRIM_FSEEK_CUR:		/* FileDescriptor skip: */
       if (IS_OFF_T (oopVec[1]) &&
-	  lseek (fd, TO_OFF_T (oopVec[1]), SEEK_CUR) < 0)
+	  _gst_lseek (fd, TO_OFF_T (oopVec[1]), SEEK_CUR) < 0)
 	break;
       else
 	goto succeed;
@@ -5689,32 +5662,21 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
       {
 	int result;
 
-	result =
-	  _gst_async_file_polling (fd, TO_INT (oopVec[1]), oopVec[2]);
-	if (result >= 0)
-	  goto succeed;
+	result = _gst_sync_file_polling (fd, TO_INT (oopVec[1]));
+        if (result >= 0)
+          {
+	    if (result == 0)
+	      _gst_async_file_polling (fd, TO_INT (oopVec[1]), oopVec[2]);
+	    goto succeed;
+          }
       }
       break;
 
     case PRIM_IS_PIPE:
       {
-	off_t result;
-
-	result = lseek (fd, 0, SEEK_END);
-	if (result != -1)
-	  {
-	    lseek (fd, result, SEEK_SET);
-	    resultOOP = _gst_false_oop;
-	    goto succeed;
-	  }
-	else if (errno == ESPIPE || errno == EINVAL)
-	  {
-	    resultOOP = _gst_true_oop;
-	    errno = 0;
-	    goto succeed;
-	  }
-
-	goto fail;
+	int pipe = _gst_is_pipe (fd);
+	resultOOP = pipe ? _gst_true_oop : _gst_false_oop;
+	goto succeed;
       }
 
     case PRIM_SHUTDOWN_WRITE:
@@ -5723,7 +5685,7 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
       if (errno == ENOTSOCK && isatty (fd))
 	{
 	  char buf[1];
-	  write (fd, buf, 0);
+	  _gst_write (fd, buf, 0);
 	  errno = 0;
 	}
 #endif
@@ -5734,145 +5696,6 @@ primitive VMpr_FileDescriptor_fileOp [succeed,fail]
   if (errno)
     _gst_set_errno (errno);
 
-  PRIM_FAILED;
-
- succeed:
-  POP_N_OOPS (numArgs);
-  SET_STACKTOP (resultOOP);
-  PRIM_SUCCEEDED;
-}
-
-/* FileDescriptor>>#socketOp..., socket version, variadic */
-
-primitive VMpr_FileDescriptor_socketOp [succeed,fail]
-{
-  gst_file_stream fileStream;
-  int fd;
-  OOP oop1, resultOOP;
-  OOP *oopVec = alloca (numArgs * sizeof (OOP));
-  int i;
-  intptr_t arg1;
-
-  _gst_primitives_executed++;
-
-#ifdef HAVE_SOCKETS
-  for (i = numArgs; --i >= 0;)
-    oopVec[i] = POP_OOP ();
-
-  resultOOP = oop1 = STACKTOP ();
-  UNPOP (numArgs);
-  if (!IS_INT (oopVec[0]))
-    goto fail;
-
-  arg1 = TO_INT (oopVec[0]);
-  fileStream = (gst_file_stream) OOP_TO_OBJ (oop1);
-  if (IS_NIL (fileStream->fd))
-    goto fail;
-
-  fd = TO_INT (fileStream->fd);
-  switch (arg1)
-    {
-
-    case PRIM_CLOSE_FILE:	/* FileDescriptor close */
-      {
-	int result;
-        _gst_remove_fd_polling_handlers (fd);
-        result = close (fd);
-        resultOOP = FROM_INT (result);
-        goto succeed;
-      }
-
-    case PRIM_PUT_CHARS:
-      if ((OOP_INSTANCE_SPEC (oopVec[1]) & ISP_INDEXEDVARS) != GST_ISP_FIXED
-          && _gst_log2_sizes[OOP_INSTANCE_SPEC (oopVec[1]) & ISP_SHAPE] == 0)
-	{
-	  char *data = STRING_OOP_CHARS (oopVec[1]);
-	  intptr_t from = TO_INT (oopVec[2]);
-	  intptr_t to = TO_INT (oopVec[3]);
-	  int result;
-	  if (to >= from - 1
-	      && from > 0 && to <= NUM_INDEXABLE_FIELDS (oopVec[1]))
-	    {
-	      clear_socket_error ();
-	      result = _gst_send (fd, data + from - 1, to - from + 1, 0);
-	      if (is_socket_error (EFAULT))
-		abort ();
-	      if (result >= 0)
-		{
-		  resultOOP = FROM_INT (result);
-		  goto succeed;
-		}
-	    }
-	}
-      break;
-
-    case PRIM_GET_CHARS:		/* only works for strings */
-      if ((OOP_INSTANCE_SPEC (oopVec[1]) & ISP_INDEXEDVARS) != GST_ISP_FIXED
-          && _gst_log2_sizes[OOP_INSTANCE_SPEC (oopVec[1]) & ISP_SHAPE] == 0)
-	{
-	  char *data = STRING_OOP_CHARS (oopVec[1]);
-	  intptr_t from = TO_INT (oopVec[2]);
-	  intptr_t to = TO_INT (oopVec[3]);
-	  int result;
-	  if (to >= from - 1
-	      && from > 0 && to <= NUM_INDEXABLE_FIELDS (oopVec[1]))
-	    {
-	      /* Parameters to system calls are not guaranteed to
-		 generate a SIGSEGV and for this reason we must
-		 touch them manually.  */
-	      _gst_grey_oop_range (data + from - 1, to - from + 1);
-	      do
-		{
-	          clear_socket_error ();
-		  errno = 0;
-		  result = _gst_recv (fd, data + from - 1, to - from + 1, 0);
-	          if (is_socket_error (EFAULT))
-		    abort ();
-		} 
-	      while ((result == -1) && is_socket_error (EINTR));
-
-	      if (result >= 0)
-		{
-		  resultOOP = FROM_INT (result);
-		  goto succeed;
-		}
-	    }
-	}
-      break;
-
-    case PRIM_SYNC_POLL:
-      {
-	int result;
-
-	result = _gst_sync_file_polling (fd, TO_INT (oopVec[1]));
-	if (result >= 0)
-	  {
-	    resultOOP = FROM_INT (result);
-	    goto succeed;
-	  }
-      }
-      break;
-
-    case PRIM_ASYNC_POLL:
-      {
-	int result;
-
-	result =
-	  _gst_async_file_polling (fd, TO_INT (oopVec[1]), oopVec[2]);
-	if (result >= 0)
-	  goto succeed;
-      }
-      break;
-
-    case PRIM_IS_PIPE:
-      resultOOP =_gst_true_oop;
-      goto succeed;
-      break;
-    }
-
-#endif
-
- fail:
   PRIM_FAILED;
 
  succeed:

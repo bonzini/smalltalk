@@ -279,7 +279,7 @@ mySocket (int domain, int type, int protocol)
 
   fd = (fh == SOCKET_ERROR ? -1 : SOCKET_TO_FD (fh));
   if (fd != SOCKET_ERROR)
-    _gst_register_socket (fd, false);
+    _gst_register_socket (fd);
   return fd;
 }
 
@@ -360,7 +360,7 @@ myAccept (int fd, struct sockaddr *addr, socklen_t *addrlen)
 
   new_fd = (fh == SOCKET_ERROR ? -1 : SOCKET_TO_FD (fh));
   if (new_fd != SOCKET_ERROR)
-    _gst_register_socket (new_fd, false);
+    _gst_register_socket (new_fd);
   return new_fd;
 }
 
@@ -394,7 +394,7 @@ myListen (int fd, int backlog)
 {
   int r = listen (FD_TO_SOCKET (fd), backlog);
   if (r != SOCKET_ERROR)
-    _gst_register_socket (fd, true);
+    _gst_register_socket (fd);
   return r;
 }
 
@@ -432,10 +432,7 @@ getSoError (int fd)
 {
   int error;
   socklen_t size = sizeof (error);
-  if ((error = _gst_get_fd_error (fd)) != 0)
-    ;
-
-  else if (myGetsockopt (fd, SOL_SOCKET, SO_ERROR, (char *)&error, &size) == -1)
+  if (myGetsockopt (fd, SOL_SOCKET, SO_ERROR, (char *)&error, &size) == -1)
     {
 #if defined _WIN32 && !defined __CYGWIN__
       error = WSAGetLastError ();

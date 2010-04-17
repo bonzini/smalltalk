@@ -125,6 +125,8 @@ static GCond *cond;
 static GCond *cond_dispatch;
 static volatile gboolean queued, idle;
 
+static GIOChannel **channel_map;
+
 #ifdef G_WIN32_MSG_HANDLE
 static HANDLE hWakeUpEvent;
 
@@ -379,8 +381,10 @@ _gst_wakeup (void)
 
 
 void
-_gst_init_main_loop ()
+_gst_init_async_events ()
 {
+  int maxfd;
+
   /* One-time initialization.  */
   mutex = g_mutex_new ();
   cond = g_cond_new ();
@@ -396,4 +400,380 @@ _gst_init_main_loop ()
 #if G_WIN32_MSG_HANDLE
   hWakeUpEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
 #endif
+
+#if defined _SC_OPEN_MAX
+  maxfd = sysconf (_SC_OPEN_MAX);
+#elif defined OPEN_MAX
+  maxfd = OPEN_MAX;
+#else
+  maxfd = 4096;
+#endif
+
+  channel_map = g_new (GIOChannel *, maxfd);
+}
+
+
+static GSource *timeout_source;
+
+static void
+g_destroy_notify_unregister (gpointer data)
+{
+  OOP semaphoreOOP = (OOP) data;
+  _gst_unregister_oop (semaphoreOOP);
+}
+
+static gboolean
+g_timeout_func_signal (gpointer data)
+{
+  OOP semaphoreOOP = (OOP) data;
+  _gst_sync_signal (semaphoreOOP, true);
+  g_source_unref (timeout_source);
+  timeout_source = NULL;
+  return FALSE;
+}
+
+void
+_gst_async_timed_wait (OOP semaphoreOOP,
+		       int interval)
+{
+  GMainContext *context = g_main_loop_get_context (loop);
+  GSource *source;
+
+  if (timeout_source)
+    {
+      g_source_destroy (timeout_source);
+      g_source_unref (timeout_source);
+      timeout_source = NULL;
+    }
+
+  _gst_register_oop (semaphoreOOP);
+  source = g_timeout_source_new (interval);
+  g_source_set_callback (source, g_timeout_func_signal, semaphoreOOP,
+                         g_destroy_notify_unregister);
+  g_source_attach (source, context);
+  timeout_source = source;
+}
+
+mst_Boolean
+_gst_is_timeout_programmed (void)
+{
+  return !!timeout_source;
+}
+
+
+static GIOChannel *
+map_io_channel (int fd,
+                GIOChannel *channel)
+{
+  if (!channel_map[fd])
+    return channel_map[fd] = channel;
+  else
+    return channel_map[fd];
+}
+
+static void
+unmap_io_channel (int fd)
+{
+  GIOChannel *io_channel;
+  io_channel = channel_map[fd];
+  channel_map[fd] = NULL;
+  g_io_channel_unref (io_channel);
+}
+
+GIOChannel *
+get_io_channel (int fd)
+{
+  GIOChannel *io_channel = map_io_channel (fd, NULL);
+  if (!io_channel)
+    {
+#ifdef G_WIN32_MSG_HANDLE
+      io_channel = g_io_channel_win32_new_fd (fd);
+#else
+      io_channel = g_io_channel_unix_new (fd);
+#endif
+      map_io_channel (fd, io_channel);
+
+      /* Pass through.  */
+      g_io_channel_set_encoding (io_channel, NULL, NULL);
+      g_io_channel_set_buffered (io_channel, false);
+    }
+
+  return io_channel;
+}
+
+void
+_gst_register_socket (int fd)
+{
+  GIOChannel *io_channel = map_io_channel (fd, NULL);
+  if (!io_channel)
+    {
+#ifdef G_WIN32_MSG_HANDLE
+      io_channel = g_io_channel_win32_new_socket (_get_osfhandle (fd));
+#else
+      io_channel = g_io_channel_unix_new (fd);
+#endif
+      map_io_channel (fd, io_channel);
+
+      /* Pass through.  */
+      g_io_channel_set_encoding (io_channel, NULL, NULL);
+      g_io_channel_set_buffered (io_channel, false);
+    }
+}
+
+static gboolean
+g_io_func_dummy (GIOChannel *source,
+                  GIOCondition condition,
+                  gpointer data)
+{
+  return FALSE;
+}
+
+static gboolean
+g_io_func_signal (GIOChannel *source,
+                  GIOCondition condition,
+                  gpointer data)
+{
+  OOP semaphoreOOP = (OOP) data;
+  _gst_sync_signal (semaphoreOOP, true);
+  return FALSE;
+}
+
+gint
+_gst_sync_file_polling (int fd,
+                        int io_cond)
+{
+#ifdef G_WIN32_MSG_HANDLE
+  GIOChannel *channel = get_io_channel (fd);
+#endif
+  GPollFD pfd;
+  GIOCondition condition;
+  int result;
+  switch (io_cond)
+    {
+    case 0:
+      condition = G_IO_IN;
+      break;
+    case 1:
+      condition = G_IO_OUT;
+      break;
+    case 2:
+      condition = G_IO_PRI;
+      break;
+    default:
+      return -1;
+    }
+#ifdef G_WIN32_MSG_HANDLE
+  g_io_channel_win32_make_pollfd (channel, condition, &pfd);
+  result = g_io_channel_win32_poll (&pfd, 1, 0);
+#else
+  pfd.fd = fd;
+  pfd.events = condition;
+  pfd.revents = 0;
+  do
+    {
+      errno = 0;
+      pfd.revents = 0;
+      result = g_poll (&pfd, 1, 0);
+    }
+  while ((result == -1) && (errno == EINTR));
+#endif
+  if (result == -1)
+    return -1;
+  if (pfd.revents & pfd.events)
+    return 1;
+  if (pfd.revents & (G_IO_ERR | G_IO_HUP | G_IO_NVAL))
+    {
+      errno = 0;
+      return -1;
+    }
+
+  return 0;
+}
+
+void
+_gst_async_file_polling (int fd,
+                         int io_cond,
+                         OOP semaphoreOOP)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  GMainContext *context = g_main_loop_get_context (loop);
+  GIOCondition condition;
+  GSource *source;
+
+  switch (io_cond)
+    {
+    case 0:
+      condition = G_IO_IN;
+      break;
+    case 1:
+      condition = G_IO_OUT;
+      break;
+    case 2:
+      condition = G_IO_PRI;
+      break;
+    default:
+      return;
+    }
+
+  source = g_io_create_watch (channel, condition);
+  if (semaphoreOOP)
+    {
+      _gst_register_oop (semaphoreOOP);
+      g_source_set_callback (source, (GSourceFunc) g_io_func_signal,
+                             semaphoreOOP, g_destroy_notify_unregister);
+      _gst_sync_wait (semaphoreOOP);
+    }
+  else
+    g_source_set_callback (source, (GSourceFunc) g_io_func_dummy, NULL, NULL);
+  g_source_attach (source, context);
+  g_source_unref (source);
+}
+
+ssize_t
+_gst_read (int fd,
+           gchar *buf,
+           gsize count)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  GIOStatus status;
+  gsize bytes_read;
+  GError *error = NULL;
+  
+  status = g_io_channel_read_chars (channel, buf, count, &bytes_read, &error);
+  switch (status)
+    {
+    case G_IO_STATUS_AGAIN:
+      errno = EAGAIN;
+      return -1;
+      break;
+    case G_IO_STATUS_ERROR:
+      return -1;
+    default:
+      return bytes_read;
+    }
+}
+
+gint
+_gst_close (int fd)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  g_io_channel_close (channel);
+  unmap_io_channel (fd);
+  return 0;
+}
+
+ssize_t
+_gst_pwrite (int fd,
+            gchar *buf,
+            gsize count,
+            off_t offset)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  ssize_t result;
+  
+  if (!channel->is_seekable)
+    {
+      errno = ESPIPE;
+      return -1;
+    }
+#if HAVE_PREAD
+  result = pwrite (fd, buf, count, offset);
+#else
+    {
+      off_t save = lseek (fd, offset, SEEK_SET);
+      int save_errno;
+      if (save != -1)
+        {
+          result = _gst_write (fd, buf, count);
+          save_errno = errno;
+          lseek (fd, save, SEEK_SET);
+          errno = save_errno;
+        }
+      else
+        result = -1;
+    }
+#endif
+
+  return result;
+}
+
+ssize_t
+_gst_pread (int fd,
+            gchar *buf,
+            gsize count,
+            off_t offset)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  ssize_t result;
+  
+  if (!channel->is_seekable)
+    {
+      errno = ESPIPE;
+      return -1;
+    }
+#if HAVE_PREAD
+  result = pread (fd, buf, count, offset);
+#else
+    {
+      off_t save = lseek (fd, offset, SEEK_SET);
+      int save_errno;
+      if (save != -1)
+        {
+          result = _gst_read (fd, buf, count);
+          save_errno = errno;
+          lseek (fd, save, SEEK_SET);
+          errno = save_errno;
+        }
+      else
+        result = -1;
+    }
+#endif
+
+  return result;
+}
+
+mst_Boolean
+_gst_is_pipe (int fd)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  return !channel->is_seekable;
+}
+
+off_t
+_gst_lseek (int fd,
+            off_t offset,
+            GSeekType type)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  if (!channel->is_seekable)
+    {
+      errno = ESPIPE;
+      return -1;
+    }
+
+  return lseek (fd, offset, type);
+}
+
+ssize_t
+_gst_write (int fd,
+            gchar *buf,
+            gsize count)
+{
+  GIOChannel *channel = get_io_channel (fd);
+  GIOStatus status;
+  gsize bytes_write;
+  GError *error = NULL;
+  
+  status = g_io_channel_write_chars (channel, buf, count, &bytes_write, &error);
+  switch (status)
+    {
+    case G_IO_STATUS_AGAIN:
+      errno = EAGAIN;
+      return -1;
+      break;
+    case G_IO_STATUS_ERROR:
+      return -1;
+    default:
+      return bytes_write;
+    }
 }

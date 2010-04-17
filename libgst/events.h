@@ -57,8 +57,7 @@
 extern volatile OOP _gst_sem_int_vec[NSIG]
   ATTRIBUTE_HIDDEN;
 
-/* Initialize the data structures used to hold information about
-   asynchronous events requested by Smalltalk programs.  */
+/* Initialize the interface to the glib main loop.  */
 extern void _gst_init_async_events (void) 
   ATTRIBUTE_HIDDEN;
 
@@ -69,8 +68,6 @@ extern void _gst_async_interrupt_wait (OOP semaphoreOOP,
 				       int sig) 
   ATTRIBUTE_HIDDEN;
 
-
-/* These are defined in sysdep/.../events.c.  */
 
 /* Arrange so that after DELAY milliseconds SEMAPHOREOOP is signaled
    by the virtual machine. Previous waits are discarded.  */
@@ -85,19 +82,9 @@ extern mst_Boolean _gst_is_timeout_programmed (void)
   ATTRIBUTE_PURE 
   ATTRIBUTE_HIDDEN;
 
-/* Check for asynchronously reported error conditions related to file
-   descriptor FD.  */
-extern int _gst_get_fd_error (int fd)
-  ATTRIBUTE_HIDDEN;
-
-/* Fire and remove all I/O handlers for file descriptor FD.  */
-extern void _gst_remove_fd_polling_handlers (int fd)
-  ATTRIBUTE_HIDDEN;
-
 /* Initialize the socket for asynchronous event notifications for the
-   kind of socket given by PASSIVE and on the file descriptor FD.  */
-extern void _gst_register_socket (int fd,
-				  mst_Boolean passive)
+   kind of socket given by PASSIVE.  */
+extern void _gst_register_socket (int fd)
   ATTRIBUTE_HIDDEN;
 
 /* Check whether I/O is possible on the FD file descriptor; COND is 0
@@ -121,9 +108,9 @@ extern int _gst_sync_file_polling (int fd,
    Note: due to lack of support from many kernels, waiting for a
    semaphore to be signaled when *output* is possible is risky and
    known to works for sockets only.  */
-extern int _gst_async_file_polling (int fd,
-				    int cond,
-				    OOP semaphoreOOP) 
+extern void _gst_async_file_polling (int fd,
+				     int cond,
+				     OOP semaphoreOOP) 
   ATTRIBUTE_HIDDEN;
 
 extern void _gst_main_context_iterate (void)
@@ -137,8 +124,38 @@ extern void _gst_pause (int usec)
 extern void _gst_wakeup (void)
   ATTRIBUTE_HIDDEN;
 
-/* Initialize the interface to the glib main loop.  */
-extern void _gst_init_main_loop (void)
+/* System call wrappers that talk to GIOChannels.  */
+extern mst_Boolean _gst_is_pipe (int fd)
+  ATTRIBUTE_HIDDEN;
+
+extern ssize_t _gst_read (int fd,
+			gchar *buf,
+			gsize count)
+  ATTRIBUTE_HIDDEN;
+
+extern gint _gst_close (int fd)
+  ATTRIBUTE_HIDDEN;
+
+extern ssize_t _gst_pwrite (int fd,
+			   gchar *buf,
+			   gsize count,
+			   off_t offset)
+  ATTRIBUTE_HIDDEN;
+
+extern ssize_t _gst_pread (int fd,
+			  gchar *buf,
+			  gsize count,
+			  off_t offset)
+  ATTRIBUTE_HIDDEN;
+
+extern off_t _gst_lseek (int fd,
+       			 off_t offset,
+			 GSeekType type)
+  ATTRIBUTE_HIDDEN;
+
+extern ssize_t _gst_write (int fd,
+			 gchar *buf,
+			 gsize count)
   ATTRIBUTE_HIDDEN;
 
 #endif /* GST_EVENTS_H */

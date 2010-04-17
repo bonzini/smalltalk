@@ -297,10 +297,10 @@ AC_DEFINE_UNQUOTED([STDLIB_NSIG], [$ac_cv_lib_NSIG],
 		   [The value given by libc to NSIG])
 
 AC_HEADER_ASSERT
-AC_CHECK_HEADERS_ONCE(stdint.h inttypes.h unistd.h poll.h sys/ioctl.h \
-	sys/resource.h sys/utsname.h stropts.h sys/param.h stddef.h limits.h \
-	sys/timeb.h termios.h sys/mman.h sys/file.h execinfo.h \
-	sys/select.h sys/wait.h fcntl.h, [], [], [AC_INCLUDES_DEFAULT])
+AC_CHECK_HEADERS_ONCE(stdint.h inttypes.h unistd.h sys/ioctl.h \
+	sys/resource.h sys/utsname.h sys/param.h stddef.h limits.h \
+	sys/mman.h sys/file.h execinfo.h sys/select.h sys/wait.h,
+        [], [], [AC_INCLUDES_DEFAULT])
 
 AC_CHECK_MEMBERS([struct stat.st_mtim.tv_nsec, struct stat.st_mtimensec,
 		  struct stat.st_mtimespec.tv_nsec])
