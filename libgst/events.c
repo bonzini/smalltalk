@@ -563,7 +563,7 @@ _gst_sync_file_polling (int fd,
       return -1;
     }
 #ifdef G_WIN32_MSG_HANDLE
-  g_io_channel_win32_make_pollfd (channel, condition, &pfd);
+  g_io_channel_win32_make_pollfd (channel, condition | G_IO_HUP, &pfd);
   result = g_io_channel_win32_poll (&pfd, 1, 0);
 #else
   pfd.fd = fd;
@@ -615,7 +615,7 @@ _gst_async_file_polling (int fd,
       return;
     }
 
-  source = g_io_create_watch (channel, condition);
+  source = g_io_create_watch (channel, condition | G_IO_HUP);
   if (semaphoreOOP)
     {
       _gst_register_oop (semaphoreOOP);
