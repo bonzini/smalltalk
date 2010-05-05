@@ -2753,8 +2753,6 @@ TestCase subclass: URIResolutionTest [
 	<category: 'testing'>
 	| resource request response |
 	resource := SwazooSite new 
-		    host: 'foo.com'
-		    ip: '1.2.3.4'
 		    port: 80.
 	resource addResource: (HelloWorldResource uriPattern: '/').
 	request := HTTPGet 
