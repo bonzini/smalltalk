@@ -402,9 +402,9 @@ CompositeResource subclass: SwazooSite [
 	^serving notNil and: [serving]
     ]
 
-    match: aSiteIdentifier [
+    match: aRequest [
 	<category: 'private'>
-	self uriPattern detect: [:each | each match: aSiteIdentifier]
+	self uriPattern detect: [:each | each requestMatch: aRequest]
 	    ifNone: [^false].
 	^true
     ]

@@ -1617,6 +1617,36 @@ TestCase subclass: SiteTest [
 	aSite currentUrl = 'http://swazoo.org'.
 	aSite currentUrl = 'http://swazoo.org'
     ]
+
+    testRequestMatch [
+	<category: 'testing'>
+	| request site visitor |
+	request := HTTPGet 
+		    request: 'foo'
+		    from: 'myhosthost:1234'
+		    at: '1.2.3.4'.
+	visitor := URIResolution new initializeRequest: request.
+	site := SwazooSite new 
+		    host: 'myhosthost'
+		    ip: '1.2.3.4'
+		    port: 1234.
+	self assert: (site match: request)
+    ]
+
+    testRequestMismatch [
+	<category: 'testing'>
+	| request site |
+	request := HTTPGet 
+		    request: 'foo'
+		    from: 'localhost:1234'
+		    at: '1.2.3.4'.
+	site := SwazooSite new 
+		    host: 'remotehost'
+		    ip: '1.2.3.4'
+		    port: 1234.
+	self deny: (site match: request)
+    ]
+
 ]
 
 
@@ -2739,32 +2769,34 @@ TestCase subclass: URIResolutionTest [
 
     testSiteMatch [
 	<category: 'testing'>
-	| request site visitor |
+	| request site response |
 	request := HTTPGet 
-		    request: 'foo'
+		    request: '/'
 		    from: 'myhosthost:1234'
 		    at: '1.2.3.4'.
-	visitor := URIResolution new initializeRequest: request.
 	site := SwazooSite new 
 		    host: 'myhosthost'
 		    ip: '1.2.3.4'
 		    port: 1234.
-	self assert: (visitor siteMatch: site)
+	site addResource: (HelloWorldResource uriPattern: '/').
+	response := URIResolution resolveRequest: request startingAt: site.
+	self assert: response code = 200.
     ]
 
     testSiteMismatch [
 	<category: 'testing'>
-	| request site visitor |
+	| request site response |
 	request := HTTPGet 
-		    request: 'foo'
+		    request: '/'
 		    from: 'localhost:1234'
 		    at: '1.2.3.4'.
-	visitor := URIResolution new initializeRequest: request.
 	site := SwazooSite new 
 		    host: 'remotehost'
 		    ip: '1.2.3.4'
 		    port: 1234.
-	self deny: (visitor siteMatch: site)
+	site addResource: (HelloWorldResource uriPattern: '/').
+	response := URIResolution resolveRequest: request startingAt: site.
+	self assert: response isNil.
     ]
 
     testStringMatch [
