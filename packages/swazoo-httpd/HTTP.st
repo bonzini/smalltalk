@@ -1686,6 +1686,11 @@ URIIdentifier subclass: SiteIdentifier [
     <category: 'Swazoo-HTTP'>
     <comment: nil>
 
+    SiteIdentifier class >> defaultPort [
+	<category: 'accessing'>
+	^80
+    ]
+
     SiteIdentifier class >> host: hostName ip: anIP port: aPort [
 	<category: 'instance creation'>
 	^self new 
@@ -1712,6 +1717,7 @@ URIIdentifier subclass: SiteIdentifier [
 
     host [
 	<category: 'accessing'>
+	host isNil ifTrue: [host := '*'].
 	^host
     ]
 
@@ -1729,6 +1735,7 @@ URIIdentifier subclass: SiteIdentifier [
 
     ip [
 	<category: 'accessing'>
+	ip isNil ifTrue: [ip := '*'].
 	^ip
     ]
 
@@ -1772,6 +1779,7 @@ URIIdentifier subclass: SiteIdentifier [
 
     port [
 	<category: 'accessing'>
+	port isNil ifTrue: [port := self class defaultPort].
 	^port
     ]
 
