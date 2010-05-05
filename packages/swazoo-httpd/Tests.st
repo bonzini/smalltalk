@@ -1494,6 +1494,19 @@ TestCase subclass: ResourceTest [
 	<category: 'testing'>
 	self assert: resource isValidlyConfigured
     ]
+
+    testLeafMatch [
+	<category: 'testing'>
+	resource uriPattern: 'foo'.
+	self assert: (resource match: 'foo')
+    ]
+
+    testLeafMismatch [
+	<category: 'testing'>
+	resource uriPattern: 'foo'.
+	self deny: (resource match: 'Foo')
+    ]
+
 ]
 
 
@@ -2799,20 +2812,20 @@ TestCase subclass: URIResolutionTest [
 
     testStringMatch [
 	<category: 'testing'>
-	| request visitor resource |
+	| request response resource |
 	request := HTTPGet request: 'foo'.
-	visitor := URIResolution new initializeRequest: request.
 	resource := HelloWorldResource uriPattern: 'foo'.
-	self assert: (visitor stringMatch: resource)
+	response := URIResolution resolveRequest: request startingAt: resource.
+	self assert: response code = 200.
     ]
 
     testStringMismatch [
 	<category: 'testing'>
-	| request visitor resource |
+	| request response resource |
 	request := HTTPGet request: 'foo'.
-	visitor := URIResolution new initializeRequest: request.
 	resource := HelloWorldResource uriPattern: 'Foo'.
-	self deny: (visitor stringMatch: resource)
+	response := URIResolution resolveRequest: request startingAt: resource.
+	self assert: response isNil.
     ]
 
     testTailPath [

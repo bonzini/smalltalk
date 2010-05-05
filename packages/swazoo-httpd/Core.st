@@ -122,7 +122,7 @@ Object subclass: SwazooResource [
 
     match: anIdentifier [
 	<category: 'private'>
-	^self uriPattern match: anIdentifier
+	^self uriPattern = anIdentifier
     ]
 
     onResourceCreated [
@@ -263,6 +263,11 @@ SwazooResource subclass: CompositeResource [
     isRootPath [
 	<category: 'testing'>
 	^self uriPattern = '/'
+    ]
+
+    match: anIdentifier [
+	<category: 'private'>
+	^self uriPattern match: anIdentifier
     ]
 
     printUrlOn: aWriteStream [

@@ -1923,7 +1923,8 @@ Object subclass: URIResolution [
 
     resolveLeafResource: aResource [
 	<category: 'resolving'>
-	(aResource canAnswer and: [self stringMatch: aResource]) ifFalse: [^nil].
+	(aResource canAnswer and: [aResource match: self currentIdentifier])
+	    ifFalse: [^nil].
 	^self getAnswerFrom: aResource
     ]
 
@@ -1952,11 +1953,6 @@ Object subclass: URIResolution [
 	<category: 'private'>
 	self position: self position - 1.
 	^nil
-    ]
-
-    stringMatch: aResource [
-	<category: 'private'>
-	^aResource uriPattern = self currentIdentifier
     ]
 
     tailPath [
