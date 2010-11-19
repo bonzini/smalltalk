@@ -590,16 +590,48 @@ char_new (int codePoint)
 {
   gst_char charObject;
   OOP charOOP;
+  int index;
+  OOP arrayOOP, oop;
 
   assert (codePoint >= 0 && codePoint <= 0x10FFFF);
   if (codePoint <= 127)
     return CHAR_OOP_AT (codePoint);
 
-  charObject = (gst_char) new_instance (_gst_unicode_character_class, &charOOP);
+  index = codePoint >> 16;
+  if (index == 0)
+    arrayOOP = _gst_unicodechar_fixedtable_oop;
+  else
+    {
+    if (IS_NIL (ARRAY_AT (_gst_unicodechar_table_oop, index)))
+      {
+        instantiate_with (_gst_array_class, 256, &oop);
+        _gst_make_oop_weak (oop);
+        ARRAY_AT_PUT (_gst_unicodechar_table_oop, index, oop);
+      }
 
-  charObject->codePoint = FROM_INT (codePoint);
-  MAKE_OOP_READONLY (charOOP, true);
-  return (charOOP);
+      arrayOOP = ARRAY_AT (_gst_unicodechar_table_oop, index);
+    }
+
+  index = ((codePoint & 65535) >> 8) + 1;
+  if (IS_NIL (ARRAY_AT (arrayOOP, index)))
+    { 
+      instantiate_with (_gst_array_class, 256, &oop);
+      _gst_make_oop_weak (oop);
+      ARRAY_AT_PUT (arrayOOP, index, oop);
+    }
+
+  arrayOOP = ARRAY_AT (arrayOOP, index);
+
+  index = (codePoint & 255) + 1;
+  if (IS_NIL (charOOP = ARRAY_AT (arrayOOP, index)))
+    {
+      charObject = (gst_char) new_instance (_gst_unicode_character_class, &charOOP);
+      charObject->codePoint = FROM_INT (codePoint);
+      MAKE_OOP_READONLY (charOOP, true);
+      ARRAY_AT_PUT(arrayOOP, index, charOOP);
+    }
+ 
+  return charOOP;
 }
 
 uintptr_t

@@ -176,6 +176,8 @@ OOP _gst_weak_key_identity_dictionary_class = NULL;
 OOP _gst_weak_value_identity_dictionary_class = NULL;
 OOP _gst_write_stream_class = NULL;
 OOP _gst_processor_oop = NULL;
+OOP _gst_unicodechar_table_oop = NULL;
+OOP _gst_unicodechar_fixedtable_oop = NULL;
 
 /* Answer the number of slots that are in a dictionary of
    OLDNUMFIELDS items after growing it.  */
@@ -1020,6 +1022,9 @@ init_smalltalk_dictionary (void)
   sprintf (fullVersionString, "GNU Smalltalk version %s",
 	   VERSION PACKAGE_GIT_REVISION);
 
+  instantiate_with (_gst_array_class, 16, &_gst_unicodechar_table_oop);
+  instantiate_with (_gst_array_class, 256, &_gst_unicodechar_fixedtable_oop);
+
   add_smalltalk ("Smalltalk", _gst_smalltalk_dictionary);
   add_smalltalk ("Version", _gst_string_new (fullVersionString));
   add_smalltalk ("KernelFilePath", _gst_string_new (_gst_kernel_file_path));
@@ -1027,6 +1032,8 @@ init_smalltalk_dictionary (void)
   add_smalltalk ("SymbolTable", _gst_symbol_table);
   add_smalltalk ("Processor", _gst_processor_oop);
   add_smalltalk ("Features", featuresArrayOOP);
+  add_smalltalk ("UnicodeCharTable", _gst_unicodechar_table_oop);
+  add_smalltalk ("UnicodeCharFixedTable", _gst_unicodechar_fixedtable_oop);
 
   /* Add subspaces */
   add_smalltalk ("CSymbols",
@@ -1319,6 +1326,10 @@ _gst_init_dictionary_on_image_load (mst_Boolean prim_table_matches)
     prepare_primitive_numbers_table ();
 
   init_runtime_objects ();
+
+  _gst_unicodechar_table_oop = dictionary_at (_gst_smalltalk_dictionary, _gst_intern_string ("UnicodeCharTable"));
+  _gst_unicodechar_fixedtable_oop = dictionary_at (_gst_smalltalk_dictionary, _gst_intern_string ("UnicodeCharFixedTable"));
+
   return (true);
 }
 

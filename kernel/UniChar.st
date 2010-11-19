@@ -41,25 +41,75 @@ character objects.
 UnicodeCharacter objects are created when accessing UnicodeStrings,
 or with Character class>>#codePoint:.'>
 
-    UnicodeCharacter class >> value: anInteger [
-	"Returns the character object, possibly a Character, corresponding
-	 to anInteger.  Error if anInteger is not an integer, or not in
-	 0..16r10FFFF.
-	 
-	 This is only a primitive for speed.  UnicodeCharacter's #value:
-	 method is equivalent to #codePoint: (which is the same for
-	 Character and UnicodeCharacter)."
+    UnicodeCharacter class >> primitiveValue: anInteger [
+        "Returns the character object, possibly a Character, corresponding
+         to anInteger.  Error if anInteger is not an integer, or not in
+         0..16r10FFFF.
+         
+         This is only a primitive for speed.  UnicodeCharacter's #value:
+         method is equivalent to #codePoint: (which is the same for
+         Character and UnicodeCharacter)."
 
+        <category: 'built ins'>
+        <primitive: VMpr_UnicodeCharacter_create>
+        anInteger isInteger
+            ifFalse:
+                [ SystemExceptions.WrongClass signalOn: anInteger mustBe: SmallInteger ]
+            ifTrue:
+                [ SystemExceptions.ArgumentOutOfRange
+                    signalOn: anInteger
+                    mustBeBetween: 0
+                    and: 1114111 ]
+    ]
+
+    UnicodeCharacter class >> charLookup: aWeakArray at: anInteger value: anUnicodeInteger [
+	<category: 'character-lookup'>
+
+	^ (aWeakArray at: anInteger + 1) ifNil: [ aWeakArray at: anInteger + 1 put: (self primitiveValue: anUnicodeInteger) ]
+    ]
+
+    UnicodeCharacter class >> lookup: aWeakArray at: anInteger value: anUnicodeInteger [
+	<category: 'character-lookup'>
+
+        | index |
+        index := (anInteger bitShift: -8) + 1.
+	^ self 
+		charLookup: ((aWeakArray at: index) ifNil: [ aWeakArray at: index put: (WeakArray new: 256) ])
+		at: (anInteger bitAnd: 255)
+		value: anUnicodeInteger
+    ]
+
+    UnicodeCharacter class >> lookup: anInteger [
+	<category: 'character-lookup'>
+
+	| index |
+	index := (anInteger bitShift: -16) + 1.
+	^ self 
+		lookup: (index = 1 
+			    ifTrue: [ FixedTable ]
+			    ifFalse: [ (Table at: index) ifNil: [ Table at: index put: (WeakArray new: 256) ] ]) 
+		at: (anInteger bitAnd: 65535)
+		value: anInteger
+    ]
+
+    UnicodeCharacter class >> inlinedLookup: anInteger [
+        <category: 'character-lookup'>
+
+        | index array |
+        index := (anInteger bitShift: -16) + 1.
+	array := index = 1
+                            ifTrue: [ FixedTable ]
+                            ifFalse: [ (Table at: index) ifNil: [ Table at: index put: (WeakArray new: 256) ] ].
+	index := ((anInteger bitAnd: 65535) bitShift: -8) + 1.
+	array := (array at: index) ifNil: [ array at: index put: (WeakArray new: 256) ].
+	index := (anInteger bitAnd: 255) + 1.
+	^ (array at: index) ifNil: [ array at: index put: (self primitiveValue: anInteger) ]
+    ]
+
+    UnicodeCharacter class >> value: anInteger [
 	<category: 'built ins'>
-	<primitive: VMpr_UnicodeCharacter_create>
-	anInteger isInteger 
-	    ifFalse: 
-		[SystemExceptions.WrongClass signalOn: anInteger mustBe: SmallInteger]
-	    ifTrue: 
-		[SystemExceptions.ArgumentOutOfRange 
-		    signalOn: anInteger
-		    mustBeBetween: 0
-		    and: 1114111]
+
+	^ self primitiveValue: anInteger
     ]
 
     * aNumber [
