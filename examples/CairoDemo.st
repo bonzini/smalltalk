@@ -295,7 +295,6 @@ SDL.SdlEventHandler subclass: CairoDemo [
 ]
 
 Eval [
-    s := Semaphore new.
-    [CairoDemo new run. s signal] fork.
-    s wait
+    CairoDemo new run.
+    Processor activeProcess suspend
 ]

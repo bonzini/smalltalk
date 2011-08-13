@@ -214,25 +214,17 @@ gst_SDL_Init (Uint32 flags)
   atexit (gst_SDL_Quit);
   return rc;
 }
+@end
     
 void
-gst_SDL_StartEventLoop (OOP blockOOP)
+gst_SDL_run (void)
 {
-  eventLoopBlockOOP = blockOOP;
-
   /* Start the main event loop */
   [NSApp run];
 }
 
 void
-gst_SDL_StopEventLoop (void)
+gst_SDL_quit (void)
 {
   [NSApp stop: NSApp];
 }
-
-/* Called when the internal event loop has just started running */
-- (void) applicationDidFinishLaunching: (NSNotification *) note
-{
-  vmProxy->strMsgSend (eventLoopBlockOOP, "value", NULL);
-}
-@end

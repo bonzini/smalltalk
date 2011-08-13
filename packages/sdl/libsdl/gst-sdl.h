@@ -62,4 +62,9 @@ extern int gst_SDL_Init (Uint32 flags);
 extern void gst_SDL_StartEventLoop (OOP blockOOP);
 extern void gst_SDL_StopEventLoop (void);
 
+#ifdef __APPLE__
+extern void gst_SDL_run();
+extern void gst_SDL_quit();
+#endif
+
 #endif

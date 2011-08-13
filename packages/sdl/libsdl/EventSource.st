@@ -294,7 +294,7 @@ SdlQuitEvent extend [
 Object subclass: SdlEventSource [
     <category: 'LibSDL-Wrappers'>
 
-    | handler pollDelay eventMask |
+    | handler eventMask process |
 
     SdlEventSource class >> new [
 	"Create a new event source.  This is private, because an event source
@@ -320,7 +320,6 @@ Object subclass: SdlEventSource [
 
     initialize [
 	<category: 'private-initialize'>
-	pollDelay := Delay forMilliseconds: self defaultPollDelayMilliseconds.
 	eventMask := 0.
     ]
 
@@ -329,37 +328,14 @@ Object subclass: SdlEventSource [
 	^ 30 "which gives about 33 polls per second"
     ]
 
-    waitEvent: anSdlEvent [
-	<category: 'private-dispatch'>
-	| peepResult |
-	[
-	    SdlEvents sdlPumpEvents.
-	    peepResult := SdlEvents sdlPeepEvents: anSdlEvent
-				    numEvents: 1
-				    action: SdlEvents sdlGetEvent
-				    mask: SdlEvents sdlAllEvents.
-	    peepResult == -1 ifTrue: [ ^self error: 'SDL_PeepEvents error' ].
-	    peepResult == 1 ifTrue: [ ^true ].
-	    peepResult == 0 ifFalse: [ ^self error: 'Unexpected result from SDL_PeepEvents' ].
-	    "0 - no event yet. Sleep and retry."
-	    pollDelay wait.
-	] repeat.
-    ]
-
-    waitEvent [
-	<category: 'private-dispatch'>
-	| e |
-	[e := SdlGenericEvent new.
-	self waitEvent: e.
-	e becomeCorrectClass.
-	e class eventMask anyMask: eventMask] whileFalse.
-	^ e
-    ]
-
-    dispatchEvent: e [
+    dispatchEvent: evBytes [
 	<category: 'private-dispatch'>
 	handler ifNil: [^self].
-	[e dispatchTo: handler]
+	[| myEvent |
+        myEvent := evBytes castTo: SdlGenericEvent type.
+        myEvent becomeCorrectClass.
+	(myEvent class eventMask anyMask: eventMask)
+	        ifTrue: [myEvent dispatchTo: handler]]
 	    on: Error
 	    do: [ :ex |
 		ex printNl.
@@ -368,27 +344,21 @@ Object subclass: SdlEventSource [
 	    ].
     ]
 
-    eventLoop [
-	<category: 'private-dispatch'>
-	Sdl sdlStartEventLoop: [
-	    | e |
-	    [
-		[e := self waitEvent.
-	        self dispatchEvent: e]
-		    repeat
-	    ] on: SdlEventLoopStop do: [ :ex |
-		Sdl sdlStopEventLoop.
-		ex return ].
-	]
-    ]
-
     startEventLoop [
 	SdlKeyboard sdlEnableUnicode: 1.
-	[ self eventLoop ] fork name: 'SdlEventSource eventLoop'.
+
+        "Runs in a separate process because it never returns on Mac OS X.
+         Can be fixed, though, by using internal fields of NSApplication."
+	[Sdl sdlSetEventLoopHandler: self] fork.
+	process := Processor forkEventLoop
     ]
 
     interruptEventLoop [
-	SdlEventLoopStop signal
+	| ev |
+	ev := SdlGenericEvent gcNew.
+	ev type: Sdl sdlQuit.
+	SdlEvents sdlPushEvent: ev.
+	process terminate
     ]
 ].
 

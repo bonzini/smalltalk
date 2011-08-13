@@ -1,3 +1,13 @@
+2011-08-13  Paolo Bonzini <bonzini@gnu.org>
+
+	* libsdl/EventSource.st: Convert to new event loop API.
+	* libsdl/SDL.st: Remove old event loop API, add
+	#sdlSetEventLoopHandler:
+	* libsdl/gst-sdl.c: Use new VM event loop.
+	* libsdl/gst-sdl.h: Define new functions from gst-sdlmain-cocoa.m.
+	* libsdl/gst-sdlmain-cocoa.m: Add new functions gst_SDL_run
+	and gst_SDL_quit.
+
 2010-12-04  Paolo Bonzini  <bonzini@gnu.org>
 
 	* cairo/package.xml: Remove now superfluous <file> tags.

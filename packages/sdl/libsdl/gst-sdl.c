@@ -80,18 +80,55 @@ gst_SDL_Init (Uint32 flags)
   atexit (SDL_Quit);
   return rc;
 }
-    
-void
-gst_SDL_StartEventLoop (OOP blockOOP)
+#endif
+
+static OOP event_source_oop;
+static SDL_Event event;
+
+static mst_Boolean
+gst_SDL_poll (int ms)
 {
-  vmProxy->strMsgSend (blockOOP, "value", NULL);
+  int res;
+  if (ms < 0)
+    return SDL_WaitEvent(&event);
+
+  res = SDL_PollEvent(&event);
+  if (res || ms == 0)
+    return res;
+  SDL_Delay(ms);
+  return SDL_PollEvent(&event);
 }
 
-void
-gst_SDL_StopEventLoop (void)
+static void
+gst_SDL_dispatch (void)
 {
-}
+#ifdef __APPLE__
+  if (event.type == SDL_QUIT)
+    gst_SDL_quit();
 #endif
+
+  if (event.type != SDL_NOEVENT && event_source_oop != vmProxy->nilOOP)
+    {
+      OOP byteArrayOOP = vmProxy->byteArrayToOOP((char *)&event, sizeof(event));
+      event.type = SDL_NOEVENT;
+      vmProxy->strMsgSend(event_source_oop, "dispatchEvent:", byteArrayOOP, NULL);
+    }
+}
+
+static void
+gst_SDL_SetEventLoopHandler (OOP eventSourceOOP)
+{
+  if (eventSourceOOP != vmProxy->nilOOP)
+    vmProxy->unregisterOOP (eventSourceOOP);
+
+  vmProxy->registerOOP (eventSourceOOP);
+  event_source_oop = eventSourceOOP;
+  vmProxy->setEventLoopHandlers(gst_SDL_poll, gst_SDL_dispatch);
+#ifdef __APPLE__
+  gst_SDL_run();
+#endif
+}
+
 
 /* Module initialization function.  */
 
@@ -100,6 +137,5 @@ gst_initModule (VMProxy * proxy)
 {
   vmProxy = proxy;
   vmProxy->defineCFunc ("SDL_Init", gst_SDL_Init);
-  vmProxy->defineCFunc ("SDL_StartEventLoop", gst_SDL_StartEventLoop);
-  vmProxy->defineCFunc ("SDL_StopEventLoop", gst_SDL_StopEventLoop);
+  vmProxy->defineCFunc ("SDL_SetEventLoopHandler", gst_SDL_SetEventLoopHandler);
 }
