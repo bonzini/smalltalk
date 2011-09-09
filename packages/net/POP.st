@@ -118,7 +118,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 	<category: 'accessing'>
 	loggedInUser = self user ifTrue: [^self].
 	loggedInUser isNil ifFalse: [self logout].
-	self connect.
+	self connectIfClosed.
 	self clientPI popUser: self username.
 	self clientPI popPassword: self password.
 	loggedInUser := self user

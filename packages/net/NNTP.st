@@ -242,8 +242,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
     logout [
 	<category: 'accessing'>
 	self closed ifTrue: [^self].
-	self clientPI nntpQuit.
-	self close
+	self clientPI nntpQuit
     ]
 
     protocolInterpreter [

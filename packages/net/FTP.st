@@ -245,8 +245,9 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 
     login [
 	<category: 'ftp'>
-	self connectIfClosed.
 	loggedInUser = self user ifTrue: [^self].
+	loggedInUser isNil ifFalse: [self logout].
+	self connectIfClosed.
 	self clientPI ftpUser: self user username.
 	self clientPI ftpPassword: self user password.
 	loggedInUser := self user
@@ -255,9 +256,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
     logout [
 	<category: 'ftp'>
 	loggedInUser := nil.
-	(self clientPI)
-	    ftpQuit;
-	    close
+	self clientPI ftpQuit
     ]
 
     getFile: fileName type: type into: aStream [

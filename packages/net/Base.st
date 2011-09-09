@@ -410,7 +410,7 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 
     close [
 	<category: 'connection'>
-	^self logout
+	[self logout] ensure: [self closeConnection]
     ]
 
     closeConnection [
@@ -509,18 +509,18 @@ Copyright (c) Kazuki Yasumatsu, 1995. All rights reserved.
 
     loginToHost: aHostName port: aNumber asUser: userString withPassword: passwdString [
 	<category: 'connection'>
-	| resp |
 	hostName := aHostName.
 	portNumber := aNumber.
 	self username: userString password: passwdString.
-	self connect.
-	(resp := self login) completedSuccessfully ifFalse: [^nil]
+	self login completedSuccessfully ifFalse: [^nil]
     ]
 
     reconnect [
 	<category: 'connection'>
-	self closeConnection.
-	self connect
+	[self logout] ensure: [
+	    self closeConnection.
+	    self connect.
+	    self login]
     ]
 ]
 
