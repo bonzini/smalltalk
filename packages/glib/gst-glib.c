@@ -186,11 +186,7 @@ main_loop_poll (int ms)
     timeout = ms;
 
   g_main_context_release (context);
-#ifdef G_WIN32_MSG_HANDLE
   g_poll (fds, nfds, timeout);
-#else
-  poll ((struct pollfd *) fds, nfds, timeout);
-#endif
   return g_main_context_check (context, maxprio, fds, nfds);
 }
 
