@@ -1,3 +1,9 @@
+2012-02-22  Paolo Bonzini  <bonzini@gnu.org>
+            Gwenael Casaccio  <mrgwen@gmail.com>
+
+	* tests/processes.st: Add testcase.
+	* tests/processes.ok: Regenerate.
+
 2012-02-08  Gwenael Casaccio  <mrgwen@gmail.com>
 
 	* kernel/MethodDict.st: Fix initialization of mutex.
