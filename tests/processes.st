@@ -39,6 +39,27 @@ Process extend [
     ensureTermination [
         self terminate; executeUntilTermination
     ]
+
+    myList [
+        ^ myList
+    ]
+]
+
+ProcessorScheduler extend [
+
+    checkState [
+        <category: 'testing'>
+
+        processLists reverseDo: [ :list || loop |
+            "TODO: Perhaps test for lastLink == nil when the list is empty?"
+            list isEmpty ifFalse: [
+                loop := IdentitySet new.
+                lList do: [ :aProcess |
+                    aProcess myList == list ifFalse: [ self error: 'Bad process list' ].
+                    (aProcess nextLink isNil and: [ aProcess ~~ list last ]) ifTrue: [ self error: 'Bad process list' ].
+                    (loop includes: aProcess) ifTrue: [ self error: 'Bad process list' ].
+                    loop add: aProcess ] ] ]
+    ]
 ]
 
 "Test resuming/terminating a process"
