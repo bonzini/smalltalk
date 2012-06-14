@@ -4858,9 +4858,9 @@ primitive VMpr_CObject_atPut [succeed,fail]
 	    }
 	  break;
 
-       case CDATA_LONGLONG:            /* long */
-       case CDATA_ULONGLONG:           /* ulong */
-         if (IS_C_LONG (oop3))
+       case CDATA_LONGLONG:            /* long long */
+       case CDATA_ULONGLONG:           /* unsigned long long */
+         if (IS_C_LONGLONG (oop3) || IS_C_ULONGLONG (oop3))
            {
              *(long long *) addr = (long long) to_c_int_64 (oop3);
              PRIM_SUCCEEDED;
