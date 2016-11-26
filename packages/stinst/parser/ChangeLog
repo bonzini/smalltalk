@@ -1,3 +1,89 @@
+2014-07-26  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* ParseTreeSearcher.st: Remove RBReadBeforeWrittenTester
+	class >> #new, RBParseTreeRule class >> #new, RBParseTreeRule
+	>> #initialize.
+	* RBParseNodes.st: Remove RBProgramNodeVisitor class >> #new,
+	RBProgramNodeVisitor >> #initialize.
+
+2014-04-02  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* STCompiler.st: Support keyword attributes.
+	* STCompilerTests.st: Test for method attributes.
+
+2014-02-07  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* GSTParserTests.st: Remove installed classes at the end.
+
+2013-12-19  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* STCompiler.st: Rename STCompiler>>#addPool: to
+	STCompiler>>#addPoolFirst:.
+	* STCompilerTests.st: Add new file.
+
+2013-12-19  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* PoolResolutionTests.st: Add TestDefaultPoolResolution>>#testDoubleName
+	* STSymTable.st: Add PoolResolution>>#addPoolFirst: and override it
+	in ClassicPoolResolution and DefaultPoolResolution.
+
+2013-09-26  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* GSTParser.st: Move the emptySeq variable into the block it is
+	used.
+
+2013-08-19  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* RewriteTests.st: Add TestRewrite>>#testOldSyntaxSymbolParsing.
+	* SqueakParser.st: Add SqueakFileInScanner>>#scanBinary:.
+
+2013-08-18  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* STLoaderObjs.st: Add LoadedMethod>>#methodRecompilationSourceString.
+
+2013-09-11  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* STLoaderObjsTests.st: Fix the test method and test.
+
+2013-09-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* GSTParser.st: Make STInST and gst-parse.c consistent about '.'
+	at the end of the class definition.
+	* GSTParserTests.st: Add testcase for trailing consistency.
+
+2013-08-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* STLoaderObjs.st: Fix ProxyNamespace>>#printOn: and add ProxyNamespace>>#examineOn:.
+	* STLoaderObjsTests.st: Add testcase for ProxyNamespace>>#printOn:.
+
+2013-08-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* RBParser.st: Fix RBScanner>>#scanNumberValue.
+	* RewriteTests.st: Add testcase for number and array literal parsing.
+
+2013-07-16  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* DebugInformationTests.st: Add a debug information test case.
+	* STCompiler.st: Add  DebugInformation support.
+	* package.xml: Add the new test case
+
+2013-03-31  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* STLoaderObjs.st: Change ProxyNamespace>>#printOn to avoid
+	recursion into self.
+
+2013-02-23  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* RBParser.st: Fix RBParser>>#parsedNegatedNumber.
+	* RBToken.st: Add RBNumberLiteralToken>>#makeNegative.
+	* RewriteTests.st: Add testcase for RBParser>>#parseNegatedNumber.
+
+2013-02-17  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* RBParser.st: Fix RBScanner>>#scanNumber.
+	* RewriteTests.st: Add testcase for RBScanner>>#scanNumber.
+	* package.xml: Add the new test to the testsuite.
+
 2013-02-10  Holger Hans Peter Freyther  <holger@freyther.de>
 
 	* OldSyntaxExporter.st: Reformat the method node in

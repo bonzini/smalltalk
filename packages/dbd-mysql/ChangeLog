@@ -1,3 +1,12 @@
+2015-09-08  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Connection.st: Use >>#basicNew in MySQLPacket class >> #on:.
+
+2013-08-25  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Connection.st: Remove >>#commitTransaction and
+	>>#rollbackTransaction.
+
 2010-12-04  Paolo Bonzini  <bonzini@gnu.org>
 
 	* package.xml: Remove now superfluous <file> tags.

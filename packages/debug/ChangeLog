@@ -1,3 +1,39 @@
+2014-07-26  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* debugtests.st: Use basicNew instead of the modified new.
+
+2013-10-21  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* DebugTools.st: Add slowNext stepping command.
+
+2013-10-21  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* debugtests.st: Add test for >>#restart.
+	* DebugTools.st: Restart a execution of a context (useful it the method is updated).
+
+2013-10-21  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* DebugTools.st: Add >>#eval: allowing evaluation of code with the
+	current context temps and args names.
+	* maybe/Maybe.st: Maybe monad pattern.
+	* maybe/Just.st: Maybe monad pattern.
+	* maybe/Nothing.st: Maybe monad pattern.
+	* debugtests.st: Add test for >>#eval:.
+
+2013-10-15  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* debugtests.st: Add test for currentLineInFile.
+
+2013-06-18  Gwenael Casaccio  <mrgwen@gmail.com>
+
+	* DebugTools.st: Add >>#receiver for VisualGST.
+
+2013-08-20  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* DebugTools.st: Split DebugTools file.
+	* Extensions.st: New.
+	* DebuggerReentered.st: New
+
 2011-07-27  Paolo Bonzini <bonzini@gnu.org>
 
 	* DebugTools.st: Improve 2011-07-15 change to fix testsuite failures.

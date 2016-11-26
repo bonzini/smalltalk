@@ -1,3 +1,282 @@
+2015-11-07  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* build-aux/overflow-builtins.m4: Add new macro.
+	* configure.ac: Use GST_C_OVERFLOW_BUILTINS macro.
+
+2015-11-07  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* configure.ac: Increase the version number after the
+	release.
+
+2015-10-18  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* tests/testsuite.at: Add I18N test to the testsuite.
+
+2015-05-21  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* configure.ac: Move from AC_CHECK_FUNCS_ONCE to AC_CHECK_DECLS
+	for fdatasync.
+
+2015-01-25  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* scripts/Remote.st: Document -I and --no-line-numbers.
+
+2014-08-02  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/Builtins.st: Use the new built-in for >>#new
+	and >>#new:.
+
+2014-08-16  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/URL.st: Use keyValue instead of value.
+
+2014-07-26  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* examples/PackageBuilder.st: Remove PackageBuilder class >>#new.
+	* kernel/Builtins.st: Add Object>>#initialize, change Behavior>>#new
+	and Behavior>>#new:.
+	* kernel/CompildCode.st: Remove CompildCode>>#initialize.
+	* kernel/Metaclass.st: Add Metaclass>>#new.
+	* kernel/PkgLoader.st: Remove PackageDirectories class >> #new.
+	* kernel/RecursionLock.st: Remove RecursionLock class >> #new.
+	* kernel/Semaphore.st: Remove Semaphore class >> #new.
+	* kernel/URL.st: Remove URL class >> #new.
+	* scripts/Remote.st: Remove RemoteServer class >> #new.
+	* tests/intmath.st: Remove PiSeries class >> #new.
+
+2014-07-20  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* scripts/Test.st: Spawn the event loop last.
+
+2014-06-21  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/RecursionLock.st: Return the result of >>#critical:
+
+2014-05-01  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* scripts/Test.st: Introduce pkgScript variable and
+	use it.
+
+2014-03-31  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Object.st: Make Object>>FinalizableObjects thread safe.
+
+2014-03-30  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Process.st: Make Process>>queueInterrupt: atomic.
+
+2014-03-24  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Process.st: Use the correct namespace in
+	Process>>evaluate:ifNotTerminated:.
+
+2014-03-24  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Process.st: Fix the implementation of Process>>priority:.
+	It checks in the old priority queue if the process was ready
+	and resume it if so.
+
+2014-03-24  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Process.st: Remve Process>>#startExecution:.
+
+2014-03-24  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Process.st: Remove Process>>#makeUntrusted:
+
+2014-03-15  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* doc/tutorial.texi: Add mising $[, $] and $. to the examples.
+
+2014-02-06  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/Metaclass.st: Add #classPragmas.
+
+2014-02-06  Paolo Bonzini  <bonzini@redhat.com>
+
+	* kernel/CCallable.st: Add CCallable class>>#returnTypeMap
+	and use it.
+
+2014-01-19  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/MethodDict.st: Introduce >>#select: and
+	>>#dangerouslyAt:put:.
+
+2014-02-04  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* scripts/Test.st: Show test result in GtkSUnit.
+
+2014-01-24  Holger Hans Peter Freyther <holger@freyther.de>
+
+	* scripts/Test.st: Add -d/--debug option parsing.
+
+2014-01-24  Paolo Bonzini  <bonzini@redhat.com>
+
+	* kernel/Delay.st: Check the Semaphore before queuing the
+	interrupt for the target process.
+
+2013-12-14  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* configure.ac: Check for environ with AC_CHECK_DECLS.
+
+2013-12-08  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/Regex.st: Check for isEmpty of the Interval before
+	trying to use it.
+
+2013-12-11  Lee Duhem  <lee.duhem@gmail.com>
+
+	* kernel/MappedColl.st:  Fix variable name typos in reject: and
+	select:.
+
+2013-10-21  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* kernel/ContextPart.st: Print the instruction pointer value in the
+	exception message.
+
+2013-10-15  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* kernel/ContextPart.st: Fix >>#currentLine, the previous
+	implementation had a bad ip index and didn't raise an exception
+	if the instruction pointer was incorrect.
+	* kernel/CompildCode.st: Fix >>#sourceCodeMap, since ip points to
+	the next bytecode which could be a line number, there could be a off
+	by one error. Thus when the line number bytecode is met it's stored on
+	the next bytecode.
+
+2013-10-07  Paolo Bonzini  <bonzini@redhat.com>
+
+	* kernel/BlkClosure.st: Fix off-by-one using the sp variable
+	of contexts.
+	* kernel/ContextPart.st: Likewise.
+
+2013-09-28  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/DirPackage.st: Add PackageLoader>>#insertPackage:
+	PackageDirectories>>#addFirst: and DirPackageGroup.
+	* scripts/Test.st: Use PackageLoader>>#insertPackage:
+
+2013-08-10  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* scripts/Convert.st: Replace \r with \n in class comments.
+
+2013-08-10  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* scripts/Convert.st: Use the STTools tools instead of the
+	current code.
+
+2013-08-09  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* kernel/FilePath.st: Add FilePath>>#linkAs: and FilePath>>#linkFrom:
+	selectors.
+	* kernel/File.st: Add File class>>#sync, File class>>#primFsync:,
+	File class>>#primFdatasync, File class>>#link:as:, File class>>#link:from:,
+	File>>#primLink:as:, File>>#linkFrom:, File>>#linkAs: selectors.
+	* kernel/FileDescr.st: Add >>#fsync and >>#fdatasync selectors.
+	* kernel/FileStream.st: Override >>#fsync and >>#fdatasync selectors.
+
+2013-08-20  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* examples/MiniDebugger.st: Moved to packages/debug/debugger/.
+
+2013-08-20  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* kernel/ContextPart.st: Add ContextPart>>#printContextState,
+	>>#examineOn: and various helper methods for inspecting the
+	context.
+
+2013-08-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* kernel/BlkClosure.st: Add >>#method: setter.
+	* kernel/CompildMeth.st: Implement >>#copy and >>#deepCopy.
+	* kernel/CompiledBlk.st: Add >>#method: setter.
+	* kernel/MethodInfo.st: Add >>#debugInformation, >>#postCopy
+	>>#fixDebugInformation:replaceWith: and >>#debugInfoReplace.
+	* configure.ac: Introduce the Kernel-Tests package.
+	* tests/testsuite.at: Add the Kernel-Tests package
+
+2013-08-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* kernel/CompildMeth.st: Don't change the method class if it's the same.
+	* kernel/MethodInfo.st: Add a debug information setter.
+
+2013-08-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* kernel/DebugInformation.st: Add DebugInformation.
+	* kernel/CompildMeth.st: Add DebugInformation support.
+	* kernel/CompiledBlk.st: Add DebugInformation support.
+	* kernel/MethodInfo.st: Add DebugInformation support.
+        * kernel/SysExcept.st: Generate DebugInformation for UndefinedObject>>#'__terminate'.
+	* packages.xml: Bootstrap information for DebugInformation.
+	* tests/stcompiler.ok: Tests for DebugInformations.
+	* tests/stcompiler.st: Tests for DebugInformations.
+
+2013-07-01  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+        * kernel/DirPackage.st: Return the loaded package.
+        * scripts/Test.st: Load a package from the package.xml file.
+
+2013-05-20  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* configure.ac: Add --enable-postgres-tests.
+	* tests/atlocal.in: Add variables for PostgreSQL tests.
+	* tests/local.at: Ignore the output on stderr for AT_PACKAGE_TEST.
+	* tests/testsuite.at: Add the DBD-PostgreSQL package.
+
+2013-06-27  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* kernel/ContextPart.st: Revert the previous change.
+
+2013-06-14  Jochen Schmitt  <Jochen@herr-schmitt.de>
+
+	* smalltalk-mode-init.el.in: Use inhibit-local-variables-regexps
+	if it is available.
+
+2013-06-06  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+        * kernel/ContextPart.st: Remove useless optimizations.
+
+2013-05-18  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* gst-tool.c: Add --no-line-numbers to the gst-remote command.
+	* main.c: Add --no-line-numbers to the gst command.
+
+2013-05-15  Stefano Lattarini  <stefano.lattarini@gmail.com>
+
+	* doc/tutorial.texi: Simply by substituting an instance of '@itemx'
+	with an instance of '@item' in this file.
+
+2013-03-30  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* configure.ac: Introduce the STTools package.
+
+2013-03-24  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* libgst/files.c: Add DirPackage.st to the bootstrap.
+	* kernel/DirPackage.st: Add new file with the DirPackage class and
+	extension to the PackageLoader.
+	* kernel/PkgLoader.st: Refactor and create ExternalPackage base class.
+
+2013-03-24  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* tests/stcompiler.ok: Update the test result.
+	* tests/stcompiler.st: Add a testcase for ProxyNamespace>>#printOn:.
+
+2013-03-04  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/PkgLoader.st: Remove unused variable.
+
+2013-01-21  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	 * main.c: Remove ENABLE_DISASSEMBLER support
+	 * opcode/dis-buf.c: Delete
+	 * opcode/disass.c: Delete
+	 * opcode/i386-dis.c: Delete
+	 * opcode/ppc-dis.c: Delete
+	 * opcode/ppc-opc.c: Delete
+	 * opcode/sparc-dis.c: Delete
+	 * opcode/sparc-opc.c: Delete
+
 2013-02-14  Holger Hans Peter Freyther  <holger@freyther.de>
 
 	* kernel/StreamOps.st: Override the >>#species selector.

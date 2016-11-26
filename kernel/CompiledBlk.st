@@ -138,6 +138,12 @@ CompiledCode subclass: CompiledBlock [
 	^super = aMethod and: [method = aMethod method]
     ]
 
+    method: aCompiledMethod [
+	<category: 'accessing'>
+
+	method := aCompiledMethod
+    ]
+
     method [
 	"Answer the CompiledMethod in which the receiver lies"
 
@@ -279,6 +285,18 @@ CompiledCode subclass: CompiledBlock [
 			    arguments: (Array with: i)
 			    receiver: self method]].
 	self error: 'object cannot be dumped'
+    ]
+
+    arguments [
+        <category: 'accessing'>
+
+        ^ self method argumentsFor: self
+    ]
+
+    temporaries [
+        <category: 'accessing'>
+
+        ^ self method temporariesFor: self
     ]
 ]
 

@@ -77,6 +77,130 @@ methods that can be used in inspection or debugging.'>
 	
     ]
 
+
+    printContextState [
+        <category: 'printing'>
+
+        self printContextStateOn: Transcript spaces: 4
+    ]
+
+
+    printVariableKind: aString on: aStream spaces: anInteger [
+        <category: 'printing'>
+
+        aStream
+            space: anInteger;
+            nextPutAll: aString;
+            nextPutAll: ':';
+            nl.
+    ]
+
+    printVariable: anArray at: anIndex do: aBlock on: aStream spaces: anInteger [
+        <category: 'printing'>
+
+            aStream space: anInteger * 2.
+            anArray ifNil: [ aStream print: anIndex ] ifNotNil: [ aStream nextPutAll: (anArray at: anIndex) ].
+            aStream
+                nextPutAll: ' -> ';
+                print: aBlock value;
+                nl
+    ]
+
+    printArgumentsOn: aStream spaces: anInteger [
+        <category: 'printing'>
+
+        | variables |
+
+        self printVariableKind: 'args' on: aStream spaces: 2.
+
+        variables := self method arguments.
+        1 to: self numArgs do: [ :i |
+            self printVariable: variables at: i do: [ self at: i ] on: aStream spaces: anInteger ].
+    ]
+
+    printTemporariesOn: aStream spaces: anInteger [
+        <category: 'printing'>
+
+        | variables |
+
+        self printVariableKind: 'temps' on: aStream spaces: 2.
+
+        variables := self method temporaries.
+        1 to: variables size do: [ :i |
+            self printVariable: variables at: i do: [ self at: self numArgs + i ] on: aStream spaces: anInteger ].
+    ]
+
+    printOptimizedTemporariesOn: aStream spaces: anInteger [
+        <category: 'printing'>
+
+        | variables |
+
+        self printVariableKind: 'optimized temps' on: aStream spaces: 2.
+
+        variables := self method temporaries.
+        self numArgs + variables size + 1 to: self numArgs + self numTemps do: [ :i |
+            self printVariable: nil at: i do: [ self at: i ] on: aStream spaces: anInteger ].
+    ]
+
+    printContextStateOn: aStream spaces: anInteger [
+        <category: 'printing'>
+
+        self
+            printArgumentsOn: aStream spaces: 2;
+            printTemporariesOn: aStream spaces: 2;
+            printOptimizedTemporariesOn: aStream spaces: 2.
+    ]
+
+    examineOn: aStream [
+	<category: 'printing'>
+
+	| instVars output object |
+	aStream
+	    nextPutAll: 'An instance of ';
+	    print: self class;
+	    nl.
+        instVars := self class allInstVarNames.
+        1 to: instVars size
+            do:
+                [:i |
+                object := self instVarAt: i.
+                output := [object printString] on: Error
+                            do:
+                                [:ex |
+                                ex
+                                    return: '%1 %2' %
+                                                {object class article.
+                                                object class name asString}].
+                aStream
+                    nextPutAll: '  ';
+                    nextPutAll: (instVars at: i);
+                    nextPutAll: ': ';
+                    nextPutAll: output;
+                    nl].
+        self printContextStateOn: aStream spaces: 2.
+        aStream
+            space: 2;
+            nextPutAll: 'stack: ';
+            nl.
+        self numArgs + self numTemps + 1 to: self validSize do: [ :i |
+                object := self at: i.
+                output := [object printString] on: Error
+                            do:
+                                [:ex |
+                                ex
+                                    return: '%1 %2' %
+                                                {object class article.
+                                                object class name asString}].
+                aStream
+                    space: 4;
+                    nextPutAll: '[';
+                    print: i;
+                    nextPutAll: ']: ';
+                    nextPutAll: output;
+                    nl].
+            
+    ]
+
     backtrace [
 	"Print a backtrace from the receiver to the bottom of the stack on the
 	 Transcript."
@@ -120,12 +244,15 @@ methods that can be used in inspection or debugging.'>
     ]
 
     currentLine [
-	"Answer the 1-based number of the line that is pointed to by the receiver's
-	 instruction pointer.  The DebugTools package caches information,
-	 thus making the implementation faster."
+        "Answer the 1-based number of the line that is pointed to by the receiver's
+         instruction pointer.  The DebugTools package caches information,
+         thus making the implementation faster."
 
-	<category: 'debugging'>
-	^self method sourceCodeMap at: (self ip - 1 max: 1) ifAbsent: [1]
+        <category: 'debugging'>
+        | res |
+        res := self method sourceCodeMap at: self ip + 1.
+        ^ res = 0 ifTrue: [ self error: 'IP(%1) is not correct' % {(self ip + 1) displayString} ]
+                  ifFalse: [ res ]
     ]
 
     debugger [
@@ -311,7 +438,8 @@ methods that can be used in inspection or debugging.'>
     ]
 
     sp [
-	"Answer the current stack pointer into the receiver"
+	"Answer the current stack pointer into the receiver.  Note that the
+	 sp value is zero-based."
 
 	"This funny implementation thwarts the interpreter's optimizing effort"
 
@@ -347,9 +475,9 @@ methods that can be used in inspection or debugging.'>
 	 makes them valid *before* they become accessible."
 
 	<category: 'accessing'>
-	self at: sp + 1 put: nil.
+	self at: self size + 1 put: nil.
 	sp := sp + 1.
-	self at: sp put: anObject.
+	self at: self size put: anObject.
     ]
 
     sp: newSP [
@@ -363,7 +491,8 @@ methods that can be used in inspection or debugging.'>
 	<category: 'accessing'>
 	newSP isSmallInteger 
 	    ifFalse: [^SystemExceptions.WrongClass signalOn: newSP mustBe: SmallInteger].
-	newSP > sp ifTrue: [sp + 1 to: newSP do: [:i | self at: i put: nil]].
+	newSP > sp ifTrue: [
+	    self size + 1 to: newSP + 1 do: [:i | self at: i put: nil]].
 	sp := newSP
     ]
 

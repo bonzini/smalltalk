@@ -237,7 +237,7 @@ Object subclass: MySQLPacket [
 
     MySQLPacket class >> on: aStream [
 	<category: 'instance creation'>
-	^(self new)
+	^(self basicNew)
 	    stream: aStream;
 	    initialize
     ]
@@ -528,16 +528,6 @@ Connection subclass: MySQLConnection [
     beginTransaction [
 	<category: 'querying'>
 	^self do: 'START TRANSACTION'
-    ]
-
-    commitTransaction [
-	<category: 'querying'>
-	^self do: 'COMMIT'
-    ]
-
-    rollbackTransaction [
-	<category: 'querying'>
-	^self do: 'ROLLBACK'
     ]
 
     database [

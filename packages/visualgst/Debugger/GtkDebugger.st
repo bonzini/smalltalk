@@ -1,3 +1,38 @@
+"======================================================================
+|
+| GtkDebugger class definition
+|
+======================================================================"
+
+"======================================================================
+|
+| Copyright (c) 2013
+| Gwenael Casaccio <gwenael.casaccio@gmail.com>,
+|
+|
+| This file is part of VisualGST.
+|
+| Permission is hereby granted, free of charge, to any person obtaining
+| a copy of this software and associated documentation files (the
+| 'Software'), to deal in the Software without restriction, including
+| without limitation the rights to use, copy, modify, merge, publish,
+| distribute, sublicense, and/or sell copies of the Software, and to
+| permit persons to whom the Software is furnished to do so, subject to
+| the following conditions:
+|
+| The above copyright notice and this permission notice shall be
+| included in all copies or substantial portions of the Software.
+|
+| THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+| EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+| MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+| IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+| CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+| TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+| SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+|
+======================================================================"
+
 GtkBrowsingTool subclass: GtkDebugger [
     | codeWidget contextWidget debugger inspectorWidget stackInspectorWidget |
 
@@ -32,7 +67,7 @@ GtkBrowsingTool subclass: GtkDebugger [
     accelPath [
         <category: 'accelerator path'>
 
-        ^ '<VisualGST>'
+        ^ '<Debugger>'
     ]
 
     windowTitle [
@@ -45,6 +80,7 @@ GtkBrowsingTool subclass: GtkDebugger [
 
     postInitialize [
         <category: 'initialization'>
+
 
         super postInitialize.
 	codeWidget postInitialize.
@@ -105,11 +141,18 @@ GtkBrowsingTool subclass: GtkDebugger [
     createExecuteMenus [
 	<category: 'user interface'>
 
-        ^{GTK.GtkMenuItem menuItem: 'Step' connectTo: self selector: #step.
-            GTK.GtkMenuItem menuItem: 'Step into' connectTo: self selector: #stepInto.
-            GTK.GtkMenuItem menuItem: 'Step over' connectTo: self selector: #stepOver.
-            GTK.GtkMenuItem new.
-            GTK.GtkMenuItem menuItem: 'Run' connectTo: self selector: #run}
+        self accelGroup append: {{'F7'. '<Debugger>/StepInto'}}.
+        self accelGroup append: {{'F8'. '<Debugger>/StepOver'}}.
+        self accelGroup append: {{'<shift>F8'. '<Debugger>/StepOut'}}.
+        self accelGroup append: {{'F5'. '<Debugger>/Continue'}}.
+
+        ^{GTK.GtkMenuItem menuItem: 'Restart selected frame' connectTo: self selector: #restartSelectedFrame.
+          GTK.GtkMenuItem new.
+          GTK.GtkMenuItem menuItem: 'Step into next message send' accelPath: '<Debugger>/StepInto' connectTo: self selector: #stepInto.
+          GTK.GtkMenuItem menuItem: 'Step over next message send' accelPath: '<Debugger>/StepOver' connectTo: self selector: #stepOver.
+          GTK.GtkMenuItem menuItem: 'Step out current message' accelPath: '<Debugger>/StepOut' connectTo: self selector: #stepOut.
+          GTK.GtkMenuItem new.
+          GTK.GtkMenuItem menuItem: 'Continue' accelPath: '<Debugger>/Continue' connectTo: self selector: #continue}
     ]
 
     createMenus [
@@ -134,6 +177,11 @@ GtkBrowsingTool subclass: GtkDebugger [
         <category: 'context'>
 
 	debugger := aDebugger.
+
+        "Show meaningful source code to the user."
+        [ debugger suspendedContext isInternalExceptionHandlingContext ]
+            whileTrue: [ debugger slowFinish ].
+
 	self 
 	    updateContextWidget
     ]
@@ -173,6 +221,7 @@ GtkBrowsingTool subclass: GtkDebugger [
     updateContextWidget [
 	<category: 'context'>
 
+	debugger suspendedContext ifNil: [ ^ self close ].
 	contextWidget
             context: debugger suspendedContext;
             selectFirstContext.
@@ -184,8 +233,7 @@ GtkBrowsingTool subclass: GtkDebugger [
 	<category: 'context'>
 
 	self initializeProcess: aProcess.
-	3 timesRepeat: [ debugger step ].
-	debugger myStepInto.
+	4 timesRepeat: [ debugger step ].
 	self updateContextWidget
     ]
 
@@ -224,44 +272,79 @@ GtkBrowsingTool subclass: GtkDebugger [
     contextChanged [
 	<category: 'context events'>
 
-	| iter |
 	self checkCodeWidgetAndUpdate: [
+            | line |
 	    contextWidget hasSelectedContext ifFalse: [ ^ self ].
 	    codeWidget source: (BrowserMethodSource on: contextWidget selectedContext method).
-	    codeWidget applyTag: #debug forLine: contextWidget selectedContext currentLine.
+            contextWidget selectedContext currentLine ~= 0
+                ifTrue: [ line := contextWidget selectedContext currentLine ]
+                ifFalse: [ line := 1 ].
+            codeWidget
+                applyTag: #debug forLine: line;
+                centerViewAtLine: line.
 	    self updateInspectorWidget: contextWidget selectedContext ]
     ]
 
-    step [
-	<category: 'execute events'>
-
-	contextWidget isLastContextSelected
-	    ifTrue: [ debugger myStep ]
-	    ifFalse: [ debugger finish: contextWidget selectedContext ].
-	self updateContextWidget
-    ]
-
     stepInto [
-	<category: 'execute events'>
+        <category: 'execute events'>
 
-	contextWidget isLastContextSelected
-	    ifTrue: [ debugger myStepInto ]
-	    ifFalse: [ debugger finish: contextWidget selectedContext ].
-	self updateContextWidget
+        self debugWith: [ debugger step ]
     ]
 
     stepOver [
-	<category: 'execute events'>
+        <category: 'execute events'>
 
-	debugger step.
-	self updateContextWidget
+        self debugWith: [ debugger slowNext ]
     ]
 
-    run [
-	<category: 'execute events'>
+    stepOut [
+        <category: 'execute events'>
 
-	self close.
-	debugger continue
+        self debugWith: [ debugger finish ]
+    ]
+
+    finishDangerousContexts [
+        | methods |
+        "VisualGST is running in the same image as the to be de-bugged
+        processed. If the process is suspended in a critical section
+        VisualGST might end up in a live-lock. As long as VisualGST is
+        running in the same image there is no way we can avoid this."
+
+        "Nothing is suspended."
+        debugger suspendedContext ifNil: [^self].
+
+        "Methods we need to finish or bad things will happen."
+        methods := {Object>>#removeToBeFinalized. Object>>#addToBeFinalized}.
+
+        (methods includes: debugger suspendedContext method)
+            ifTrue: [debugger finish].
+    ]
+
+    debugWith: aBlock [
+        <category: 'execute events'>
+
+        TaskQueue uniqueInstance add: [
+            self isLastContextSelected ifFalse: [ self stepToSelectedContext ].
+            aBlock value.
+            self finishDangerousContexts.
+            self updateContextWidget ]
+    ]
+
+    continue [
+        <category: 'execute events'>
+
+        self close.
+        debugger suspendedContext ifNil: [ ^ self ].
+        debugger continue
+    ]
+
+    stepToSelectedContext [
+       <category: 'execute events'>
+
+        | ctxt |
+        ctxt := debugger suspendedContext.
+        [ ctxt parentContext == contextWidget selectedContext ] whileFalse: [ ctxt := ctxt parentContext ].
+        debugger finish: ctxt
     ]
 
     codeSaved [
@@ -327,25 +410,33 @@ GtkBrowsingTool subclass: GtkDebugger [
     doIt: object [
         <category: 'smalltalk event'>
 
-        self focusedWidget doIt: object
+        codeWidget hasFocus ifFalse: [ ^ self focusedWidget doIt: object ].
+        codeWidget hasSelection ifFalse: [ ^ self ].
+        [ debugger eval: codeWidget selectedText ] fork.
     ]
 
     debugIt: object [
         <category: 'smalltalk event'>
 
-        self focusedWidget debugIt: object
+        codeWidget hasFocus ifFalse: [ ^ self focusedWidget debugIt: object ].
+        codeWidget hasSelection ifFalse: [ ^ self ].
+        debugger eval: 'VisualGST.GtkDebugger open doItProcess: [ ', codeWidget selectedText, ' ] newProcess'
     ]
 
     inspectIt: object [
         <category: 'smalltalk event'>
 
-        self focusedWidget inspectIt: object
+        codeWidget hasFocus ifFalse: [ ^ self focusedWidget inspectIt: object ].
+        codeWidget hasSelection ifFalse: [ ^ self ].
+        [ (debugger eval: codeWidget selectedText) gtkInspect ] fork.
     ]
 
     printIt: object [
         <category: 'smalltalk event'>
 
-        self focusedWidget printIt: object
+        codeWidget hasFocus ifFalse: [ ^ self focusedWidget printIt: object ].
+        codeWidget hasSelection ifFalse: [ ^ self ].
+        [ codeWidget printString: (debugger eval: codeWidget selectedText) ] fork.
     ]
 
     state [
@@ -382,6 +473,12 @@ GtkBrowsingTool subclass: GtkDebugger [
         <category: 'smalltalk event'>
 
         PrintItCommand executeOn: self
+    ]
+
+    isLastContextSelected [
+        <category: 'testing'>
+
+        ^ contextWidget selectedContext == debugger suspendedContext
     ]
 
     hasChanged [
@@ -444,5 +541,26 @@ GtkBrowsingTool subclass: GtkDebugger [
         self onFocusPerform: #showReplace
     ]
 
+    selectAnInstanceMethod: aMethod [
+        <category: 'debugging events'>
+
+        debugger restart: contextWidget selectedContext.
+	self updateContextWidget
+    ]
+
+    selectAClassMethod: aMethod [
+        <category: 'debugging events'>
+
+        debugger restart: contextWidget selectedContext.
+	self updateContextWidget
+    ]
+
+    restartSelectedFrame [
+        <category: 'debugging events'>
+
+        debugger restart: contextWidget selectedContext.
+        debugger suspendedContext inspect.
+        self updateContextWidget
+    ]
 ]
 

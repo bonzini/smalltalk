@@ -7,7 +7,7 @@
 
 "======================================================================
 |
-| Copyright (C) 2007 Free Software Foundation, Inc.
+| Copyright (C) 2007,2013 Free Software Foundation, Inc.
 | Written by Stephen Compall.
 |
 | This file is part of the GNU Smalltalk class library.
@@ -278,6 +278,121 @@ TestCase subclass: TestFormat [
 	res := RBFormatter new formatAll: (Array with: inp).
 	self assert: res = '#(16r01 2r01 16rFF)'.
     ]
+
+    testParanthesis [
+        | inp |
+        inp := RBParser parseExpression: '(2r1)'.
+        self assert: inp formattedCode = '2r1'.
+    ]
+
+    testNumberLiteralFloatRewrite [
+        | inp |
+        inp := RBParser parseExpression: '2q'.
+        self
+            assert: inp value = 2.0;
+            assert: inp formattedCode = '2q'.
+
+        inp := RBParser parseExpression: '2d'.
+        self
+            assert: inp value = 2.0;
+            assert: inp formattedCode = '2d'.
+
+        inp := RBParser parseExpression: '2e'.
+        self
+            assert: inp value = 2.0;
+            assert: inp formattedCode = '2e'.
+
+        inp := RBParser parseExpression: '2q-'.
+        self
+            assert: inp value = 2.0;
+            assert: inp formattedCode = '2q-'.
+
+        inp := RBParser parseExpression: '20q-1'.
+        self
+            assert: inp value = 2.0;
+            assert: inp formattedCode = '20q-1'.
+    ]
+
+    testNegativeNumbers [
+        | inp |
+        inp := RBParser parseExpression: '-3'.
+        self assert: inp value = -3.
+        self assert: inp token source = '-3'.
+        self assert: inp formattedCode = '-3'.
+    ]
+
+    testNumberExpressionParsing [
+        | inp |
+        inp := RBParser parseExpression: '2-2'.
+        self
+            assert: inp receiver value = 2;
+            assert: inp selector = #-;
+            assert: inp arguments first value = 2.
+    ]
+]
+
+TestCase subclass: TestScanner [
+    <comment: 'Test aspects of the RBScanner'>
+
+    testScanner [
+        | scanner num |
+        scanner := RBScanner on: '3' readStream.
+        num := scanner next.
+        self assert: num value = 3.
+    ]
+
+    testScannerConcatStream [
+        | scanner num |
+        "This is different to >>#testScanner by using a different kind of stream with
+        a different species."
+
+        scanner := RBScanner on: (Kernel.ConcatenatedStream with: '3' readStream).
+        num := scanner next.
+        self assert: num value = 3.
+    ]
+]
+
+TestCase subclass: TestParser [
+    <comment: 'Test aspects of the RBParser'>
+
+    testNumberParsing [
+
+        | node |
+        node := RBParser parseExpression: '3'.
+        self assert: node value = 3.
+        node := RBParser parseExpression: '-3'.
+        self assert: node value = -3.
+        node := RBParser parseExpression: '-16r3'.
+        self assert: node value = -3.
+        node := RBParser parseExpression: '16r-3'.
+        self assert: node value = -3.
+        node := RBParser parseExpression: '- 16r3'.
+        self assert: node value = -3.
+        node := RBParser parseExpression: '16r-3.23'.
+        self assert: node value = 16r-3.23.
+        node := RBParser parseExpression: '16r-3s23_0'.
+        self assert: node value = 16r-3s23_0.
+        node := RBParser parseExpression: '3_000_000'.
+        self assert: node value = 3_000_000.
+        node := RBParser parseExpression: '3_000_000e1233'.
+        self assert: node value = 3_000_000e1233.
+        node := RBParser parseExpression: '3_000_000d1233'.
+        self assert: node value = 3_000_000d1233.
+        node := RBParser parseExpression: '3_000_000q1233'.
+        self assert: node value = 3_000_000q1233.
+    ]
+
+    testLiteralArrayParsing [
+        | node |
+
+        node := RBParser parseExpression: '#(-3 -2 -16r1)'.
+        self assert: node value first = -3.
+        self assert: node value second = -2.
+        self assert: node value third = -1.
+
+        node := RBParser parseExpression: '#(16r-1)'.
+        self assert: node value first = -1.
+    ]
 ]
 
 TestCase subclass: TestRewrite [
@@ -311,6 +426,28 @@ TestCase subclass: TestRewrite [
             completeFileOut: false;
             fileOutSelectors: (Array with: #logManager) classSelectors: #().
         self assert: (out contents indexOfSubCollection: 'Osmo.LogManager') = 0.
+    ]
+
+
+    testOldSyntaxSymbolParsing [
+        | res |
+        res := (STClassLoader new
+            parseSmalltalkStream:
+'Object subclass: #PhexMatcher
+	instanceVariableNames: ''value state''
+	classVariableNames: ''''
+	poolDictionaries: ''''
+	category: ''Phexample-Core''!
+
+!PhexMatcher methodsFor: ''expecting'' stamp: ''JoeExample 10/27/2009 18:35''!
+< expected
+	^self expect: expected using: #<! !' readStream with: SqueakFileInParser) first.
+
+	"Compare..."
+	self assert: (res >> #<) methodSourceString = '< expected
+	^self expect: expected using: #<'.
+
+	(res >> #<) methodFormattedSourceString printNl.
     ]
 
     testOldSyntaxNamespaceRewrite [

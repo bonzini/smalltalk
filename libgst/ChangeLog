@@ -1,3 +1,228 @@
+2016-09-18  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* genbc-scan.l: Compile with flex 2.6.0.
+	* genpr-scan.l: Compile with flex 2.6.0.
+	* genvm-scan.l: Compile with flex 2.6.0.
+
+2015-11-07  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* interp.inl: Add alternative mul_with_check implementation.
+
+2015-08-02  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* events.c: Use else instead of else if in
+	poll_timer_thread.
+
+2015-05-21  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* cint.c: Change to use #if instead of #ifdef and update
+	the macro to change for.
+
+2015-04-17  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* sysdep/posix/timer.c: Fix handling small sleeping
+	intervals.
+
+2015-02-03  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* files.c: Include SmallInt.st before Float.st.
+
+2014-09-26  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* sysdep.h: Declare _gst_sigalrm_cancel.
+	* sysdep/posix/events.c: Call _gst_sigalrm_cancel.
+	* sysdep/posix/timer.c: Implement _gst_sigalrm_cancel.
+
+2014-09-13  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* prims.def: Remove opening with second argument as integer.
+
+2014-08-02  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* prims.def: Introduce VMpr_Behavior_newInitialize and
+	VMpr_Behavior_newColonInitialize,
+	* sym.h: Declare _gst_initialize_symbol.
+	* sym.c: Define _gst_initialize_symbol during init and
+	restore.
+
+2014-05-26  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* input.c: Use rl_quote_func_t, rl_dequote_func_t and
+	rl_completion_func_t instead of the deprecated CPPFunction
+
+2014-04-16  In-Ho Yi  <chajath@gmail.com>
+
+	* sysdep/cygwin/findexec.c: Update comment and change
+	the error handling.
+
+2014-04-09  In-Ho Yi  <chajath@gmail.com>
+
+	* sysdep/cygwin/findexec.c: Use cygwin_conv_path instead
+	of cygwin_conv_to_posix_path for path conversion.
+
+2014-03-25  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* sym.c: Remove _gst_start_execution_symbol.
+	* sym.h: Remove _gst_start_execution_symbol.
+
+2014-02-10  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* input.c: Free memory that has been dynamically allocated.
+	* lex.c: Allocate string in the obstack.
+	* prims.def: Free function name after usage.
+
+2014-02-10  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* interp-jit.inl: Change the time the abort handling
+	is executed.
+
+2014-02-10  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* xlat.c: Keep track of the bytecode length for sends.
+
+2013-12-23  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* xlat.c: Change emitted code in emit_interrupt_check.
+
+2013-12-23  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* xlat.c: Add ipOffset parameter to emit_interrupt_check.
+
+2014-01-09  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* prims.def: Mark VMpr_Process_singleStepWaitingOn as
+	potentially failing.
+
+2014-01-09  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* interp.c: Check if the process is already suspended.
+
+2013-12-22  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* comp.c: Only flush the cache once when adding a new
+	CompiledMethod.
+
+2013-12-22  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* interp.c: Do not flush the cache when creating a new
+	process.
+
+2013-12-14  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* cint.c: Fix the compilation on FreeBSD.
+
+2013-12-16  Lee Duhem  <lee.duhem@gmail.com>
+
+	* dict.c: Make VMPrimitives a BindingDictionary.
+
+2013-11-30  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* gst-parse.c: Check if currentClass is nil before calling
+	_gst_make_method.
+
+2013-11-27  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	*  oop.c: Guard _gst_grey_oop_range when not using
+	libsigsegv.
+
+2013-11-22  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* gst-parse.c: Initialize the old_recover.
+
+2013-10-13  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* interp.c: Address address sanitizer warning when the
+	parentContext is already nil.
+
+2013-10-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/dict.inl: Fix overflow check in index_oop_spec and
+	index_oop_put_spec.  This use the trick of converting
+	(a < x || a > y) to (a - x > y - x).  Adjusting "index" after
+	the check helps because we can compare with "> maxByte" instead
+	of ">= maxByte + sizeof(type) - 1".  On the other hand, we
+	have to do a somewhat ugly adjust to base.
+
+2013-10-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/dict.inl: In index_oop_spec and index_oop_put_spec,
+	move index decrement after the scaling by sizeof(type) and the
+	overflow test.	This prepares for fixing the overflow test.
+
+2013-10-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/genvm-parse.def: Emit definitions for UNDO_PREPARE_STACK.
+	* libgst/vm.def: Wrap calls to _gst_make_block_closure with
+	PREPARE_STACK and UNDO_PREPARE_STACK.  Otherwise, the sp
+	that empty_context_stack saves in the context is off by one.
+
+2013-08-09  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* libgst/cint.c: Bind link, fsync, fdatasync and sync for
+	additional C level access.
+
+2013-08-10  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* comp.c: Add arguments and temporaries name in DebugInformation.
+	* comp.h: Add a debugInfo state in the compiler.
+	* dict.c: Add _gst_identity_dictionary_new.
+	* dict.h: Add _gst_identity_dictionary_new.
+	* files.c: Bootstrap information for DebugInformation.
+
+2013-07-09  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* oop.c: Protect oop1 and oop2 in _gst_swap_objects.
+
+2013-07-16  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/oop.h: Add incubator depth.
+	* libgst/oop.inl: Track incubator depth and add inc_current_depth().
+	* libgst/comp.c: Assert that add_literal is not called within an
+	incubator context (suggested by Gwen).
+
+2013-07-16  Paolo Bonzini  <bonzini@gnu.org>
+
+	* libgst/comp.c: Do not call add_literal within an incubator context.
+
+2013-06-10  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* interp-jit.inl: Set the F_XLAT_REACHABLE flag in refresh_native_ips.
+
+2013-06-03  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* files.c: Make BlockClosure available before the CharacterArray.
+
+2013-06-03  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* xlat.c: Use jit_flush_code for the runtime code.
+
+2013-06-14  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	* libgst/dict.c: Remove useless code: gst_ordered_collection structure.
+	* libgst/dict.inl: Remove useless code: ordered_collection_begin and ordered_collection_end.
+
+2013-05-18  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* libgst/byte.c: Define _gst_omit_line_numbers, emit line
+	numbers depending on this variable.
+	* libgst/files.h: Declare the _gst_omit_line_numbers variable.
+	* libgst/gst.h: Introduce GST_NO_LINE_NUMBERS.
+	* libgst/interp.c: Implement get and set of GST_NO_LINE_NUMBERS.
+
+2013-04-28  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* libgst/gstpriv.h: Allow to disable the DO_PREFETCH.
+
+2013-04-25  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* libgst/md-config.h: Add cases for the ARM architecture.
+
+2013-02-24  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* libgst/dict.c: Remove ATTRIBUTE_HIDDEN from static methods.
+	* libgst/comp.c: Remove unused variables in get_attributes_array.
+	* libgst/save.c: Remove unused variable in make_oop_table_to_be_saved.
+
 2013-01-17  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
 
 	* libgst/sysdep/win32/timer.c: Correct the function signature.

@@ -35,11 +35,17 @@
 Statement subclass: PGStatement [
     | dbHandle queryString isSelect |
 
-    <category: 'DBI-Drivers'>
+    <category: 'DBD-PostgreSQL'>
     <comment: 'I represent a Postgres prepared statement. Or actually right
 now the ability to execute commands with binding.'>
 
-    SelectQueries := #('EXPLAIN' 'SELECT') asSet.
+    SelectQueries := nil.
+
+    PGStatement class >> initialize [
+        <category: 'initialization'>
+
+        SelectQueries := #('EXPLAIN' 'SELECT') asSet.
+    ]
 
     dbHandle: aHandle [
         <category: 'private'>
@@ -85,10 +91,14 @@ now the ability to execute commands with binding.'>
         "In PostgreSQL one can use $1 for binding parameters with the
          executeWithAll:. The parameters must be all strings."
         strings := params collect: [ :each |
-            each isString ifTrue: [each]
+            (each isString or: [each isNil]) ifTrue: [each]
                 ifFalse: [self connection fieldConverter printString: each]].
 
         res := PGResultSet new: (dbHandle exec: queryString with: strings).
         ^ self checkResult: res.
     ]
+]
+
+Eval [
+    PGStatement initialize
 ]

@@ -55,6 +55,11 @@ it should be...the Smalltalk metaclass system is strange and complex.'>
 	^newMeta
     ]
 
+    new [
+        "Do not call >>#initialize on the classes"
+        ^self basicNew
+    ]
+
     addClassVarName: aString [
 	"Add a class variable with the given name to the class pool dictionary"
 
@@ -467,6 +472,13 @@ it should be...the Smalltalk metaclass system is strange and complex.'>
     isMetaclass [
 	<category: 'testing functionality'>
 	^true
+    ]
+
+    classPragmas [
+	"Return the pragmas that are written in the file-out of this class."
+
+	<category: 'accessing instances and variables'>
+	^#()
     ]
 
     fileOutOn: aFileStream [

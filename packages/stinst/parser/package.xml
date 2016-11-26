@@ -29,11 +29,21 @@
    <namespace>STInST.Tests</namespace>
    <sunit>STInST.Tests.TestStandardRewrites</sunit>
    <sunit>STInST.Tests.TestFormat</sunit>
+   <sunit>STInST.Tests.TestParser</sunit>
    <sunit>STInST.Tests.TestRewrite</sunit>
+   <sunit>STInST.Tests.TestScanner</sunit>
    <sunit>STInST.Tests.TestDefaultPoolResolution</sunit>
    <sunit>STInST.Tests.TestClassicPoolResolution</sunit>
+   <sunit>STInST.Tests.TestDebugInformation</sunit>
+   <sunit>STInST.Tests.TestSTLoaderObjects</sunit>
+   <sunit>STInST.Tests.TestGSTParser</sunit>
+   <sunit>STInST.Tests.TestCompiler</sunit>
    <filein>RewriteTests.st</filein>
    <filein>PoolResolutionTests.st</filein>
+   <filein>DebugInformationTests.st</filein>
+   <filein>STLoaderObjsTests.st</filein>
+   <filein>GSTParserTests.st</filein>
+   <filein>STCompilerTests.st</filein>
   </test>
 
   <file>ChangeLog</file>

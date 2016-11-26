@@ -125,6 +125,7 @@ typedef struct code_tree
   PTR data;
   label *jumpDest;
   gst_uchar *bp;
+  unsigned char bc_len;		/* only used for sends */
 } code_tree, *code_stack_element, **code_stack_pointer;
 
 /* This structure represents a message send.  A sequence of
@@ -318,7 +319,7 @@ static inline method_entry *finish_method_entry (void);
 static inline code_tree *push_tree_node (gst_uchar *bp, code_tree *firstChild, int operation, PTR data);
 static inline code_tree *push_tree_node_oop (gst_uchar *bp, code_tree *firstChild, int operation, OOP literal);
 static inline code_tree *pop_tree_node (code_tree *linkedChild);
-static inline code_tree *push_send_node (gst_uchar *bp, OOP selector, int numArgs, mst_Boolean super, int operation, int imm);
+static inline code_tree *push_send_node (gst_uchar *bp, unsigned char bc_len, OOP selector, int numArgs, mst_Boolean super, int operation, int imm);
 static inline void set_top_node_extra (int extra, int jumpOffset);
 static inline gst_uchar *decode_bytecode (gst_uchar *bp);
 
@@ -332,7 +333,7 @@ static inline mst_Boolean emit_block_prolog (OOP blockOOP, gst_compiled_block bl
 static inline mst_Boolean emit_inlined_primitive (int primitive, int numArgs, int attr);
 static inline mst_Boolean emit_primitive (int primitive, int numArgs);
 
-static inline void emit_interrupt_check (int restartReg);
+static inline void emit_interrupt_check (int restartReg, int ipOffset);
 static inline void generate_run_time_code (void);
 static inline void translate_method (OOP methodOOP, OOP receiverClass, int size);
 static void emit_basic_size_in_r0 (OOP classOOP, mst_Boolean tagged, int objectReg);
@@ -620,6 +621,8 @@ generate_run_time_code (void)
 
   jit_movi_i (JIT_RET, 0);
   jit_ret ();
+
+  jit_flush_code(_gst_run_native_code, jit_get_label() );
 }
 
 
@@ -793,7 +796,7 @@ set_inline_cache (OOP selector, int numArgs, mst_Boolean super, int operation, i
 }
 
 code_tree *
-push_send_node (gst_uchar *bp, OOP selector, int numArgs, mst_Boolean super, int operation, int imm)
+push_send_node (gst_uchar *bp, unsigned char bc_len, OOP selector, int numArgs, mst_Boolean super, int operation, int imm)
 {
   code_tree *args, *node;
   int tot_args;
@@ -805,6 +808,7 @@ push_send_node (gst_uchar *bp, OOP selector, int numArgs, mst_Boolean super, int
     args = pop_tree_node (args);
 
   node = push_tree_node (bp, args, operation, (PTR) ic);
+  node->bc_len = bc_len;
   return (node);
 }
 
@@ -1417,7 +1421,7 @@ gen_send (code_tree *tree)
   else
     EXPORT_SP (JIT_V0);
 
-  jit_movi_ul (JIT_R0, tree->bp - bc + BYTECODE_SIZE);
+  jit_movi_ul (JIT_R0, tree->bp - bc + tree->bc_len);
   jit_ldxi_p (JIT_R1, JIT_V1, jit_field (inline_cache, cachedIP));
   jit_sti_ul (&ip, JIT_R0);
 
@@ -1425,7 +1429,7 @@ gen_send (code_tree *tree)
   jit_align (2);
 
   ic->native_ip = jit_get_label ();
-  define_ip_map_entry (tree->bp - bc + BYTECODE_SIZE);
+  define_ip_map_entry (tree->bp - bc + tree->bc_len);
 
   IMPORT_SP;
   CACHE_NOTHING;
@@ -2496,22 +2500,31 @@ emit_deferred_sends (deferred_send *ds)
 }
 
 void
-emit_interrupt_check (int restartReg)
+emit_interrupt_check (int restartReg, int ipOffset)
 {
-  jit_insn *jmp, *begin;
-
-  jit_align (2);
-  begin = jit_get_label ();
+  jit_insn *jmp, *restart = NULL;
 
   jit_ldi_i (JIT_R2, &_gst_except_flag);
   jmp = jit_beqi_i (jit_forward (), JIT_R2, 0);
-  if (restartReg == JIT_NOREG)
-    jit_movi_p (JIT_RET, begin);
 
+  /* Save the global ip pointer */
+  if (ipOffset != -1)
+    {
+      jit_movi_ul (JIT_R2, ipOffset);
+      jit_sti_ul (&ip, JIT_R2);
+    }
+
+  jit_align (2);
+
+  /* Where to restart?*/
+  if (restartReg == JIT_NOREG)
+    restart = jit_movi_p (JIT_RET, jit_forward());
   else
     jit_movr_p (JIT_RET, restartReg);
 
   jit_ret ();
+  if (restart)
+    jit_patch_movi (restart, jit_get_label());
   jit_patch (jmp);
 }
 
@@ -2973,7 +2986,7 @@ emit_primitive (int primitive, int numArgs)
   if (attr & (PRIM_SUCCEED | PRIM_RELOAD_IP))
     {
       if (attr & PRIM_CHECK_INTERRUPT)
-	emit_interrupt_check (JIT_V2);
+	emit_interrupt_check (JIT_V2, -1);
 
       jit_jmpr (JIT_V2);
     }
@@ -3091,7 +3104,7 @@ emit_user_defined_method_call (OOP methodOOP, int numArgs,
   /* TODO: use instantiate_oop_with instead.  */
   push_tree_node_oop (bp, NULL, TREE_PUSH | TREE_LIT_VAR, arrayAssociation);
   push_tree_node_oop (bp, NULL, TREE_PUSH | TREE_LIT_CONST, FROM_INT (numArgs));
-  push_send_node (bp, _gst_intern_string ("new:"), 1, false,
+  push_send_node (bp, BYTECODE_SIZE, _gst_intern_string ("new:"), 1, false,
 		  TREE_SEND | TREE_NORMAL, NEW_COLON_SPECIAL);
 
   for (i = 0; i < numArgs; i++)
@@ -3102,7 +3115,7 @@ emit_user_defined_method_call (OOP methodOOP, int numArgs,
 		      (PTR) (uintptr_t) i);
     }
 
-  push_send_node (bp, _gst_value_with_rec_with_args_symbol, 2,
+  push_send_node (bp, BYTECODE_SIZE, _gst_value_with_rec_with_args_symbol, 2,
 		  false, TREE_SEND | TREE_NORMAL, 0);
 
   set_top_node_extra (TREE_EXTRA_RETURN, 0);
@@ -3216,7 +3229,7 @@ emit_method_prolog (OOP methodOOP,
   emit_context_setup (header.numArgs, header.numTemps);
 
   define_ip_map_entry (0);
-  emit_interrupt_check (JIT_NOREG);
+  emit_interrupt_check (JIT_NOREG, 0);
 
   /* For simplicity, we emit user-defined methods by creating a code_tree
      for the acrual send of #valueWithReceiver:withArguments: that they do.
@@ -3324,7 +3337,7 @@ emit_block_prolog (OOP blockOOP,
   emit_context_setup (header.numArgs, header.numTemps);
 
   define_ip_map_entry (0);
-  emit_interrupt_check (JIT_NOREG);
+  emit_interrupt_check (JIT_NOREG, 0);
 
   return (false);
 }
@@ -3363,7 +3376,7 @@ decode_bytecode (gst_uchar *bp)
 	{
           push_tree_node_oop (IP0, NULL, TREE_PUSH | TREE_LIT_CONST,
                               literals[n]);
-          push_send_node (IP0, _gst_builtin_selectors[VALUE_SPECIAL].symbol,
+          push_send_node (IP0, IP - IP0, _gst_builtin_selectors[VALUE_SPECIAL].symbol,
 			  0, false, TREE_SEND, 0);
 	}
     }
@@ -3424,7 +3437,7 @@ decode_bytecode (gst_uchar *bp)
     }
 
     SEND {
-      push_send_node (IP0, literals[n], num_args, super, TREE_SEND, 0);
+      push_send_node (IP0, IP - IP0, literals[n], num_args, super, TREE_SEND, 0);
     }
 
     POP_INTO_NEW_STACKTOP {
@@ -3476,16 +3489,16 @@ decode_bytecode (gst_uchar *bp)
     SEND_ARITH {
       int op = special_send_bytecodes[n];
       const struct builtin_selector *bs = &_gst_builtin_selectors[n];
-      push_send_node (IP0, bs->symbol, bs->numArgs, false, op, n);
+      push_send_node (IP0, IP - IP0, bs->symbol, bs->numArgs, false, op, n);
     }
     SEND_SPECIAL {
       int op = special_send_bytecodes[n + 16];
       const struct builtin_selector *bs = &_gst_builtin_selectors[n + 16];
-      push_send_node (IP0, bs->symbol, bs->numArgs, false, op, n + 16);
+      push_send_node (IP0, IP - IP0, bs->symbol, bs->numArgs, false, op, n + 16);
     }
     SEND_IMMEDIATE {
       const struct builtin_selector *bs = &_gst_builtin_selectors[n];
-      push_send_node (IP0, bs->symbol, bs->numArgs, super,
+      push_send_node (IP0, IP - IP0, bs->symbol, bs->numArgs, super,
                       TREE_SEND | TREE_NORMAL, n);
     }
 
@@ -3673,9 +3686,7 @@ translate_method (OOP methodOOP, OOP receiverClass, int size)
 	  if (!lbl_define (*this_label))
 	    {
 	      define_ip_map_entry (bp - bc);
-	      jit_movi_ul (JIT_V0, bp - bc);
-	      jit_sti_ul (&ip, JIT_V0);
-	      emit_interrupt_check (JIT_NOREG);
+	      emit_interrupt_check (JIT_NOREG, bp - bc);
 	    }
 	}
 

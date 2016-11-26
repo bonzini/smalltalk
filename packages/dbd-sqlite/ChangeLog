@@ -1,3 +1,23 @@
+2015-08-01  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* SQLiteTests.st: Add SQLiteTableTestCase class and
+	>>#testTableColumns. Add the testTableColumns to the
+	SQLiteTestSuite class >> #suite selector.
+
+2013-08-25  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Connection.st: Add >>#beginTransaction.
+	* SQLiteTests.st: Use >>#beginTransaction and
+	>>#commitTransaction in the testcase.
+
+2013-04-15  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* ResultSet.st: Implement streaming usage to conserve memory.
+	* SQLiteTests.st: Add SQLiteStreamRowTestCase class. Modify
+	existing tests.
+	* Statement.st: Reset the handle before executing the query
+	and do not reset it after doing the query.
+
 2011-04-09  Paolo Bonzini  <bonzini@gnu.org>
 
 	* Statement.st: Move #resetAndClear inside an #ensure: block.

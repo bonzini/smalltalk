@@ -1,5 +1,46 @@
 List of user-visible changes in GNU Smalltalk
 
+NEWS FROM 3.2.5 to 3.2.91
+
+o   gst and gst-remote now understand the --no-line-numbers option. The
+    line number is embedded in the bytecode of a CompiledMethod and is
+    executed as part of the normal execution. This option allows to not
+    emit the line number bytecode which can result in a noticable speed
+    up on embedded systems.
+
+o   Change the semantic of >>#rowCount for the SQLite backend. One can
+    either use the >>#next/#atEnd selectors to stream over the result or use
+    the #>>rows/#rowCount selectors.
+
+o   Add PackageLoader>>#loadPackageFromFile: to load a package by using
+    a package.xml. This can make the development more effective.
+
+o   The compiler now generates a DebugInformation providing access to the
+    argument and temporary names of methods and blocks. This can be used
+    by the debugger to provide additional information.
+
+o   gst-sunit now understands the -d/--debug parameter. In case of an
+    unhandled exception or a test failure VisualGST will be spawned.
+
+o   The Netlink module has been added for Linux.
+
+o   gst-sunit -p package.xml TestClass will execute only the tests of
+    the TestClass now.
+
+o   RecursionLock>>#critical: returns the result of the block like it
+    is done for Semaphore>>#critical:
+
+o   Object>>#initialize has been added as am empty selector and
+    Behavior>>#new/Behavior>>#new: has been modified to call basicNew
+    followed by a call to initialize. This has been done to ease porting
+    from and to the Pharo Smalltalk Environment. The >>#initialize
+    selector needs to return self (or have no explicit return statement).
+    Classes that provide a custom >>#new implementation and call
+    "super new initialize" should either remove the custom >>#new
+    implementation or use "self basicNew initialize".
+
+-----------------------------------------------------------------------------
+
 NEWS FROM 3.2.4 to 3.2.5
 
 o   Add Delay>>#value:onTimeoutDo: as an easy way to timeout an operation.

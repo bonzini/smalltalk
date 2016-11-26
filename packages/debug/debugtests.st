@@ -29,6 +29,38 @@
 
 
 
+SmallInteger extend [
+
+    dbgPrintNl [
+        <category: '*DebugTools'>
+        ^ self dbgPrintString
+    ]
+
+    dbgPrintString [
+        "Return the base 10 representation of the receiver"
+
+        <category: '*DebugTools'>
+        ^self dbgPrintString: 10
+    ]
+
+    dbgPrintString: baseInteger [
+        "Return the base baseInteger representation of the receiver"
+
+        <category: '*DebugTools'>
+        | num string |
+        ^self < self zero
+            ifFalse:
+                [string := String new: (self floorLog: baseInteger) + 1.
+                self replace: string withStringBase: baseInteger]
+            ifTrue:
+                [num := self negated.
+                string := String new: (num floorLog: baseInteger) + 2.
+                string at: 1 put: $-.
+                num replace: string withStringBase: baseInteger]
+    ]
+]
+
+
 TestCase subclass: DebuggerTest [
     
     <comment: nil>
@@ -224,7 +256,7 @@ TestCase subclass: DebuggerTest [
 
 	<category: 'test'>
 	| debugger reached notReached |
-	debugger := self debuggerOn: [reached := Object new].
+	debugger := self debuggerOn: [reached := Object basicNew].
 	debugger step.
 	self assert: reached notNil
     ]
@@ -264,6 +296,91 @@ TestCase subclass: DebuggerTest [
 	self deny: notReached
     ]
 
+    testRegressionCurrentLine [
+        <category: 'testing'>
+
+        | debugger |
+        debugger := self debuggerOn: [ 1 dbgPrintNl ].
+        debugger step.
+
+        #(34 36 39 43 46 51 53) doWithIndex: [ :each :i |
+            self assert: debugger suspendedContext currentLineInFile == each.
+            debugger step.
+        ]
+    ]
+
+    testEvaluation [
+        " Test that #eval gives the good states "
+
+        <category: 'test'>
+
+        | debugger i j k |
+        i := 312.
+        j := 412.
+        k := 512.
+
+        debugger := self debuggerOn: [ | x y z |
+                                        x := 1.
+                                        y := x * 2.
+                                        z := y * 2.
+                                        i yourself ].
+
+        debugger step; step; step.
+
+        self assert: (debugger eval: '^ i') = 312.
+        self assert: (debugger eval: '^ j') = 412.
+        self assert: (debugger eval: '^ k') = 512.
+
+        self assert: (debugger eval: '^ x') = 1.
+        self assert: (debugger eval: '^ y') = 2.
+        self assert: (debugger eval: '^ z') = 4.
+    ]
+
+    testRestart [
+        " Test that #restart "
+
+        <category: 'test'>
+
+        | debugger i j |
+
+        debugger := self debuggerOn: [ 
+                            i := self restart ].
+        debugger step.
+        self assert: debugger suspendedContext method == (self class >> #restart).
+
+        self class compile: 'restart [ | i | i := 234. ^ i * 2 ]'.
+
+        debugger restart.
+        self assert: debugger suspendedContext method == (self class >> #restart).
+        self assert: debugger suspendedContext receiver == self.
+        self assert: debugger suspendedContext ip == 0.
+        self assert: debugger suspendedContext sp == 0.
+
+        debugger next; next.
+
+        self assert: i = 468.
+
+        j := OrderedCollection new.
+        j add: 123.
+        debugger := self debuggerOn: [
+                            i := self restart_1: j ].
+        debugger step; step.
+        self assert: debugger suspendedContext method == (self class >> #restart_1:).
+
+        self class compile: 'restart_1: anObject [ ^ anObject first ]'.
+
+        j addFirst: 234.
+        debugger restart.
+        self assert: debugger suspendedContext method == (self class >> #restart_1:).
+        self assert: debugger suspendedContext receiver == self.
+        self assert: debugger suspendedContext ip == 0.
+        self assert: debugger suspendedContext sp == 0.
+
+        debugger next; next.
+
+        self assert: i = 234.
+    ]
+
     w [
 	<category: 'support'>
 	self x: [:foo | ^foo]
@@ -282,6 +399,18 @@ TestCase subclass: DebuggerTest [
     z: anObject [
 	<category: 'support'>
 	^anObject
+    ]
+
+    restart [
+        <category: 'support'>
+
+        ^ 123 * 2
+    ]
+
+    restart_1: anObject [
+        <category: 'support'>
+
+        ^ anObject first * 2
     ]
 ]
 

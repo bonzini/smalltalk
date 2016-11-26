@@ -1,3 +1,38 @@
+"======================================================================
+|
+| GtkTextWidget class definition
+|
+======================================================================"
+
+"======================================================================
+|
+| Copyright (c) 2013
+| Gwenael Casaccio <gwenael.casaccio@gmail.com>,
+|
+|
+| This file is part of VisualGST.
+|
+| Permission is hereby granted, free of charge, to any person obtaining
+| a copy of this software and associated documentation files (the
+| 'Software'), to deal in the Software without restriction, including
+| without limitation the rights to use, copy, modify, merge, publish,
+| distribute, sublicense, and/or sell copies of the Software, and to
+| permit persons to whom the Software is furnished to do so, subject to
+| the following conditions:
+|
+| The above copyright notice and this permission notice shall be
+| included in all copies or substantial portions of the Software.
+|
+| THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+| EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+| MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+| IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+| CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+| TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+| SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+|
+======================================================================"
+
 GtkConcreteWidget subclass: GtkTextWidget [
     | findWidget replaceWidget textWidget userAction undoStack lastCommand cut textSaved lastSavedCommand |
 
@@ -328,6 +363,16 @@ GtkConcreteWidget subclass: GtkTextWidget [
 	self buffer selectRange: start bound: end
     ]
 
+    centerViewAtLine: anInteger [
+        <category: 'view'>
+
+        | mark iter |
+        iter := self buffer getIterAtLine: anInteger.
+        mark := GTK.GtkTextMark new: nil leftGravity: false.
+        self buffer addMark: mark where: iter.
+        textWidget scrollMarkOnscreen: mark.
+    ]
+
     beforeEvaluation [
         <category: 'smalltalk event'>
     ]
@@ -336,17 +381,24 @@ GtkConcreteWidget subclass: GtkTextWidget [
         <category: 'smalltalk event'>
     ]
 
+    doWithoutForkIt: object [
+        <category: 'smalltalk event'>
+
+        | result method |
+        self beforeEvaluation.
+        method := object class 
+                    compile: 'Doit [ ^ [ ', self selectedText , ' ] value ]'
+                    ifError:  [ :fname :lineNo :errorString | self error: errorString ].
+        object class removeSelector: #Doit ifAbsent: [].
+        result := object perform: method.
+        self afterEvaluation.
+        ^ result
+    ]
+
     doIt: object [
         <category: 'smalltalk event'>
 
-	| result |
-        self beforeEvaluation.
-        result := Behavior
-		    evaluate: self buffer selectedText
-		    to: object
-		    ifError: [ :fname :lineNo :errorString | self error: errorString ].
-	self afterEvaluation.
-	^ result
+	[ self doWithoutForkIt: object ] fork
     ]
 
     debugIt: object [
@@ -364,19 +416,19 @@ GtkConcreteWidget subclass: GtkTextWidget [
     inspectIt: object [
         <category: 'smalltalk event'>
 
-        GtkInspector openOn: (self doIt: object)
+        [ GtkInspector openOn: (self doWithoutForkIt: object) ] fork
     ]
 
     printIt: object [
         <category: 'smalltalk event'>
 
-        | iter start end result |
-        iter := self buffer iterOfSelectedText second.
-        result := ' ', ((self doIt: object) displayString), ' '.
-        self buffer insertInteractive: iter text: result len: result size defaultEditable: true.
-        start := self buffer getIterAtOffset: (iter getOffset - result size).
-        end := self buffer getIterAtOffset: (iter getOffset).
-        self buffer selectRange: start bound: end
+            [ | iter start end result |
+              iter := self buffer iterOfSelectedText second.
+              result := ' ', ((self doWithoutForkIt: object) displayString), ' '.
+              self buffer insertInteractive: iter text: result len: result size defaultEditable: true.
+              start := self buffer getIterAtOffset: (iter getOffset - result size).
+              end := self buffer getIterAtOffset: (iter getOffset).
+              self buffer selectRange: start bound: end ] fork.
     ]
-
 ]
+

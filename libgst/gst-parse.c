@@ -463,6 +463,7 @@ parse_chunks (gst_parser *p)
     {
       OOP oldTemporaries = _gst_push_temporaries_dictionary ();
       jmp_buf old_recover;
+      memcpy (old_recover, p->recover, sizeof (p->recover));
       setjmp (p->recover);
       while (token (p, 0) != EOF && token (p, 0) != '!')
         {
@@ -1947,6 +1948,7 @@ static tree_node
 parse_compile_time_constant (gst_parser *p)
 {
   tree_node temps, statements;
+  OOP currentClass;
   YYLTYPE location = *loc(p,0);
 
   assert (token (p, 0) == '#');
@@ -1959,9 +1961,14 @@ parse_compile_time_constant (gst_parser *p)
   if (!statements || _gst_had_error)
     return _gst_make_oop_constant (&location, _gst_nil_oop);
 
+  /* This can happen when parsing an Eval statement */
+  currentClass = _gst_current_parser->currentClass;
+  if (IS_NIL(_gst_current_parser->currentClass))
+    currentClass = OOP_CLASS(_gst_undefined_object_class);
+
   return _gst_make_method (&location, loc(p, 0),
                            NULL, temps, NULL, statements, NULL,
-                           _gst_current_parser->currentClass,
+                           currentClass,
                            _gst_nil_oop,
                            false);
 }

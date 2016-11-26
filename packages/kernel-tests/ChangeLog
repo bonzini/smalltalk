@@ -1,0 +1,36 @@
+2014-08-16  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/URLTest.st: Add test for URL>>#decodedFields.
+
+2014-06-21  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/RecursionLockTests.st: Add test for RecursionLock
+
+2014-02-06  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* kernel/CCallableTest.st: Add new file.
+
+2013-12-16  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* kernel/BehaviorTests.st: Add tests for Behavior.
+
+2013-12-08  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/RegexpTests.st: Add tests for Regexp.
+
+2013-12-13  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* kernel/MappedCollectionTests.st: Add tests for MappedCollection.
+
+2013-10-12  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+            Paolo Bonzini <bonzini@gnu.org>
+
+	* kernel/ObjectTests.st: Add tests for Object
+
+2013-08-20  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	 * kernel/ContextPartTests.st: Add tests for ContextPart
+
+2013-06-11  Gwenael Casaccio <gwenael.casaccio@gmail.com>
+
+	 * kernel/CompiledMethodTests.st: Add tests for CompiledMethod

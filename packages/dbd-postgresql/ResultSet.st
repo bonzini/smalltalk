@@ -36,7 +36,7 @@ ResultSet subclass: PGResultSet [
     | handle index rowCount columns columnsArray |
     
     <comment: nil>
-    <category: 'DBI-Drivers'>
+    <category: 'DBD-PostgreSQL'>
 
     PGResultSet class >> new: aCObject [
 	<category: 'private'>
@@ -45,14 +45,20 @@ ResultSet subclass: PGResultSet [
 	    yourself
     ]
 
-    ResultStatus := #(#PGRES_EMPTY_QUERY
-	#PGRES_COMMAND_OK
-	#PGRES_TUPLES_OK
-	#PGRES_COPY_OUT
-	#PGRES_COPY_IN
-	#PGRES_BAD_RESPONSE
-	#PGRES_NONFATAL_ERROR
-	#PGRES_FATAL_ERROR).
+    ResultStatus := nil.
+
+    PGResultSet class >> initialize [
+        <category: 'initialization'>
+
+        ResultStatus := #(#PGRES_EMPTY_QUERY
+            #PGRES_COMMAND_OK
+            #PGRES_TUPLES_OK
+            #PGRES_COPY_OUT
+            #PGRES_COPY_IN
+            #PGRES_BAD_RESPONSE
+            #PGRES_NONFATAL_ERROR
+            #PGRES_FATAL_ERROR).
+    ]
 
     PGResultSet class >> resultStatus: aCode [
 	<category: 'constants'>
@@ -267,9 +273,8 @@ ResultSet subclass: PGResultSet [
 
 
 CObject subclass: PQResultSet [
-    <category: 'private'>
+    <category: 'DBD-PostgreSQL-Private'>
 
-    "Results"
     status [
         <cCall: 'PQresultStatus' returning: #int args: #( #self)>
     ]
@@ -282,7 +287,6 @@ CObject subclass: PQResultSet [
         <cCall: 'PQclear' returning: #void args: #( #self)>
     ]
 
-    "Result sets"
     numTuples [
         <cCall: 'PQntuples' returning: #int args: #( #self)>
     ]
@@ -295,7 +299,6 @@ CObject subclass: PQResultSet [
         <cCall: 'PQgetisnull' returning: #int args: #( #self #int #int)>
     ]
 
-    "DML results"
     rowsAffected [
         <cCall: 'PQcmdTuples' returning: #string args: #( #self)>
     ]
@@ -304,7 +307,6 @@ CObject subclass: PQResultSet [
         <cCall: 'PQoidValue' returning: #uInt args: #( #self)>
     ]
 
-    "Column info"
     numFields [
         <cCall: 'PQnfields' returning: #int args: #( #self)>
     ]
@@ -331,3 +333,6 @@ CObject subclass: PQResultSet [
 
 ]
 
+Eval [
+    PGResultSet initialize
+]

@@ -7,7 +7,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl 2.63 needed by testsuite, actually
 AC_PREREQ(2.63)
-AC_INIT([GNU Smalltalk], 3.2.90, help-smalltalk@gnu.org, smalltalk,
+AC_INIT([GNU Smalltalk], 3.2.92, help-smalltalk@gnu.org, smalltalk,
         [http://smalltalk.gnu.org/])
 MAINTAINER="bonzini@gnu.org"
 
@@ -243,6 +243,7 @@ GST_C_SYNC_BUILTINS
 if test $gst_cv_have_sync_fetch_and_add = no; then
   AC_MSG_ERROR([Synchronization primitives not found, please use a newer compiler.])
 fi
+GST_C_OVERFLOW_BUILTINS
 
 GST_LOCK
 AC_SYS_LARGEFILE
@@ -369,6 +370,10 @@ if test "$ac_cv_func__NSGetEnviron" = yes; then
      environ variable.])
 fi
 
+dnl FreeBSD does provide an environ but it is not declared in the headers
+AC_CHECK_DECLS([environ])
+AC_CHECK_DECLS([fdatasync], [], [], [[#include <unistd.h>]])
+
 AC_SEARCH_LIBS([nanosleep], [rt])
 if test "$ac_cv_search_nanosleep" != no; then
   AC_DEFINE(HAVE_NANOSLEEP, 1, 
@@ -413,6 +418,7 @@ GST_PACKAGE_ENABLE([Complex], [complex])
 GST_PACKAGE_ENABLE([Continuations], [continuations])
 GST_PACKAGE_ENABLE([CParser], [cpp])
 GST_PACKAGE_ENABLE([DebugTools], [debug])
+GST_PACKAGE_ENABLE([Debugger], [debug/debugger])
 GST_PACKAGE_ENABLE([ObjectDumper], [object-dumper])
 
 GST_PACKAGE_ENABLE([DBD-MySQL], [dbd-mysql])
@@ -427,6 +433,13 @@ AC_MSG_RESULT($enable_mysql_tests)
 GST_PACKAGE_ENABLE([DBD-PostgreSQL], [dbd-postgresql],
    [GST_HAVE_LIB(pq, PQconnectdb)],
    [ac_cv_lib_pq_PQconnectdb])
+AC_MSG_CHECKING([whether to run PostgreSQL tests])
+AC_ARG_ENABLE(postgres-tests,
+[  --enable-postgres-tests=USER:PWD:DATABASE
+                          test PostgreSQL bindings [default=root:root:test]], ,
+[enable_postgres_tests=no])
+AC_SUBST(enable_postgres_tests)
+AC_MSG_RESULT($enable_postgres_tests)
 
 GST_PACKAGE_ENABLE([DBD-SQLite], [dbd-sqlite],
    [AC_CHECK_HEADER([sqlite3.h])
@@ -510,6 +523,7 @@ GST_PACKAGE_ENABLE([Digest], [digest], [], [], [Makefile], [digest.la])
 GST_PACKAGE_ENABLE([GNUPlot], [gnuplot])
 GST_PACKAGE_ENABLE([Magritte], [magritte])
 GST_PACKAGE_ENABLE([Magritte-Seaside], [seaside/magritte])
+GST_PACKAGE_ENABLE([Kernel-Tests], [kernel-tests])
 
 GST_PACKAGE_ENABLE([NCurses],
   [ncurses],
@@ -573,6 +587,10 @@ GST_PACKAGE_ENABLE([LibSDL_ttf], [sdl/libsdl_ttf],
   [ac_cv_lib_SDL_ttf_TTF_Init])
 
 GST_PACKAGE_ENABLE([Compiler], [stinst/compiler])
+GST_PACKAGE_ENABLE([Netlink], [netlink],
+   [AC_CHECK_HEADERS([linux/netlink.h linux/rtnetlink.h])],
+   [ac_cv_header_linux_netlink_h ac_cv_header_linux_rtnetlink_h],
+   [Makefile], [netlink.la])
 GST_PACKAGE_ENABLE([Parser], [stinst/parser])
 GST_PACKAGE_ENABLE([ClassPublisher], [stinst/doc])
 GST_PACKAGE_ENABLE([ProfileTools], [profile])
@@ -586,6 +604,7 @@ GST_PACKAGE_ENABLE([Sport], [sport])
 GST_PACKAGE_ENABLE([SUnit], [sunit])
 GST_PACKAGE_ENABLE([Swazoo], [swazoo-httpd])
 GST_PACKAGE_ENABLE([Sockets], [sockets], [], [gst_cv_sockets])
+GST_PACKAGE_ENABLE([STTools], [sttools])
 GST_PACKAGE_ENABLE([VFSAddOns], [vfs], [], [], [Makefile])
 GST_PACKAGE_ENABLE([VisualGST], [visualgst])
 GST_PACKAGE_ENABLE([XML-XMLNodeBuilder], [xml/builder])
@@ -624,15 +643,6 @@ LIGHTNING_CONFIGURE_IF_NOT_FOUND([], enable_jit=no)
 if test "$enable_jit" != no; then
   AC_DEFINE(ENABLE_JIT_TRANSLATION, 1, 
     [Define to enable dynamic translation to machine code])
-fi
-
-AC_ARG_ENABLE(disassembler, 
-[  --enable-disassembler   include a disassembler in the gst executable], ,
-enable_disassembler=no)
-AM_CONDITIONAL(ENABLE_DISASSEMBLER, test "$enable_disassembler" != no)
-if test "$enable_disassembler" != no; then
-  AC_DEFINE(ENABLE_DISASSEMBLER, 1, 
-    [Define to include a disassembler in the gst executable])
 fi
 
 AC_ARG_ENABLE(dld,
@@ -888,6 +898,6 @@ AC_CONFIG_FILES(Makefile)
 
 dnl VM makefiles
 AC_CONFIG_FILES(doc/Makefile lib-src/Makefile libgst/Makefile)
-AC_CONFIG_FILES(opcode/Makefile lightning/Makefile tests/Makefile)
+AC_CONFIG_FILES(lightning/Makefile tests/Makefile)
 
 AC_OUTPUT

@@ -37,13 +37,6 @@ Object subclass: RecursionLock [
     <category: 'Language-Processes'>
     <comment: nil>
 
-    RecursionLock class >> new [
-	"Answer a new semaphore"
-
-	<category: 'instance creation'>
-	^self basicNew initialize
-    ]
-
     printOn: aStream [
 	"Print a human-readable represention of the receiver on aStream."
 
@@ -101,7 +94,7 @@ Object subclass: RecursionLock [
 	self isOwnerProcess ifTrue: [^aBlock value].
 
 	"Look out for race conditions!"
-	sema critical: [
+	^sema critical: [
 	    [owner := Processor activeProcess.
 	    aBlock value]
 		ensure: [owner := nil]].

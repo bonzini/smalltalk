@@ -1,3 +1,22 @@
+2015-08-01  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Table.st: Fix >>#columnNames to return the column
+	names and not the table name.
+
+2013-12-17  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Connection.st: Initialize Drivers from >>#initialize.
+
+2013-08-25  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Connection.st: Add >>#beginTransaction,
+	>>#commitTransaction and >>#rollbackTransaction in the
+	base class.
+
+2013-04-15  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* ResultSet.st: Add documentation to >>#rowCount and >>#size.
+
 2011-04-08  Holger Hans Peter Freyther  <zecke@selfish.org>
 
 	* Statement.st: Add Statement class>>#getCommand:.

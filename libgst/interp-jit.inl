@@ -353,6 +353,10 @@ refresh_native_ips (OOP contextOOP)
 	  virtualIP = TO_INT (context->ipOffset);
 	  native_ip =
 	    _gst_map_virtual_ip (context->method, receiverClass, virtualIP);
+	  /* The above might have freshly translated the method for us
+	     and the F_XLAT_REACHABLE is not set yet. Set the flag right
+	     to assure we can safely return to this method. */
+	  context->method->flags |= F_XLAT_REACHABLE;
 
 #ifndef OPTIMIZE
 	  if (!native_ip)
@@ -403,14 +407,6 @@ _gst_interpret (OOP processOOP)
 
 	SET_EXCEPT_FLAG (false);
 
-        if UNCOMMON (_gst_abort_execution)
-	  {
-	    OOP selectorOOP;
-	    selectorOOP = _gst_intern_string ((char *)_gst_abort_execution);
-	    _gst_abort_execution = NULL;
-	    SEND_MESSAGE (selectorOOP, 0);
-	  }
-
         /* First, deal with any async signals.  */
         if (async_queue_enabled)
           empty_async_queue ();
@@ -448,6 +444,15 @@ _gst_interpret (OOP processOOP)
 	    refresh_native_ips (_gst_this_context_oop);
 	    native_ip = GET_CONTEXT_IP (thisContext);
 	  }
+
+        if UNCOMMON (_gst_abort_execution)
+	  {
+	    OOP selectorOOP;
+	    selectorOOP = _gst_intern_string ((char *)_gst_abort_execution);
+	    _gst_abort_execution = NULL;
+	    SEND_MESSAGE (selectorOOP, 0);
+	  }
+
 
         if UNCOMMON (time_to_preempt)
 	  set_preemption_timer ();

@@ -211,11 +211,6 @@ PackageGroup subclass: PackageDirectories [
 information on a Smalltalk package, and can output my description in
 XML.'>
 
-    PackageDirectories class >> new [
-	<category: 'instance creation'>
-	^super new initialize
-    ]
-
     postCopy [
 	<category: 'copying'>
 	dirs := dirs copy
@@ -917,19 +912,11 @@ XML.'>
 
 Namespace current: Kernel [
 
-PackageInfo subclass: StarPackage [
+PackageInfo subclass: ExternalPackage [
     | file loadedPackage |
     
     <category: 'Language-Packaging'>
     <comment: nil>
-
-    StarPackage class >> file: file [
-	<category: 'accessing'>
-	^(self new)
-	    file: file;
-	    name: (File stripPathFrom: (File stripExtensionFrom: file name));
-	    yourself
-    ]
 
     fullPathOf: fileName [
 	"Try appending 'self directory' and fileName to each of the directory
@@ -1079,8 +1066,26 @@ PackageInfo subclass: StarPackage [
     ]
 
     loadedPackage [
+        ^ self subclassResponsibility
+    ]
+]
+
+ExternalPackage subclass: StarPackage [
+
+    <category: 'Language-Packaging'>
+    <comment: 'I represent an external package in the form of a .star package'>
+
+    StarPackage class >> file: file [
 	<category: 'accessing'>
-	| file package |
+	^(self new)
+	    file: file;
+	    name: (File stripPathFrom: (File stripExtensionFrom: file name));
+	    yourself
+    ]
+
+    loadedPackage [
+	<category: 'accessing'>
+	| package |
 	loadedPackage isNil ifFalse: [^loadedPackage].
 	package := self file zip / 'package.xml'
 		withReadStreamDo: [ :fileStream | Package parse: fileStream].

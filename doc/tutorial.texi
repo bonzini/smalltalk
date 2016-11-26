@@ -1339,7 +1339,7 @@ Checking extend [
        num := checknum.
        checknum := checknum + 1.
        checksleft := checksleft - 1.
-       self spend: amount
+       self spend: amount.
        ^ num
    ]
 ]
@@ -1680,11 +1680,12 @@ amount.
 
 @example
    Checking extend [
-       checksOver: amount do: aBlock
+       checksOver: amount do: aBlock [
            history keysAndValuesDo: [:key :value |
                (value > amount)
                       ifTrue: [aBlock value: key]
            ]
+       ]
    ]
 @end example
 
@@ -3920,7 +3921,7 @@ and keyword selectors:
    #at:put:
 @end example
 
-@itemx @t{eval: ``##('' [temps] exprs ``)''}
+@item @t{eval: ``##('' [temps] exprs ``)''}
 This syntax also has not been used in the tutorial, and results
 in evaluating an arbitrarily complex expression at compile-time,
 and substituting the result: for example @code{##(Object allInstances

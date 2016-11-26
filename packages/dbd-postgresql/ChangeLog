@@ -1,3 +1,45 @@
+2013-12-17  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* ColumnInfo.st: Create PGColumnInfo class>>#initialize.
+	* Connection.st: Create PGConnection class>>#initialize.
+	* ResultSet.st: Create PGResultSet class>>#initialize.
+	* Statement.st: Create PGStatement class>>#initialize.
+
+2013-12-17  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* Connection.st: Remove comments between selectors.
+	* ResultSet.st: Remove comments between selectors.
+
+2013-12-17  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* ColumnInfo.st: Change class category.
+	* Connection.st: Change class category.
+	* ResultSet.st: Change class category.
+	* Row.st: Change class category.
+	* Statement.st: Change class category.
+
+2013-12-17  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* package.xml: Re-order Connection.st and ResultSet.st
+
+2013-11-09  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* ColumnInfo.st: Truncate microseconds before passing
+	it to DateTime>>#readFrom:.
+
+2013-08-25  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* Connection.st: Remove >>#beginTransaction,
+	>>#commitTransaction and >>#rollbackTransaction.
+
+2013-05-20  Holger Hans Peter Freyther  <holger@moiji-mobile.com>
+
+	* FieldConverter.st: Add conversion for Integer, fix
+	conversion for Boolean, Integer and DateTime.
+	* Statement.st: Modify >>#executeWithAll:
+	* Tests.st: Add the PostgresTestCase class.
+	* package.xml: Add Test.st and sunit section.
+
 2011-10-26  Holger Hans Peter Freyther  <holger@freyther.de>
 
 	* Connection.st: Put PQConnection into 'private'.

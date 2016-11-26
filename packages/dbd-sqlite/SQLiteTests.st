@@ -44,8 +44,7 @@ TestCase subclass: SQLiteBaseTest [
                         connect: 'dbi:SQLite:dbname=testdb'
                         user: nil
                         password: nil.
-	connection do: '
-	    BEGIN TRANSACTION'.
+	connection beginTransaction.
 	connection do: '
 	    CREATE TABLE test(int_field integer, string_field text,
 			      double_field double)'.
@@ -55,8 +54,7 @@ TestCase subclass: SQLiteBaseTest [
 	    INSERT INTO "test" VALUES(2, "two", 2.0)'.
 	connection do: '
 	    INSERT INTO "test" VALUES(3, "three", 3.0)'.
-	connection do: '
-	    COMMIT'.
+	connection commitTransaction.
     ]
     
     tearDown [
@@ -120,7 +118,13 @@ SQLiteBaseTest subclass: SQLiteResultSetTestCase [
     ]
     
     testRowCount [
-        self should: [rs rowCount = 3]
+        self should: [rs rowCount = 3].
+        self should: [rs rows size = 3].
+    ]
+
+    testMixRowCountAtEnd [
+        rs next.
+        self should: [rs rowCount] raise: Error description: 'May not mix next/rowCount'.
     ]
 ]
 
@@ -146,6 +150,34 @@ SQLiteBaseTest subclass: SQLiteRowTestCase [
     ]
 ]
 
+SQLiteBaseTest subclass: SQLiteStreamRowTestCase [
+    | rs |
+
+    setUp [
+        super setUp.
+        rs := self connection select: 'select * from test'.
+    ]
+
+    testRead [
+        | row |
+        self shouldnt: [rs atEnd].
+
+        "First row"
+        row := rs next.
+        self should: [(row at: 'string_field') = 'one'].
+        self shouldnt: [rs atEnd].
+
+        "Second row"
+        row := rs next.
+        self should: [(row at: 'string_field') = 'two'].
+        self shouldnt: [rs atEnd].
+
+        "Third row"
+        row := rs next.
+        self should: [(row at: 'string_field') = 'three'].
+        self should: [rs atEnd].
+    ]
+]
 
 SQLiteBaseTest subclass: SQLitePreparedStatementTestCase [
     | stmt stmt2 stmt3 |
@@ -193,6 +225,16 @@ SQLiteBaseTest subclass: SQLitePreparedStatementTestCase [
     ]
 ]
 
+SQLiteBaseTest subclass: SQLiteTableTestCase [
+
+    testTableColumns [
+        | columnNames |
+        "columnNames returning wrong value"
+        columnNames := (connection tableAt: 'test') columnNames.
+        self assert: columnNames asArray equals: #('int_field' 'string_field' 'double_field').
+    ]
+]
+
 TestSuite subclass: SQLiteTestSuite [
     SQLiteTestSuite class >> suite [
         ^super new initialize
@@ -204,14 +246,19 @@ TestSuite subclass: SQLiteTestSuite [
         self addTest: (SQLiteResultSetTestCase selector: #testAtEnd).
         self addTest: (SQLiteResultSetTestCase selector: #testColumnNames).
         self addTest: (SQLiteResultSetTestCase selector: #testRowCount).
+        self addTest: (SQLiteResultSetTestCase selector: #testMixRowCountAtEnd).
 
         self addTest: (SQLiteRowTestCase selector: #testAt).
         self addTest: (SQLiteRowTestCase selector: #testAtIndex).
+
+        self addTest: (SQLiteStreamRowTestCase selector: #testRead).
 
         self addTest: (SQLiteDMLResultSetTestCase selector: #testRowsAffected).
         
         self addTest: (SQLitePreparedStatementTestCase selector: #testExecute).
         self addTest: (SQLitePreparedStatementTestCase selector: #testExecuteWithAll).
         self addTest: (SQLitePreparedStatementTestCase selector: #testExecuteWithAllNamed).
+
+        self addTest: (SQLiteTableTestCase selector: #testTableColumns).
     ]
 ]

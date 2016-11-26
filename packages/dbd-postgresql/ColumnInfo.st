@@ -38,10 +38,15 @@ ColumnInfo subclass: PGColumnInfo [
     | resultSet index cname ctype csize |
     
     <comment: nil>
-    <category: 'DBI-Framework'>
+    <category: 'DBD-PostgreSQL'>
 
     TypeNames := nil.
     TypeConversions := nil.
+
+    PGColumnInfo class >> initialize [
+        <category: 'initialization'>
+        self initTypes
+    ]
 
     PGColumnInfo class >> in: aResultSet at: aIndex [
 	<category: 'instance creation'>
@@ -74,8 +79,11 @@ ColumnInfo subclass: PGColumnInfo [
     ]
 
     PGColumnInfo class >> convertDateTime: aRaw [
+	| parts |
 	<category: 'type conversions'>
-	^DateTime readFrom: (ReadStream on: aRaw)
+        "Parse a date like 2013-11-08 16:53:03.11825"
+        parts := aRaw subStrings: $..
+        ^DateTime readFrom: (ReadStream on: parts first)
     ]
 
     PGColumnInfo class >> convertTimeInterval: aRaw [
@@ -251,5 +259,5 @@ ColumnInfo subclass: PGColumnInfo [
 
 
 Eval [
-    PGColumnInfo initTypes
+    PGColumnInfo initialize
 ]

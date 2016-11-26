@@ -58,7 +58,6 @@
   <file>JSON.st</file>
   <file>Richards.st</file>
   <file>Bench.st</file>
-  <file>MiniDebugger.st</file>
   <file>MemUsage.st</file>
   <file>Methods.st</file>
   <file>README</file>
@@ -152,6 +151,7 @@
   <file>CFuncs.st</file>
   <file>Float.st</file>
   <file>PkgLoader.st</file>
+  <file>DirPackage.st</file>
   <file>Transcript.st</file>
   <file>CObject.st</file>
   <file>Fraction.st</file>
@@ -188,6 +188,7 @@
   <file>LinkedList.st</file>
   <file>Rectangle.st</file>
   <file>AnsiDates.st</file>
+  <file>DebugInformation.st</file>
   <file>CompildCode.st</file>
   <file>LookupKey.st</file>
   <file>BindingDict.st</file>

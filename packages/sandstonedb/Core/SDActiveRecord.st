@@ -54,14 +54,9 @@ Object subclass: SDActiveRecord [
 
     SDActiveRecord class [
 	| locks |
-	
-    Store := nil.
     ]
 
-    SDActiveRecord class >> new [
-	<category: 'instance creation'>
-	^self basicNew initialize
-    ]
+    Store := nil.
 
     SDActiveRecord class >> atId: anId [
 	"hitting this in a tight loop for a class with subclasses can be very

@@ -1,3 +1,38 @@
+"======================================================================
+|
+| GtkCategorizedNamespaceWidget class definition
+|
+======================================================================"
+
+"======================================================================
+|
+| Copyright (c) 2013
+| Gwenael Casaccio <gwenael.casaccio@gmail.com>,
+|
+|
+| This file is part of VisualGST.
+|
+| Permission is hereby granted, free of charge, to any person obtaining
+| a copy of this software and associated documentation files (the
+| 'Software'), to deal in the Software without restriction, including
+| without limitation the rights to use, copy, modify, merge, publish,
+| distribute, sublicense, and/or sell copies of the Software, and to
+| permit persons to whom the Software is furnished to do so, subject to
+| the following conditions:
+|
+| The above copyright notice and this permission notice shall be
+| included in all copies or substantial portions of the Software.
+|
+| THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+| EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+| MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+| IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+| CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+| TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+| SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+|
+======================================================================"
+
 GtkConcreteWidget subclass: GtkCategorizedNamespaceWidget [
     | namespaceTree model |
 
@@ -17,6 +52,12 @@ GtkConcreteWidget subclass: GtkCategorizedNamespaceWidget [
 	    notify: self ofSystemChangesOfItem: #class change: #Recategorized using: #'classRecategorizedEvent:'
     ]
 
+    addToModel: namespace [
+        <category: 'model'>
+
+        ^ (namespace subspaces asArray sort: [ :a :b | a name <= b name ]), (namespace categories values sort: [ :a :b | a name <= b name ])
+    ]
+
     buildTreeView [
         <category: 'user interface'>
 
@@ -25,7 +66,7 @@ GtkConcreteWidget subclass: GtkCategorizedNamespaceWidget [
 	namespaceTree treeView getSelection setMode: GTK.Gtk gtkSelectionBrowse.
 	(model := GtkTreeModel on: namespaceTree treeView getModel)
                                         item: FakeNamespace;
-                                        childrenBlock: [ :each | (each subspaces asArray sort: [ :a :b | a name <= b name ]), (each categories values sort: [ :a :b | a name <= b name ]) ];
+                                        childrenBlock: [ :each | self addToModel: each ];
                                         contentsBlock: [ :each | {each icon. each name asString} ];
                                         connectSignal: 'row-has-child-toggled' to: self selector: #'childToggled:path:iter:';
                                         refresh.
@@ -106,6 +147,7 @@ GtkConcreteWidget subclass: GtkCategorizedNamespaceWidget [
 	(anEvent item category isNil or: [ anEvent item category size = 0 ]) ifTrue: [ ^ self ].
         root := ClassCategory named: anEvent item category into: namespace.
 	(model hasItem: root) ifTrue: [ ^ self ].
+	toAdd := root.
 	[ root parent isNil or: [ (model hasItem: root) ] ] whileFalse: [ 
 					toAdd := root.
 					root := root parent ].

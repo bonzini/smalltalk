@@ -6,6 +6,11 @@
     <filein>debugtests.st</filein>
   </test>
 
+  <filein>Extensions.st</filein>
+  <filein>maybe/Maybe.st</filein>
+  <filein>maybe/Nothing.st</filein>
+  <filein>maybe/Just.st</filein>
+  <filein>DebuggerReentered.st</filein>
   <filein>DebugTools.st</filein>
   <file>ChangeLog</file>
 </package>

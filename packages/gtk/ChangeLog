@@ -1,3 +1,15 @@
+2013-08-24  Holger Hans Peter Freyther  <holger@freyther.de>
+
+	* mk_enums.awk: Use #ifdef/#endif around key definition.
+
+2013-08-18  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* mk_enums.awk: Import GDK old Key symbols in <gdkkeysyms-compat.h>.
+
+2013-08-15  Gwenael Casaccio  <gwenael.casaccio@gmail.com>
+
+	* mk_enums.awk: Import GDK Key symbols.
+
 2011-08-13  Paolo Bonzini  <bonzini@gnu.org>
 
 	* GtkImpl.st: Use GLib's support for nested event loops.

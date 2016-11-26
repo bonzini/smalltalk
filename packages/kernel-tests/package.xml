@@ -1,0 +1,26 @@
+<package>
+  <name>Kernel-Tests</name>
+
+  <test>
+   <sunit>TestBehavior</sunit>
+   <sunit>TestCCallable</sunit>
+   <sunit>TestCompiledMethod</sunit>
+   <sunit>TestContextPart</sunit>
+   <sunit>TestMappedCollection</sunit>
+   <sunit>TestObject</sunit>
+   <sunit>TestRegexp</sunit>
+   <sunit>TestRecursionLock</sunit>
+   <sunit>TestURL</sunit>
+   <filein>kernel/BehaviorTests.st</filein>
+   <filein>kernel/CCallableTest.st</filein>
+   <filein>kernel/CompiledMethodTests.st</filein>
+   <filein>kernel/ContextPartTests.st</filein>
+   <filein>kernel/MappedCollectionTests.st</filein>
+   <filein>kernel/ObjectTests.st</filein>
+   <filein>kernel/RegexpTests.st</filein>
+   <filein>kernel/RecursionLockTests.st</filein>
+   <filein>kernel/URLTests.st</filein>
+  </test>
+
+  <file>ChangeLog</file>
+</package>

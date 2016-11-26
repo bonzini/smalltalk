@@ -7,7 +7,7 @@
 
 "======================================================================
 |
-| Copyright 1999,2000,2001,2002,2003,2006,2007,2009 Free Software Foundation, Inc.
+| Copyright 1999,2000,2001,2002,2003,2006,2007,2009,2013 Free Software Foundation, Inc.
 | Written by Paolo Bonzini.
 |
 | This file is part of GNU Smalltalk.
@@ -53,7 +53,7 @@ Actually, I am used when conditionally compiled code has to be skipped.'>
 
 
 STFakeCompiler subclass: STCompiler [
-    | node destClass symTable parser bytecodes depth maxDepth isInsideBlock |
+    | node destClass symTable parser bytecodes depth maxDepth isInsideBlock debugInfo |
     
     <comment: 'Unlike my brother STFakeCompiler, I am a real worker. Give me some nodes, and
 I will output a full-fledged CompiledMethod!!
@@ -157,7 +157,7 @@ indexed'' bytecode. The resulting stream is
 	| compiler method |
 	compiler := self new.
 	compiler class: aBehavior parser: aParser.
-	aNamespace isNil ifFalse: [compiler addPool: aNamespace].
+	aNamespace isNil ifFalse: [compiler addPoolFirst: aNamespace].
 	method := compiler visitNode: methodNode.
 	aString isNil ifFalse: [ method methodCategory: aString ].
 	^method
@@ -170,6 +170,7 @@ indexed'' bytecode. The resulting stream is
 	parser := aParser.
 	bytecodes := WriteStream on: (ByteArray new: 240).
 	isInsideBlock := 0.
+        debugInfo := IdentityDictionary new.
 	symTable declareEnvironment: aBehavior
     ]
 
@@ -178,9 +179,9 @@ indexed'' bytecode. The resulting stream is
 	^(symTable addLiteral: literal)
     ]
 
-    addPool: aNamespace [
+    addPoolFirst: aNamespace [
 	<category: 'accessing'>
-	^symTable addPool: aNamespace
+	^symTable addPoolFirst: aNamespace
     ]
 
     bytecodesFor: aBlockNode [
@@ -478,6 +479,7 @@ indexed'' bytecode. The resulting stream is
 		    depth: maxDepth + node body temporaries size + node arguments size.
 	(method descriptor)
 	    setSourceCode: node source asSourceCode;
+            setDebugInformation: debugInfo;
 	    methodClass: symTable environment;
 	    selector: node selector.
 	method attributesDo: 
@@ -488,6 +490,7 @@ indexed'' bytecode. The resulting stream is
 		    ifTrue: 
 			[error := handler value: method value: ann.
 			error notNil ifTrue: [self compileError: error]]].
+        self createDebugInformationFor: method from: node.
 	^method
     ]
 
@@ -543,6 +546,7 @@ indexed'' bytecode. The resulting stream is
 		    bytecodes: bc
 		    depth: self maxDepth
 		    literals: self literals.
+        self createDebugInformationFor: block from: aNode.
 	self depthSet: depth.
 	clean := block flags.
 	clean == 0 
@@ -980,19 +984,34 @@ indexed'' bytecode. The resulting stream is
 	selectorBuilder := WriteStream on: String new.
 	arguments := WriteStream on: Array new.
 	currentToken := self scanTokenFrom: scanner.
-	[currentToken isBinary and: [currentToken value == #>]] whileFalse: 
-		[currentToken isKeyword 
-		    ifFalse: [^self compileError: 'keyword expected in method attribute'].
-		selectorBuilder nextPutAll: currentToken value.
-		argParser := RBParser new.
-		argParser errorBlock: parser errorBlock.
-		argParser scanner: scanner.
-		node := argParser parseBinaryMessageNoGreater.
-		node := RBSequenceNode statements: {node}.
-		arguments nextPut: (self class evaluate: node parser: argParser).
-		currentToken := argParser currentToken].
+	currentToken isIdentifier
+	    ifTrue: [ (self scanTokenFrom: scanner) value == #> ifFalse: [^self compileError: 'method attributes must end with ''>'''].
+		selectorBuilder nextPutAll: currentToken value. ]
+	    ifFalse: [
+		[currentToken isBinary and: [currentToken value == #>]] whileFalse: [
+		    currentToken isKeyword
+			ifFalse: [^self compileError: 'keyword expected in method attribute'].
+		    selectorBuilder nextPutAll: currentToken value.
+		    argParser := RBParser new.
+		    argParser errorBlock: parser errorBlock.
+		    argParser scanner: scanner.
+		    node := argParser parseBinaryMessageNoGreater.
+		    node := RBSequenceNode statements: {node}.
+		    arguments nextPut: (self class evaluate: node parser: argParser).
+		    currentToken := argParser currentToken]].
 	selector := selectorBuilder contents asSymbol.
 	^Message selector: selector arguments: arguments contents
+    ]
+
+
+    createDebugInformationFor: aCompiledCode from: aNode [
+	<category: 'debug informations'>
+
+        debugInfo
+            at: aCompiledCode
+            put: (DebugInformation
+                    variables: ((aNode argumentNames collect: [ :each | each asSymbol]),
+                                (aNode body temporaryNames collect: [ :each | each asSymbol])) asArray).
     ]
 ]
 

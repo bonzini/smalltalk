@@ -41,14 +41,17 @@ pointer bytecodes to line numbers.'>
     MethodLineMapCache := nil.
 
     Debugger class >> currentLineIn: aContext [
-	<category: 'source code'>
-	| lineMap method |
-	method := aContext method.
-	MethodLineMapCache isNil 
-	    ifTrue: [MethodLineMapCache := WeakKeyIdentityDictionary new].
-	lineMap := MethodLineMapCache at: method
-		    ifAbsentPut: [method sourceCodeMap].
-	^lineMap at: (aContext ip - 1 max: 1) ifAbsent: [1]
+        <category: 'source code'>
+        | lineMap method res |
+        method := aContext method.
+        MethodLineMapCache isNil
+            ifTrue: [MethodLineMapCache := WeakKeyIdentityDictionary new].
+        lineMap := MethodLineMapCache at: method
+                    ifAbsentPut: [method sourceCodeMap].
+        res := lineMap at: (aContext ip + 1).
+        ^ res = 0
+            ifTrue: [ self error: 'IP is not correct' ]
+            ifFalse: [ res ]
     ]
 
     Debugger class >> on: aProcess [
@@ -129,6 +132,41 @@ pointer bytecodes to line numbers.'>
 	exception isNil ifFalse: [exception signal]
     ]
 
+    restart [
+        <category: 'stepping commands'>
+
+        self restart: self suspendedContext.
+    ]
+
+    restart: aContext [
+        <category: 'stepping commands'>
+
+        | context method newContext |
+
+        context := self suspendedContext.
+
+        [ context = aContext ] whileFalse: [ context := context parentContext ].
+
+        context isBlock ifTrue: [ context outerContext isNil ifTrue: [ ^ self ].
+                                  context := context outerContext ].
+
+        method := context receiver class lookupSelector: context method selector.
+
+        newContext := MethodContext new: method stackDepth.
+
+        newContext parentContext: context parentContext.
+        newContext ip: 0.
+        newContext instVarAt: 4 put: -1 + method numArgs + method numTemps. " stack pointer "
+        newContext instVarAt: 5 put: context receiver.                      " receiver "
+        newContext instVarAt: 6 put: method.                                " method "
+        newContext instVarAt: 7 put: (context instVarAt: 7).                " flags "
+
+        1 to: method numArgs do: [ :i |
+            newContext at: i put: (context at: i) ].
+
+        process suspendedContext: newContext
+    ]
+
     stepBytecode [
 	"Run a single bytecode in the inferior process."
 
@@ -150,6 +188,23 @@ pointer bytecodes to line numbers.'>
 	
 	[self stepBytecode.
 	self suspendedContext == context and: [line = self currentLine]] 
+		whileTrue
+    ]
+
+    slowNext [
+	"Run to the end of the current line in the inferior process, skipping
+	 over message sends."
+
+	<category: 'stepping commands'>
+	| context line |
+	context := self suspendedContext.
+	line := self currentLine.
+
+	[self stepBytecode.
+	(self suspendedContext notNil
+	    and: [self suspendedContext parentContext == context])
+		ifTrue: [self slowFinish: self suspendedContext].
+	self suspendedContext == context and: [line = self currentLine]]
 		whileTrue
     ]
 
@@ -277,6 +332,127 @@ pointer bytecodes to line numbers.'>
 	theDebugProcess primTerminate
     ]
 
+    eval: aString [
+        <category: 'evaluation'>
+
+        | context selectorAndArguments stream method result |
+        context := self suspendedContext.
+
+        selectorAndArguments := Dictionary new.
+        stream := WriteStream on: String new.
+
+        (context isBlock and: [ context outerContext isNil not ]) ifTrue: [ self extractSelectorAndArgumentsFrom: context outerContext to: selectorAndArguments ].
+        self extractSelectorAndArgumentsFrom: context to: selectorAndArguments.
+        self buildSelectorAndArgs: selectorAndArguments to: stream.
+        self buildCode: aString withArgs: selectorAndArguments keys to: stream.
+        ^ (self compile: stream contents to: self receiver)
+                    ifError: [ :fname :lineNo :errorString | stream contents printNl. (' error : ', errorString) displayNl ]
+                    ifSucceed: [ :method | self perform: method selector to: self receiver with: (self extractArgsFrom: selectorAndArguments) ].
+    ]
+
+    extractArgsFrom: aDictionary [
+        <category: 'private'>
+
+        | array i |
+        i := 1.
+        array := Array new: aDictionary size.
+
+        aDictionary keys do: [ :each |
+            array at: i put: (aDictionary at: each).
+            i := i + 1 ].
+
+        ^ array
+    ]
+
+    extractSelectorAndArgumentsFrom: aContext to: aDictionary [
+        <category: 'private'>
+
+        | i |
+        i := 1.
+
+        aContext method arguments do: [ :each |
+            aDictionary at: each put: (aContext at: i).
+            i := i + 1 ].
+        aContext method temporaries do: [ :each |
+            aDictionary at: each put: (aContext at: i).
+            i := i + 1 ]
+    ]
+
+    buildSelectorAndArgs: aDictionary to: aStream [
+        <category: 'private'>
+
+        | i |
+        i := 1.
+        aDictionary isEmpty ifTrue: [ ^ aStream nextPutAll: 'DoIt'; space ].
+        aDictionary keys do: [ :each |
+            aStream
+                nextPutAll: 'arg_';
+                nextPutAll: i asString;
+                nextPutAll: ': ';
+                nextPutAll: #xxx_;
+                nextPutAll: each;
+                space.
+            i := i + 1 ].
+    ]
+
+    buildCode: aString withArgs: anArray to: aStream [
+        <category: 'private'>
+
+        aStream
+            nextPutAll: '[';
+            nl;
+            nextPutAll: '| '.
+        anArray do: [ :each |
+            aStream
+                nextPutAll: each;
+                space ].
+        aStream
+            nextPutAll: '|';
+            nl.
+        anArray do: [ :each |
+            aStream
+                nextPutAll: each;
+                nextPutAll: ' := ';
+                nextPutAll: #xxx_;
+                nextPutAll: each;
+                nextPutAll: '.';
+                nl ].
+        aStream
+            nextPutAll: ' ^ [ ';
+            nl;
+            nextPutAll: aString;
+            nl;
+            nextPutAll: ' ] value';
+            nl;
+            nextPutAll: ']'.
+    ]
+
+    compile: aString to: anObject [
+        <category: 'private'>
+
+        ^ Just value:
+                    (anObject class
+                        compile: aString
+                        ifError: [ :fname :lineNo :errorString | ^ Nothing value: fname value: lineNo value: errorString ])
+    ]
+
+    perform: aSelector to: anObject with: anArray [
+        <category: 'private'>
+
+        | sem result |
+        sem := Semaphore new.
+        [ [ result := anObject perform: aSelector withArguments: anArray.
+             sem signal ]
+                receiver: nil;
+                on: Exception do: [ :ex | [ sem signal ] fork.
+                                          ex pass ] ]
+            receiver: nil;
+            fork.
+        sem wait.
+        anObject class removeSelector: aSelector ifAbsent: [].
+        ^ result
+    ]
+
     disableBreakpointContext [
 	"Remove the context inserted set by #finish:."
 
@@ -309,77 +485,10 @@ pointer bytecodes to line numbers.'>
 	process := aProcess.
 	stepSemaphore := Semaphore new
     ]
-]
 
-
-
-Namespace current: SystemExceptions [
-
-Notification subclass: DebuggerReentered [
-    
-    <category: 'System-Debugging'>
-    <comment: 'This notification is raised when the debugger is started on a process
-that was already being debugged.  Trapping it allows the pre-existing
-debugger to keep control of the process.'>
-
-    description [
-	"Answer a textual description of the exception."
-
-	<category: 'description'>
-	^'the debugger was started on an already debugged process'
+    receiver [
+        <category: 'private'>
+        ^ self suspendedContext receiver
     ]
-]
-
-]
-
-
-
-ContextPart extend [
-
-    currentLine [
-	"Answer the 1-based number of the line that is pointed to by the receiver's
-	 instruction pointer."
-
-	<category: 'source code'>
-	^Debugger currentLineIn: self
-    ]
-
-    debugger [
-	"Answer the debugger that is attached to the given context.  It
-	 is always nil unless the DebugTools package is loaded."
-
-	<category: 'debugging'>
-	| ctx home |
-	ctx := self.
-	[ctx isNil] whileFalse: 
-		[home := ctx home.
-		(home notNil 
-		    and: [(home method attributeAt: #debugging: ifAbsent: [nil]) notNil]) 
-			ifTrue: [^ctx receiver].
-		ctx := ctx parentContext].
-	^nil
-    ]
-
-]
-
-
-
-BlockClosure extend [
-
-    forkDebugger [
-	"Suspend the currently running process and fork the receiver into a new
-	 process, passing a Debugger object that controls the currently running
-	 process."
-
-	<category: 'instance creation'>
-	| process |
-	process := Processor activeProcess.
-	
-	[process suspend.
-	Processor activeProcess priority: process priority.
-	self value: (Debugger on: process)] 
-		forkAt: Processor unpreemptedPriority
-    ]
-
 ]
 

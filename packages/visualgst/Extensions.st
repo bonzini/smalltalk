@@ -1,3 +1,38 @@
+"======================================================================
+|
+| Extensions
+|
+======================================================================"
+
+"======================================================================
+|
+| Copyright (c) 2013
+| Gwenael Casaccio <gwenael.casaccio@gmail.com>,
+|
+|
+| This file is part of VisualGST.
+|
+| Permission is hereby granted, free of charge, to any person obtaining
+| a copy of this software and associated documentation files (the
+| 'Software'), to deal in the Software without restriction, including
+| without limitation the rights to use, copy, modify, merge, publish,
+| distribute, sublicense, and/or sell copies of the Software, and to
+| permit persons to whom the Software is furnished to do so, subject to
+| the following conditions:
+|
+| The above copyright notice and this permission notice shall be
+| included in all copies or substantial portions of the Software.
+|
+| THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+| EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+| MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+| IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+| CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+| TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+| SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+|
+======================================================================"
+
 Eval [
     "Huge hack for compatibility with the separate GLib package
      in newer gst."
@@ -8,20 +43,33 @@ Eval [
     ]
 ]
 
+AbstractNamespace extend [
+
+    hasTestCase [
+        <category: '*VisualGST'>
+
+        | test |
+        test := (Smalltalk associationAt: #TestCase ifAbsent: [ ^ false ]) value.
+        self allClassesDo: [ :each | each superclass == test ifTrue: [ ^ true ] ].
+        ^ false
+    ]
+
+    allSubspaces [
+        <category: '*VisualGST'>
+
+        | subspaces |
+        subspaces := IdentitySet new.
+        self subspaces do: [ :each |
+                                subspaces
+                                    add: each;
+                                    addAll: each allSubspaces.
+                           ].
+        ^ subspaces
+    ]
+
+]
+
 Object extend [
-
-    gtkInspect [
-	"Open a GtkInspector on self"
-	<category: '*VisualGST'>
-
-	VisualGST.GtkInspector openOn: self
-    ]
-
-    inspectorView [
-	<category: '*VisualGST'>
-
-	^ VisualGST.GtkObjectInspectorView
-    ]
 
     hasLiterals [
 	<category: '*VisualGST'>
@@ -99,73 +147,14 @@ CompiledMethod extend [
         self override ifTrue: [ ^ self class overrideIcon ].
         ^ nil
     ]
-
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkCompiledMethodInspectorView
-    ]
 ]
 
 CompiledBlock extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkCompiledBlockInspectorView
-    ]
 
     methodRecompilationSourceString [
 	<category: '*VisualGST'>
 
 	^ self method methodRecompilationSourceString
-    ]
-]
-
-SequenceableCollection extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkSequenceableCollectionInspectorView
-    ]
-]
-
-Set extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkSetInspectorView
-    ]
-]
-
-Dictionary extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkDictionaryInspectorView
-    ]
-]
-
-Character extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkCharacterInspectorView
-    ]
-]
-
-Integer extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkIntegerInspectorView
-    ]
-]
-
-Float extend [
-    inspectorView [
-        <category: '*VisualGST'>
-
-        ^ VisualGST.GtkFloatInspectorView
     ]
 ]
 
@@ -322,74 +311,6 @@ ContextPart extend [
 	^ i = anInteger 
 	    ifTrue: [ ctxt ]
 	    ifFalse: [ self error: 'Error indice too high' ]
-    ]
-
-    variables [
-	<category: '*VisualGST'>
-
-	^ 1 to: self numArgs + self numTemps collect: [ :each |
-	    each displayString ]
-    ]
-
-    variablesDo: aBlock [
-	<category: '*VisualGST'>
-
-	^ self variables do: aBlock
-    ]
-
-    stackInspectorView [
-        <category: '*VisualGST'>
-
-        ^ GtkStackInspectorView
-    ]
-]
-
-Debugger extend [
-
-    receiver [
-	<category: '*VisualGST'>
-
-	^ self suspendedContext receiver
-    ]
-
-    myStepInto [
-        "Run to the end of the current line in the inferior process or to the
-         next message send."
-
-	"TODO: Stop when affectation (get the current bytecode)"
-        <category: '*VisualGST'>
-        | context |
-        context := self suspendedContext.
-
-        [ self stepBytecode.
-          self suspendedContext == context ]
-                whileTrue
-    ]
-
-    myStep [
-        "Run to the end of the current line in the inferior process, skipping
-         over message sends."
-
-	"TODO: Stop when affectation (get the current bytecode)"
-        <category: '*VisualGST'>
-        | context |
-        context := self suspendedContext.
-
-        [ self stepBytecode.
-         (self suspendedContext notNil and: [ self suspendedContext parentContext == context ])
-                ifTrue: [ self finish: self suspendedContext. ^ self ].
-         self suspendedContext == context ]
-                whileTrue
-    ]
-]
-
-Behavior extend [
-
-    debuggerClass [
-	<category: '*VisualGST'>
-
-	"^ nil"
-	^ VisualGST.GtkDebugger
     ]
 ]
 
@@ -782,3 +703,11 @@ Smalltalk.PackageLoader class extend [
 	^ root
     ]
 ]
+
+STInST.STClassLoaderObjects.LoadedMethod extend [
+    methodViewIcon [
+        <category: '*VisualGST'>
+        ^ nil
+    ]
+]
+

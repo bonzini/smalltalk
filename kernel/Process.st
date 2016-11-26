@@ -69,17 +69,6 @@ can suspend themselves and resume themselves however they wish.'>
 	    ifFalse: [suspendedContext]
     ]
 
-    makeUntrusted: aBoolean [
-	"Set whether the receiver is trusted or not."
-
-	<category: 'basic'>
-	| ctx |
-	ctx := self context.
-	[ctx isNil] whileFalse: 
-		[ctx makeUntrusted: aBoolean.
-		ctx := ctx parentContext]
-    ]
-
     lowerPriority [
 	"Lower a bit the priority of the receiver. A #lowerPriority will
 	 cancel a previous #raisePriority, and vice versa."
@@ -265,12 +254,12 @@ can suspend themselves and resume themselves however they wish.'>
 			and: Processor highestPriority].
 
 	[
-	    | activePriority |
-            activePriority := Processor activePriority.
+	    | oldPriority |
+            oldPriority := priority.
 	    priority := anInteger.
 	    "Atomically move the process to the right list, preempting
              the current process if necessary."
-            self isReady ifTrue: [self resume].
+            myList == (Processor processesAt: oldPriority) ifTrue: [self resume].
 	] valueWithoutPreemption
     ]
 
@@ -321,18 +310,22 @@ can suspend themselves and resume themselves however they wish.'>
 			^self].
 		self isTerminated 
 		    ifTrue: [^SystemExceptions.ProcessTerminated signalOn: self].
-		semaphore := myList.
-		suspended := self isReady not.
-		block := suspended
-			    ifFalse: 
-				[self suspend.
-				aBlock]
+		[
+		    semaphore := myList.
+		    suspended := self isReady not.
+		    block := suspended
+			    ifFalse:
+				    [self suspend.
+				    aBlock]
 			    ifTrue: 
-				[semaphore isNil 
-				    ifTrue: [[self evaluate: aBlock ifNotTerminated: [self suspend]]]
-				    ifFalse: [[self evaluate: aBlock ifNotTerminated: [semaphore wait]]]].
-		suspendedContext := block asContext: suspendedContext.
-		self resume]
+				    [
+                                      semaphore isNil
+				            ifTrue: [ [ self evaluate: aBlock ifNotTerminated: [ self suspend ] ] ]
+				            ifFalse: [ [ self evaluate: aBlock ifNotTerminated: [ semaphore wait ] ] ]
+                                    ].
+		    suspendedContext := block asContext: suspendedContext.
+		    self resume
+		] valueWithoutPreemption ]
     ]
 
     evaluate: aBlock ifNotTerminated: unwindBlock [
@@ -340,7 +333,7 @@ can suspend themselves and resume themselves however they wish.'>
 	| terminated |
 	terminated := false.
 	
-	[aBlock on: ProcessBeingTerminated
+	[aBlock on: SystemExceptions.ProcessBeingTerminated
 	    do: 
 		[:sig | 
 		terminated := true.
@@ -375,17 +368,6 @@ can suspend themselves and resume themselves however they wish.'>
 	interruptLock isNil ifTrue: [interruptLock := RecursionLock new].
 	interruptLock] 
 		valueWithoutPreemption
-    ]
-
-    startExecution: aDirectedMessage [
-	"It is important to retrieve this before we start the
-	 process, because we want to choose whether to continue
-	 running the new process based on the *old* activePriority,
-	 not the one of the new process which is the maximum one."
-
-	<category: 'private'>
-	[aDirectedMessage send] on: SystemExceptions.ProcessBeingTerminated
-	    do: [:sig | sig return]
     ]
 
     onBlock: aBlockClosure at: aPriority suspend: aBoolean [

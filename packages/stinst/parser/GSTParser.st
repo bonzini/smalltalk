@@ -168,6 +168,7 @@ STInST.STFileInParser subclass: GSTFileInParser [
 	    addInstVars := self
 		parseClassBodyElement: addInstVars
 		withinExtend: extend ].
+        currentToken isSpecial ifTrue: [ self skipToken: $. ].
 	taggee := oldTaggee.
     ]
     
@@ -366,7 +367,6 @@ STInST.STFileInParser subclass: GSTFileInParser [
     ]
     
     evaluate: seq [
-	| emptySeq |
 	(currentDeclaration notNil and: [ currentDeclaration comments notEmpty ])
 	    ifTrue: [
 		seq parent isNil
@@ -374,6 +374,7 @@ STInST.STFileInParser subclass: GSTFileInParser [
 			seq comments: currentDeclaration comments.
 			seq parent: currentDeclaration parent ]
 		    ifFalse: [
+			| emptySeq |
 			emptySeq := self makeSequenceNode.
 			emptySeq comments: currentDeclaration comments.
 			emptySeq parent: currentDeclaration parent.

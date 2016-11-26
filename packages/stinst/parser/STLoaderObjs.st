@@ -1280,6 +1280,12 @@ methodSourceCode
     ^node source asSourceCode
 !
 
+methodRecompilationSourceString
+    ^self isOldSyntax
+        ifTrue: [ self methodFormattedSourceString ]
+        ifFalse: [ self methodSourceString trimSeparators ].
+!
+
 selector
     ^node selector asSymbol
 !
@@ -1507,13 +1513,22 @@ name
 
 printOn: aStream
     "Print a representation of the receiver on aStream"
-    aStream nextPutAll: self classNameString , '[', proxy name, '] (' ; nl.
+    aStream nextPutAll: self class storeString , '[', proxy name, ']'.
+!
+
+examineOn: aStream
+    "Print a representation of the receiver on aStream"
+    aStream
+        print: self;
+        nextPutAll: ' ('.
     self myKeysAndValuesDo:
-    	[ :key :value | aStream tab;
-		   print: key;
-		   nextPutAll: '->';
-		   print: value;
-		   nl ].
+        [ :key :value |
+            aStream
+                tab;
+                print: key;
+                nextPutAll: '->';
+                print: value;
+                nl ].
     aStream nextPut: $)
 !
 

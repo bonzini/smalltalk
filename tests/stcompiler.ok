@@ -52,6 +52,17 @@ Execution begins...
 returned value is 'an'
 
 Execution begins...
+STInST.STClassLoaderObjects.ProxyNamespace[Smalltalk]
+returned value is ProxyNamespace new: 32 "<0>"
+
+Execution begins...
 true
 true
 returned value is true
+
+Execution begins...
+true
+true
+true
+true
+returned value is nil

@@ -64,11 +64,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#ifdef ENABLE_DISASSEMBLER
-#define TRUE_FALSE_ALREADY_DEFINED
-#include "dis-asm.h"
-#endif
-
 static const char help_text[] =
   "GNU Smalltalk usage:"
   "\n"
@@ -97,6 +92,7 @@ static const char help_text[] =
   "\n      --kernel-directory DIR\t Look for kernel files in directory DIR."
   "\n      --no-user-files\t\t Don't read user customization files.\n"
   "\n   -\t\t\t\t Read input from standard input explicitly."
+  "\n      --no-line-numbers\t\t Do not generate line numbers in the bytecode."
   "\n"
   "\nFiles are loaded one after the other.  After the last one is loaded,"
   "\nSmalltalk will exit.  If no files are specified, Smalltalk reads from"
@@ -127,6 +123,7 @@ static const char copyright_and_legal_stuff_text[] =
 #define OPT_NO_USER 3
 #define OPT_EMACS_MODE 4
 #define OPT_MAYBE_REBUILD 5
+#define OPT_NO_LINE_NUMBERS 6
 
 #define OPTIONS "-acDEf:ghiI:K:lL:QqrSvV"
 
@@ -152,6 +149,7 @@ static const struct option long_options[] = {
   {"snapshot", 0, 0, 'S'},
   {"version", 0, 0, 'v'},
   {"verbose", 0, 0, 'V'},
+  {"no-line-numbers", 0, 0, OPT_NO_LINE_NUMBERS},
   {NULL, 0, 0, 0}
 };
 
@@ -304,6 +302,9 @@ parse_args (int argc,
 	  loaded_files[n_loaded_files].kernel_path = false;
 	  loaded_files[n_loaded_files++].file_name = optarg;
 	  break;
+	case OPT_NO_LINE_NUMBERS:
+	  gst_set_var(GST_NO_LINE_NUMBERS, true);
+	  break;
 
 	default:
 	  /* Fall through and show help message */
@@ -424,33 +425,3 @@ main(int argc, const char **argv)
   exit (0);
 }
 
-#ifdef ENABLE_DISASSEMBLER
-void disassemble(stream, from, to)
-     FILE *stream;
-     char *from, *to;
-{
-  disassemble_info info;
-  bfd_vma pc = (bfd_vma) from;
-  bfd_vma end = (bfd_vma) to;
-
-  INIT_DISASSEMBLE_INFO(info, stream, fprintf);
-  info.buffer = NULL;
-  info.buffer_vma = 0;
-  info.buffer_length = end;
-
-  while (pc < end) {
-    fprintf_vma(stream, pc);
-    putc('\t', stream);
-#ifdef __i386__
-    pc += print_insn_i386(pc, &info);
-#endif
-#ifdef __ppc__
-    pc += print_insn_big_powerpc(pc, &info);
-#endif
-#ifdef __sparc__
-    pc += print_insn_sparc(pc, &info);
-#endif
-    putc('\n', stream);
-  }
-}
-#endif

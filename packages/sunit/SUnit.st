@@ -114,11 +114,6 @@ Object subclass: TestResource [
 	
     ]
 
-    TestResource class >> new [
-	<category: 'Creation'>
-	^super new initialize
-    ]
-
     TestResource class >> reset [
 	<category: 'Creation'>
 	current notNil ifTrue: [[current tearDown] ensure: [current := nil]]
@@ -271,11 +266,6 @@ This is a Collecting Parameter for the running of a bunch of tests. TestResult i
     TestResult class >> signalFailureWith: aString [
 	<category: 'Exceptions'>
 	self failure sunitSignalWith: aString
-    ]
-
-    TestResult class >> new [
-	<category: 'Init / Release'>
-	^super new initialize
     ]
 
     correctCount [
@@ -847,6 +837,13 @@ When you are writing a test case method, send #assert: aBoolean when you want to
 		exception sunitSignalWith: aString]
     ]
 
+    assert: actual equals: expected [
+        <category: 'Accessing'>
+	^ self
+		assert: expected = actual
+		description: [self comparingStringBetween: actual and: expected]
+    ]
+
     deny: aBoolean [
 	<category: 'Accessing'>
 	self assert: aBoolean not
@@ -1085,6 +1082,17 @@ When you are writing a test case method, send #assert: aBoolean when you want to
 	testSelector := aSymbol
     ]
 
+    comparingStringBetween: actual and: expected [
+        <category: 'Private'>
+        ^ String streamContents: [:stream |
+                stream
+                    nextPutAll: 'Got ';
+                    nextPutAll: actual printString;
+                    nextPutAll: ' instead of ';
+                    nextPutAll: expected printString;
+                    nextPutAll: '.']
+    ]
+
     addDependentToHierachy: anObject [
 	"an empty method. for Composite compability with TestSuite"
 
@@ -1103,7 +1111,7 @@ When you are writing a test case method, send #assert: aBoolean when you want to
 	<category: 'Printing'>
 	aStream
 	    nextPutAll: self class printString;
-	    nextPutAll: '>>#';
+	    nextPutAll: '>>';
 	    nextPutAll: testSelector printString.
     ]
 ]

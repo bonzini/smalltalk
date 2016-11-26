@@ -29,13 +29,58 @@
  ======================================================================"
 
 Smalltalk arguments isEmpty ifTrue: [ ObjectMemory quit ]!
+
+Object subclass: SUnitUnhandledDebugger [
+    <comment: 'I can be set as the debugger for un-handled exceptions
+    and then pop-up a visual debugger'>
+
+    LoadedDebugger := nil.
+
+    SUnitUnhandledDebugger class >> open: aString [
+        Transcript nextPutAll: 'Unhandled exception. Loading debugger.'; nl.
+        self loadVisualGST.
+        ((Smalltalk at: #VisualGST) at: #GtkDebugger) open: aString.
+    ]
+
+    SUnitUnhandledDebugger class >> debuggerClass [
+        ^nil
+    ]
+
+    SUnitUnhandledDebugger class >> debuggingPriority [
+        ^0
+    ]
+
+    SUnitUnhandledDebugger class >> loadVisualGST [
+        LoadedDebugger ifNotNil: [^self].
+
+        LoadedDebugger := true.
+        PackageLoader fileInPackage: 'VisualGST'.
+
+        "Start to run the VisualGST task queue"
+        ((Smalltalk at: #VisualGST) at: #TaskQueue) uniqueInstance run.
+    ]
+
+    SUnitUnhandledDebugger class >> keepRunningOnFailure [
+        "Check if we have loaded the debugger and then just keep running."
+        LoadedDebugger ifNotNil: [self keepRunning]
+    ]
+
+    SUnitUnhandledDebugger class >> keepRunning [
+        Processor activeProcess name: 'Main-loop for SUnit'.
+        ((Smalltalk at: #GTK) at: #Gtk) main
+    ]
+]
+
+
 PackageLoader fileInPackage: 'SUnit'!
 
-| helpString verbose script suite result quiet |
+| helpString verbose pkgScript script suite result quiet debug |
 quiet := false.
 verbose := false.
+debug := false.
 FileStream verbose: false.
 script := ''.
+pkgScript := ''.
 
 helpString :=
 'Usage:
@@ -50,13 +95,14 @@ Options:
        --kernel-dir=PATH  use the specified kernel directory
     -h --help             show this message and exit
        --version          print version information and exit
+    -d --debug            debug failing tests using VisualGST
 
 '.
 
 "Parse the command-line arguments."
 Smalltalk
     arguments: '-h|--help -q|--quiet -v|-V|--verbose -f|--file: -p|--package:
-		-I|--image-file: --kernel-directory: --version'
+		-I|--image-file: --kernel-directory: --version -d|--debug'
     do: [ :opt :arg |
 
     opt = 'help' ifTrue: [
@@ -80,14 +126,23 @@ Smalltalk
 	verbose := false.
 	FileStream verbose: false ].
 
+    opt = 'debug' ifTrue: [
+        debug := true.
+        Behavior compile: 'debuggerClass [ ^SUnitUnhandledDebugger]'
+    ].
+
     opt = 'package' ifTrue: [
 	[
 	    | pkg |
-	    pkg := PackageLoader packageAt: arg.
-	    script := script, ' ', pkg sunitScript.
+	    pkg := (arg endsWith: '.xml')
+		ifTrue: [ | tmp |
+                    tmp := PackageLoader loadPackageFromFile: Directory working / arg.
+                    PackageLoader insertPackage: tmp. tmp ]
+		ifFalse: [ PackageLoader packageAt: arg ].
+	    pkgScript := pkgScript, ' ', pkg sunitScript.
 	    pkg test notNil ifTrue: [
 		pkg := pkg test.
-	        script := script, ' ', pkg sunitScript ].
+	        pkgScript := pkgScript, ' ', pkg sunitScript ].
 	    pkg fileIn ]
 	    ifCurtailed: [ ObjectMemory quit: 2 ] ].
 
@@ -102,7 +157,8 @@ Smalltalk
 	helpString displayOn: stderr.
 	ObjectMemory quit: 1 ].
 
-script isEmpty ifTrue: [ ObjectMemory quit ].
+(script isEmpty and: [pkgScript isEmpty]) ifTrue: [ ObjectMemory quit ].
+script isEmpty ifTrue: [script := pkgScript].
 
 FileStream verbose: false.
 (PackageLoader packageAt: #SUnit) loaded
@@ -111,6 +167,12 @@ FileStream verbose: false.
 	ObjectMemory quit: 1 ].
 
 result := TestSuitesScripter run: script quiet: quiet verbose: verbose.
+SUnitUnhandledDebugger keepRunningOnFailure.
 
-result runCount = result passedCount
-    ifFalse: [ ObjectMemory quit: 1 ]!
+result runCount = result passedCount ifFalse: [
+    debug ifTrue: [
+        Transcript nextPutAll: 'Tests failed. Loading graphical environment.'; nl.
+        SUnitUnhandledDebugger loadVisualGST.
+        Smalltalk VisualGST GtkSUnit results: result.
+        SUnitUnhandledDebugger keepRunning].
+    ObjectMemory quit: 1 ]!

@@ -54,14 +54,6 @@
 /* Scramble the bits of X.  */
 static inline uintptr_t scramble (uintptr_t x);
 
-/* Return a pointer to the first item in the OrderedCollection,
-   ORDEREDCOLLECTIONOOP.  */
-static inline OOP *ordered_collection_begin (OOP orderedCollectionOOP);
-
-/* Return a pointer just beyond the last item in the OrderedCollection,
-   ORDEREDCOLLECTIONOOP.  */
-static inline OOP *ordered_collection_end (OOP orderedCollectionOOP);
-
 /* Checks to see if TESTEDOOP is a subclass of CLASS_OOP, returning
    true if it is.  */
 static inline mst_Boolean is_a_kind_of (OOP testedOOP,
@@ -812,25 +804,6 @@ instantiate (OOP class_oop,
 }
 
 
-OOP *
-ordered_collection_begin (OOP orderedCollectionOOP)
-{
-  gst_ordered_collection oc;
-
-  oc = (gst_ordered_collection) OOP_TO_OBJ (orderedCollectionOOP);
-  return &oc->data[TO_INT (oc->firstIndex) - 1];
-}
-
-OOP *
-ordered_collection_end (OOP orderedCollectionOOP)
-{
-  gst_ordered_collection oc;
-
-  oc = (gst_ordered_collection) OOP_TO_OBJ (orderedCollectionOOP);
-  return &oc->data[TO_INT (oc->lastIndex)];
-}
-
-
 OOP
 dictionary_association_at (OOP dictionaryOOP,
 			   OOP keyOOP)
@@ -1006,13 +979,11 @@ index_oop_spec (OOP oop,
 	        size_t index,
 		intptr_t instanceSpec)
 {
-  size_t maxIndex, maxByte;
+  size_t maxIndex, maxByte, base;
   char *src;
 
   if UNCOMMON (index < 1)
     return (NULL);
-
-  index--;
 
 #define DO_INDEX_OOP(type, dest)					\
     /* Find the number of bytes in the object.  */			\
@@ -1020,13 +991,15 @@ index_oop_spec (OOP oop,
     if (sizeof (type) <= sizeof (PTR))					\
       maxByte -= (oop->flags & EMPTY_BYTES);				\
 									\
-    index =								\
-      index * sizeof(type)						\
-      + (instanceSpec >> ISP_NUMFIXEDFIELDS) * sizeof (PTR);		\
+    base = (instanceSpec >> ISP_NUMFIXEDFIELDS) * sizeof (PTR);		\
+    index = base + index * sizeof(type);				\
 									\
     /* Check that we're on bounds.  */					\
-    if UNCOMMON (index + sizeof(type) > maxByte)			\
+    base += sizeof(type);						\
+    if UNCOMMON (index - base > maxByte - base)				\
       return (NULL);							\
+									\
+    index -= sizeof(type);						\
 									\
     /* Use a cast if unaligned accesses are supported, else memcpy.  */	\
     src = ((char *) object->data) + index;				\
@@ -1111,11 +1084,13 @@ index_oop_spec (OOP oop,
 
       case GST_ISP_POINTER:
         maxIndex = NUM_WORDS (object);
-        index += instanceSpec >> ISP_NUMFIXEDFIELDS;
-        if UNCOMMON (index >= maxIndex)
+        base = instanceSpec >> ISP_NUMFIXEDFIELDS;
+        index += base;
+        base++;
+        if UNCOMMON (index - base > maxIndex - base)
 	  return (NULL);
 
-        return (object->data[index]);
+        return (object->data[index - 1]);
     }
 #undef DO_INDEX_OOP
 
@@ -1139,12 +1114,10 @@ index_oop_put_spec (OOP oop,
 		    OOP value,
 		    intptr_t instanceSpec)
 {
-  size_t maxIndex;
+  size_t maxIndex, base;
 
   if UNCOMMON (index < 1)
     return (false);
-
-  index--;
 
 #define DO_INDEX_OOP_PUT(type, cond, src)				\
     if COMMON (cond)							\
@@ -1154,13 +1127,15 @@ index_oop_put_spec (OOP oop,
         if (sizeof (type) <= sizeof (PTR))				\
           maxByte -= (oop->flags & EMPTY_BYTES);			\
 									\
-        index =								\
-          index * sizeof(type)						\
-          + (instanceSpec >> ISP_NUMFIXEDFIELDS) * sizeof (PTR);	\
+          base = (instanceSpec >> ISP_NUMFIXEDFIELDS) * sizeof (PTR);	\
+          index = base + index * sizeof(type);				\
 									\
         /* Check that we're on bounds.  */				\
-        if UNCOMMON (index + sizeof(type) > maxByte)			\
+        base += sizeof(type);						\
+        if UNCOMMON (index - base > maxByte - base)			\
           return (false);						\
+									\
+        index -= sizeof(type);						\
 									\
         /* Use a cast if unaligned accesses are ok, else memcpy.  */	\
         if (sizeof (type) <= sizeof (PTR))				\
@@ -1277,11 +1252,13 @@ index_oop_put_spec (OOP oop,
 
       case GST_ISP_POINTER:
         maxIndex = NUM_WORDS (object);
-        index += instanceSpec >> ISP_NUMFIXEDFIELDS;
-        if UNCOMMON (index >= maxIndex)
+        base = instanceSpec >> ISP_NUMFIXEDFIELDS;
+        index += base;
+        base++;
+        if UNCOMMON (index - base > maxIndex - base)
 	  return (false);
 
-        object->data[index] = value;
+        object->data[index - 1] = value;
         return (true);
     }
 #undef DO_INDEX_OOP_PUT

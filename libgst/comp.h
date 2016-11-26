@@ -148,6 +148,7 @@ typedef struct gst_method_info
   OOP category;
   OOP class;
   OOP selector;
+  OOP debugInfo;
   OOP attributes[1];
 }
  *gst_method_info;
@@ -231,9 +232,11 @@ typedef struct compiler_state
   scope cur_scope;
   mst_Boolean inside_block;
   mst_Boolean undeclared_temporaries;
+  int inc_depth;
   OOP *literal_vec;
   OOP *literal_vec_curr;
   OOP *literal_vec_max;
+  OOP debugInfoDict;
   jmp_buf bad_method;
 } compiler_state;
 

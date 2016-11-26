@@ -198,7 +198,7 @@ Object subclass: CairoPattern [
 		    patternDestroy: source ].
 	].
     ]
-].
+]
 
 CairoPattern subclass: CairoPatternDecorator [
     | wrappedPattern |
@@ -292,15 +292,10 @@ CairoPattern subclass: SurfacePattern [
 	<category: 'C interface'>
 	^ Cairo patternCreateForSurface: surface cairoSurface
     ]
-].
+]
 
 CairoPattern subclass: GradientPattern [
     | colorStops |
-
-    GradientPattern class >> new [
-	<category: 'instance creation'>
-	^super new initialize
-    ]
 
     colorStops [
 	<category: 'accessing'>
@@ -345,7 +340,7 @@ CairoPattern subclass: GradientPattern [
 		  blue: c blue asCNumber
 		  alpha: c alpha asCNumber ].
     ]
-].
+]
 
 GradientPattern subclass: LinearGradient [
     | point0 point1 |
@@ -395,7 +390,7 @@ GradientPattern subclass: LinearGradient [
 	self initializeCachedPattern: p.
 	^ p
     ]
-].
+]
 
 GradientPattern subclass: RadialGradient [
     | point0 r0 point1 r1 |
@@ -462,7 +457,7 @@ GradientPattern subclass: RadialGradient [
 	self initializeCachedPattern: p.
 	^ p
     ]
-].
+]
 
 CairoPattern subclass: Color [
     | red green blue alpha |
@@ -642,7 +637,7 @@ CairoPattern subclass: Color [
 	    blue: blue asCNumber
 	    alpha: alpha asCNumber.
     ]
-].
+]
 
 Eval [
     CairoPattern initialize

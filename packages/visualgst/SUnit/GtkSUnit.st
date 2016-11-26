@@ -1,5 +1,56 @@
+"======================================================================
+|
+| GtkSUnit class definition
+|
+======================================================================"
+
+"======================================================================
+|
+| Copyright (c) 2013
+| Gwenael Casaccio <gwenael.casaccio@gmail.com>,
+|
+|
+| This file is part of VisualGST.
+|
+| Permission is hereby granted, free of charge, to any person obtaining
+| a copy of this software and associated documentation files (the
+| 'Software'), to deal in the Software without restriction, including
+| without limitation the rights to use, copy, modify, merge, publish,
+| distribute, sublicense, and/or sell copies of the Software, and to
+| permit persons to whom the Software is furnished to do so, subject to
+| the following conditions:
+|
+| The above copyright notice and this permission notice shall be
+| included in all copies or substantial portions of the Software.
+|
+| THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+| EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+| MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+| IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+| CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+| TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+| SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+|
+======================================================================"
+
 GtkBrowsingTool subclass: GtkSUnit [
     | namespaceWidget classWidget methodWidget sourceCodeWidget successfullWidget failedWidget errorWidget namespace class state |
+
+    GtkSUnit class >> results: results [
+        <category: 'instance creation'>
+
+        ^ self open
+                results: results;
+                yourself
+    ]
+
+    results: results [
+        <category: 'results ui'>
+
+	successfullWidget results: results passed.
+	failedWidget results: results failures.
+	errorWidget results: results errors.
+    ]
 
     accelPath [
         <category: 'accelerator path'>
@@ -110,7 +161,7 @@ GtkBrowsingTool subclass: GtkSUnit [
     buildNamespaceWidget [
 	<category: 'user interface'>
 
-	namespaceWidget := GtkCategorizedNamespaceWidget showAll 
+	namespaceWidget := GtkNamespaceSUnitWidget showAll
 				whenSelectionChangedSend: #onNamespaceChanged to: self;
 				yourself.
 	^ namespaceWidget mainWidget
@@ -224,7 +275,7 @@ GtkBrowsingTool subclass: GtkSUnit [
 	<category: 'browser methods'>
 
 	(methodWidget hasSelectedMethod and: [aSymbol = methodWidget selectedMethodSymbol]) ifFalse: [
-            methodWidget selectAMethod: aSymbol asString ].
+            methodWidget selectAMethod: aSymbol ].
 	sourceCodeWidget source: (BrowserMethodSource on: methodWidget selectedMethod).
 	state := MethodState on: self with: methodWidget selectedMethod
     ]
@@ -272,15 +323,12 @@ GtkBrowsingTool subclass: GtkSUnit [
 	classWidget hasSelectedClass ifFalse: [ ^ self ].
 	suite := TestSuite named: classWidget allClassNames.
 	classWidget selectedClasses do: [ :elem |
-	    elem selectors do: [ :each |
-		(each matchRegex: 'test' from: 1 to: 4)
-		    ifTrue: [ suite addTest: (elem selector: each) ] ] ].
+	    elem allTestSelectors do: [:each |
+		suite addTest: (elem selector: each)]].
 	suite logPolicy: TestBacktraceLog new.
 	results := suite run.
 
-	successfullWidget results: results passed.
-	failedWidget results: results failures.
-	errorWidget results: results errors.
+	self results: results.
 
 	results failures do: [ :each | each "logPolicy logStatus inspect" printNl ].
     ]
@@ -291,9 +339,8 @@ GtkBrowsingTool subclass: GtkSUnit [
 	classWidget hasSelectedClass ifFalse: [ ^ self ].
 	classWidget selectedClasses do: [ :elem | | test |
 	    test := elem new.
-	    elem selectors do: [ :each |
-		(each matchRegex: 'test' from: 1 to: 4)
-		    ifTrue: [ test setTestSelector: each. test debug ] ] ].
+	    elem allTestSelectors do: [:each |
+		test setTestSelector: each. test debug ] ].
     ]
 
     compileError: aString line: line [
